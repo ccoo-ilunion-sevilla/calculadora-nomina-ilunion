@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calcula lo tuyo · CCOO Hábitat · Seguridad Privada</title>
+<meta name="description" content="Calculadora de nómina, finiquito y baja IT para vigilantes de seguridad privada. Convenio Estatal 2026-2030 (BOE 18/04/2026). Sección Sindical CCOO Ilunion Seguridad Sevilla.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rojo:#CC0000;
+  --rojo-osc:#9E0000;
+  --verde:#009B48;
+  --tinta:#14161A;
+  --tinta-2:#4A5058;
+  --linea:#D4D8DD;
+  --papel:#ECEEF0;
+  --blanco:#FFFFFF;
+  --ambar:#B45309;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--papel);color:var(--tinta);
+  line-height:1.5;font-size:16px;
+  padding-bottom:0;
+}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+
+/* ---------- CABECERA ---------- */
+header{background:var(--tinta);color:#fff;padding:20px 0 0}
+.head-top{display:flex;flex-direction:column;align-items:center;gap:14px}
+.head-top img{width:100%;height:auto;background:#fff;padding:8px;border-radius:4px;display:block}
+.logo-link{display:block;flex:0 0 auto;width:100%;border-radius:3px;transition:transform .12s,box-shadow .12s}
+.logo-link:hover img,.logo-link:active img{box-shadow:0 0 0 3px var(--rojo)}
+.logo-link:focus-visible{outline:3px solid var(--rojo);outline-offset:3px}
+.head-txt{width:100%;text-align:center}
+.head-txt h1{
+  font-family:'Archivo Black',sans-serif;
+  font-size:clamp(24px,8.6vw,38px);line-height:.98;letter-spacing:-.02em;text-transform:uppercase;
+}
+.head-txt h1 em{color:var(--rojo);font-style:normal}
+.head-txt p{font-size:12px;color:#A8B0BA;margin-top:6px;letter-spacing:.02em}
+.banda{height:10px;background:var(--rojo);margin-top:18px}
+.sub{background:var(--tinta);padding:0 0 14px}
+.sub .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px}
+.sub label{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#A8B0BA;font-weight:600}
+.sub select{
+  background:#22262C;color:#fff;border:1px solid #3A4048;border-radius:4px;
+  padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;
+}
+
+/* ---------- PESTAÑAS ---------- */
+nav.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--tinta);margin-bottom:22px}
+nav.tabs button{
+  background:#22262C;color:#8C949E;border:0;padding:14px 6px;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:4px solid transparent;transition:color .15s,border-color .15s,background .15s;
+}
+nav.tabs button span{display:block;font-size:10px;font-weight:500;letter-spacing:.02em;text-transform:none;color:#666E78;margin-top:2px}
+nav.tabs button[aria-selected="true"]{background:var(--papel);color:var(--tinta);border-bottom-color:var(--rojo)}
+nav.tabs button[aria-selected="true"] span{color:var(--tinta-2)}
+nav.tabs button:focus-visible{outline:3px solid var(--rojo);outline-offset:-3px}
+
+/* ---------- BLOQUES ---------- */
+.bloque{background:var(--blanco);border:1px solid var(--linea);border-left:5px solid var(--rojo);padding:18px 16px;margin-bottom:14px}
+.bloque > h2{
+  font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.06em;
+  margin-bottom:14px;color:var(--tinta)
+}
+.campo{margin-bottom:16px}
+.campo:last-child{margin-bottom:0}
+.campo > label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.ayuda{font-size:12px;color:var(--tinta-2);margin-top:5px;line-height:1.4}
+input[type=number],input[type=date],select.full{
+  width:100%;padding:11px 12px;border:1px solid var(--linea);border-radius:4px;background:#fff;
+  font-family:'IBM Plex Mono',monospace;font-size:16px;color:var(--tinta);
+}
+input:focus,select:focus{outline:2px solid var(--rojo);outline-offset:1px;border-color:var(--rojo)}
+select.full{font-family:'Inter',sans-serif;font-weight:500}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:420px){.dos{grid-template-columns:1fr}}
+
+/* opciones tipo botón */
+.opts{display:grid;gap:6px}
+.opts.g2{grid-template-columns:1fr 1fr}
+.opts label{
+  display:block;border:1px solid var(--linea);border-radius:4px;padding:10px 12px;cursor:pointer;background:#fff;
+  font-size:14px;font-weight:500;transition:border-color .12s,background .12s;
+}
+.opts label b{display:block;font-weight:600}
+.opts label small{color:var(--tinta-2);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.opts input{position:absolute;opacity:0;width:0;height:0}
+.opts input:checked + b{color:var(--rojo)}
+.opts label:has(input:checked){border-color:var(--rojo);border-width:2px;padding:9px 11px;background:#FFF5F5}
+.opts label:has(input:focus-visible){outline:2px solid var(--rojo);outline-offset:2px}
+
+/* interruptores */
+.sw{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--linea)}
+.sw:last-of-type{border-bottom:0}
+.sw input{width:20px;height:20px;accent-color:var(--rojo);flex:0 0 auto}
+.sw label{font-size:14px;font-weight:500;cursor:pointer}
+.sw label small{display:block;color:var(--tinta-2);font-size:12px;font-weight:400}
+
+.oculto{display:none}
+
+/* ---------- BOTÓN ---------- */
+button.calc{
+  width:100%;background:var(--rojo);color:#fff;border:0;padding:17px;cursor:pointer;
+  font-family:'Archivo Black',sans-serif;font-size:15px;text-transform:uppercase;letter-spacing:.08em;
+  border-radius:4px;margin-bottom:20px;
+}
+button.calc:hover{background:var(--rojo-osc)}
+button.calc:focus-visible{outline:3px solid var(--tinta);outline-offset:2px}
+
+/* ---------- RECIBO ---------- */
+.recibo{background:#fff;border:1px solid var(--linea);border-top:5px solid var(--tinta);padding:18px 16px;margin-bottom:20px}
+.recibo h3{
+  font-family:'Archivo Black',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--tinta-2);margin:18px 0 8px;
+}
+.recibo h3:first-child{margin-top:0}
+.ln{display:flex;align-items:baseline;gap:6px;padding:5px 0;font-size:14px}
+.ln .cn{flex:0 1 auto}
+.ln .pt{flex:1 1 auto;border-bottom:1px dotted var(--linea);transform:translateY(-3px)}
+.ln .vl{flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-weight:500;font-variant-numeric:tabular-nums}
+.ln.sum{border-top:1px solid var(--tinta);margin-top:6px;padding-top:8px;font-weight:700}
+.ln.neg .vl{color:var(--rojo)}
+.ln small{display:block;font-size:11px;color:var(--tinta-2);font-family:'Inter',sans-serif;font-weight:400}
+.neto{background:var(--tinta);color:#fff;padding:16px;margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.neto .et{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#A8B0BA;font-weight:600}
+.neto .et b{display:block;font-family:'Archivo Black',sans-serif;font-size:16px;color:#fff;letter-spacing:.03em;margin-top:2px}
+.neto .im{font-family:'IBM Plex Mono',monospace;font-size:clamp(24px,7vw,34px);font-weight:600;color:#4ADE80;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nota{font-size:12px;color:var(--tinta-2);background:#F7F8F9;border-left:3px solid var(--linea);padding:10px 12px;margin-top:14px;line-height:1.5}
+.nota b{color:var(--tinta)}
+.aviso{font-size:13px;background:#FFF7ED;border-left:3px solid var(--ambar);padding:11px 13px;margin-top:14px;line-height:1.5}
+.copiar{width:100%;margin-top:14px;background:#fff;border:1px solid var(--tinta);color:var(--tinta);padding:12px;cursor:pointer;font-weight:600;font-size:14px;border-radius:4px}
+.copiar:hover{background:var(--tinta);color:#fff}
+
+/* ---------- LLAMADA SINDICAL ---------- */
+.cta{background:var(--rojo);color:#fff;padding:20px 16px;margin-bottom:20px;scroll-margin-top:16px}
+.cta h3{font-family:'Archivo Black',sans-serif;font-size:17px;text-transform:uppercase;line-height:1.1;margin-bottom:8px}
+.cta p{font-size:14px;line-height:1.5;margin-bottom:12px}
+.cta-btn{
+  display:block;background:#fff;color:var(--rojo);padding:14px 18px;text-decoration:none;font-weight:700;
+  font-size:15px;border-radius:3px;text-align:center;margin-bottom:8px;
+}
+.cta-btn.alt{background:transparent;color:#fff;border:2px solid #fff;padding:12px 18px}
+.cta-btn:focus-visible{outline:3px solid var(--tinta);outline-offset:2px}
+.cta-mail{font-size:12px;margin-top:14px;margin-bottom:0;line-height:1.6}
+.cta-mail button{
+  display:block;background:transparent;border:0;border-bottom:1px dotted #fff;color:#fff;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;padding:2px 0;margin-top:4px;text-align:left;
+}
+.cta-mail button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+/* ---------- AFILIACIÓN ---------- */
+.afi{
+  background:var(--tinta);color:#fff;padding:34px 0 40px;margin-bottom:0;
+  border-top:10px solid var(--rojo);
+}
+.afi-pie{font-size:11px;color:#8C949E;margin-top:14px;line-height:1.5}
+.afi-eyebrow{
+  font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#8C949E;font-weight:700;margin-bottom:10px;
+}
+.afi h3{
+  font-family:'Archivo Black',sans-serif;font-size:clamp(28px,8.6vw,44px);line-height:.94;
+  text-transform:uppercase;letter-spacing:-.02em;margin-bottom:14px;
+}
+.afi h3 em{font-style:normal;color:var(--rojo);-webkit-text-stroke:0}
+.afi-txt{font-size:14px;line-height:1.6;color:#C8CDD4;margin-bottom:20px;max-width:46ch}
+.afi-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--rojo);color:#fff;text-decoration:none;padding:19px 20px;border-radius:4px;
+  font-family:'Archivo Black',sans-serif;font-size:clamp(15px,4.4vw,19px);
+  text-transform:uppercase;letter-spacing:.05em;text-align:center;
+  box-shadow:0 6px 0 var(--rojo-osc);transition:transform .1s,box-shadow .1s,background .12s;
+}
+.afi-btn:hover{background:#E00000}
+.afi-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--rojo-osc)}
+.afi-btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.afi-btn span{transition:transform .15s}
+.afi-btn:hover span{transform:translateX(5px)}
+
+/* ---------- PANEL DE AFILIACIÓN ---------- */
+.afi-head{background:var(--tinta);color:#fff;padding:16px 0 22px;margin-bottom:22px;border-bottom:8px solid var(--rojo)}
+.afi-head h2{font-family:'Archivo Black',sans-serif;font-size:clamp(21px,6vw,30px);line-height:1.04;text-transform:uppercase;margin:14px 0 10px}
+.afi-head p{font-size:13px;color:#C8CDD4;line-height:1.55}
+.afi-head p b{color:#fff}
+.volver{background:transparent;border:0;color:#A8B0BA;font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;font-family:'Inter',sans-serif}
+.volver:hover{color:#fff}
+.volver:focus-visible{outline:2px solid var(--rojo);outline-offset:3px}
+input[type=text],input[type=email],input[type=tel]{
+  width:100%;padding:11px 12px;border:1px solid var(--linea);border-radius:4px;background:#fff;
+  font-family:'Inter',sans-serif;font-size:16px;color:var(--tinta);
+}
+.firma-caja{border:2px dashed var(--linea);border-radius:4px;background:#fff;overflow:hidden}
+.firma-caja canvas{width:100%;height:150px;display:block;touch-action:none;cursor:crosshair}
+.firma-caja.hecha{border-style:solid;border-color:var(--verde)}
+.err{background:#FEF2F2;border-left:3px solid var(--rojo);padding:11px 13px;font-size:13px;margin-bottom:14px;line-height:1.5}
+.ok-box{background:#fff;border:1px solid var(--linea);border-left:5px solid var(--verde);padding:18px 16px;margin-bottom:20px}
+.ok-box h3{font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase;margin-bottom:8px}
+.ok-box p{font-size:13px;color:var(--tinta-2);line-height:1.55;margin-bottom:14px}
+.ok-box .calc{margin-bottom:8px}
+.ok-box .copiar{margin-top:0}
+
+/* ---------- PIE ---------- */
+footer{border-top:1px solid var(--linea);padding:22px 0 30px;font-size:12px;color:var(--tinta-2);line-height:1.6}
+footer h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tinta);margin:16px 0 5px;font-weight:700}
+footer a{color:var(--rojo)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="head-top">
+      <a class="logo-link" href="#contacto" title="Contactar con la sección sindical">
+        <img src="data:image/jpeg;base64,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" alt="Contactar con la sección sindical de CCOO">
+      </a>
+      <div class="head-txt">
+        <h1>Calcula <em>lo tuyo</em></h1>
+        <p>Convenio Estatal de Seguridad Privada 2026–2030</p>
+      </div>
+    </div>
+  </div>
+  <div class="banda"></div>
+  <div class="sub">
+    <div class="wrap">
+      <label for="anio">Tablas del año</label>
+      <select id="anio">
+        <option value="2026" selected>2026</option>
+        <option value="2027">2027</option>
+        <option value="2028">2028</option>
+        <option value="2029">2029</option>
+        <option value="2030">2030</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" id="t-nom" aria-selected="true" aria-controls="p-nom">Nómina<span>del mes</span></button>
+  <button role="tab" id="t-fin" aria-selected="false" aria-controls="p-fin">Finiquito<span>al salir</span></button>
+  <button role="tab" id="t-it" aria-selected="false" aria-controls="p-it">Baja<span>IT</span></button>
+  <button role="tab" id="t-chk" aria-selected="false" aria-controls="p-chk">Revisa<span>tu nómina</span></button>
+</nav>
+
+<main class="wrap">
+
+<!-- =============== NÓMINA =============== -->
+<section id="p-nom" role="tabpanel" aria-labelledby="t-nom">
+
+  <div class="bloque">
+    <h2>Tu puesto</h2>
+    <div class="campo">
+      <label for="n-cat">Nivel funcional</label>
+      <select class="full" id="n-cat"></select>
+    </div>
+    <div class="campo" id="n-arma-box">
+      <div class="sw">
+        <input type="checkbox" id="n-arma">
+        <label for="n-arma">Presto servicio con arma de fuego
+          <small>Cambia el plus de peligrosidad: se cobra el importe con arma, no la suma de ambos (art. 43.a.3)</small></label>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="n-quin">Años en la empresa</label>
+      <input type="number" id="n-quin" min="0" max="50" step="1" value="0" inputmode="numeric">
+      <p class="ayuda" id="n-quin-ay">La antigüedad se devenga por quinquenios (art. 42.b)</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>Jornada del mes</h2>
+    <div class="campo">
+      <label for="n-mes">Mes</label>
+      <select class="full" id="n-mes">
+        <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+        <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+        <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <p class="ayuda">Febrero tiene su propia horquilla de horas</p>
+    </div>
+    <div class="campo">
+      <label>Tipo de jornada</label>
+      <div class="opts g2">
+        <label><input type="radio" name="n-jor" value="c" checked><b>Completa</b><small>1.782 h/año</small></label>
+        <label><input type="radio" name="n-jor" value="p"><b>Parcial</b><small>indica tus horas</small></label>
+      </div>
+    </div>
+    <div class="campo oculto" id="n-parc-box">
+      <label for="n-pact">Horas mensuales pactadas en contrato</label>
+      <input type="number" id="n-pact" min="1" max="200" step="0.5" value="120" inputmode="decimal">
+    </div>
+    <div class="campo">
+      <label>¿Tu servicio va con cuadrante anual?</label>
+      <div class="opts">
+        <label><input type="radio" name="n-reg" value="cuad" checked><b>Sí, tengo cuadrante anual</b>
+          <small>servicio fijo y estable · art. 52.2</small></label>
+        <label><input type="radio" name="n-reg" value="fijo"><b>No, voy a 162 h al mes</b>
+          <small>régimen general · art. 52.1</small></label>
+      </div>
+      <p class="ayuda">El cuadrante anual te lo tienen que entregar un mes antes de que empiece a aplicarse, a ti y a la representación sindical.</p>
+    </div>
+    <div class="campo" id="n-prog-box">
+      <label for="n-prog">Horas que marca tu cuadrante para este mes</label>
+      <input type="number" id="n-prog" min="0" max="400" step="0.5" value="162" inputmode="decimal">
+      <p class="ayuda"><b>Esta es la cifra que manda.</b> Todo lo que trabajes por encima de lo que pone tu cuadrante
+      es hora extraordinaria, aunque no llegues a 176 h (art. 53.a)</p>
+    </div>
+    <div class="campo">
+      <label for="n-tot">Horas realmente trabajadas este mes</label>
+      <input type="number" id="n-tot" min="0" max="400" step="0.5" value="162" inputmode="decimal">
+      <p class="ayuda">Súmalas de tu registro de jornada, no del cuadrante</p>
+    </div>
+    <div class="dos">
+      <div class="campo">
+        <label for="n-noc">Horas nocturnas</label>
+        <input type="number" id="n-noc" min="0" max="400" step="0.5" value="0" inputmode="decimal">
+        <p class="ayuda">De 22:00 a 06:00</p>
+      </div>
+      <div class="campo">
+        <label for="n-fes">Horas sábado, domingo o festivo</label>
+        <input type="number" id="n-fes" min="0" max="400" step="0.5" value="0" inputmode="decimal">
+        <p class="ayuda">Se acumula a la nocturnidad</p>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="n-nb">Noches de 24 y 31 de diciembre trabajadas</label>
+      <input type="number" id="n-nb" min="0" max="2" step="1" value="0" inputmode="numeric">
+      <p class="ayuda">Compensación del art. 44.b, si no la cambias por descanso</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>Control anual · opcional</h2>
+    <p class="ayuda" style="margin-bottom:12px">Aquí es donde se pierden más horas. Puedes ir todos los meses dentro
+    de la horquilla y acabar el año muy por encima de las 1.782 horas. Si llevas la cuenta, ponla.</p>
+    <div class="campo">
+      <label for="n-acum">Horas acumuladas en lo que va de año, incluido este mes</label>
+      <input type="number" id="n-acum" min="0" max="3000" step="0.5" value="0" inputmode="decimal">
+      <p class="ayuda">Déjalo en 0 si no lo llevas controlado</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>Pluses y complementos</h2>
+    <div class="sw">
+      <input type="checkbox" id="n-jefe">
+      <label for="n-jefe">Hago funciones de responsable de equipo
+        <small>10 % del salario base por hora realizada (art. 43.d). No entra en pagas extra</small></label>
+    </div>
+    <div class="sw">
+      <input type="checkbox" id="n-aero">
+      <label for="n-aero">Servicio aeroportuario
+        <small>Plus aeropuerto por hora efectiva (art. 43.e.1)</small></label>
+    </div>
+    <div class="sw">
+      <input type="checkbox" id="n-radio">
+      <label for="n-radio">Radioscopia aeroportuaria
+        <small>Por hora efectiva (art. 43.e.2)</small></label>
+    </div>
+    <div class="sw">
+      <input type="checkbox" id="n-radiob">
+      <label for="n-radiob">Radioscopia básica
+        <small>Por hora efectiva (art. 43.f)</small></label>
+    </div>
+    <div class="campo" style="margin-top:16px">
+      <label for="n-plus">Otro plus de empresa o servicio (€/mes)</label>
+      <input type="number" id="n-plus" min="0" step="0.01" value="0" inputmode="decimal">
+      <p class="ayuda">Pluses pactados por encima de convenio: acuerdo de empresa, plus de servicio, disponibilidad…</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>Pagas extraordinarias</h2>
+    <p class="ayuda" style="margin-bottom:12px">El convenio tiene <b>tres</b>: julio, Navidad y marzo (art. 45). Marca las que cobres prorrateadas mes a mes.</p>
+    <div class="sw"><input type="checkbox" id="n-pj"><label for="n-pj">Paga de julio prorrateada</label></div>
+    <div class="sw"><input type="checkbox" id="n-pn"><label for="n-pn">Paga de Navidad prorrateada</label></div>
+    <div class="sw"><input type="checkbox" id="n-pm"><label for="n-pm">Paga de marzo prorrateada</label></div>
+  </div>
+
+  <div class="bloque">
+    <h2>¿Has estado de baja algún día este mes?</h2>
+    <div class="campo">
+      <label for="n-bdias">Días de baja dentro de este mes</label>
+      <input type="number" id="n-bdias" min="0" max="31" step="1" value="0" inputmode="numeric">
+      <p class="ayuda">Déjalo en 0 si no has tenido ninguna baja</p>
+    </div>
+    <div id="n-baja-box" class="oculto">
+      <div class="campo">
+        <label>Contingencia</label>
+        <div class="opts">
+          <label><input type="radio" name="n-btipo" value="ec" checked><b>Enfermedad común o accidente no laboral</b>
+            <small>por tramos sobre la base de cotización</small></label>
+          <label><input type="radio" name="n-btipo" value="at"><b>Accidente de trabajo o enfermedad profesional</b>
+            <small>100 % y sin merma de pagas extra</small></label>
+          <label><input type="radio" name="n-btipo" value="hosp"><b>Hospitalización</b>
+            <small>100 % durante 40 días máximo</small></label>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="n-bprev">Días de baja que llevabas antes de empezar el mes</label>
+        <input type="number" id="n-bprev" min="0" max="540" step="1" value="0" inputmode="numeric">
+        <p class="ayuda">0 si la baja empezó este mes. Sirve para saber en qué tramo del art. 51 estás</p>
+      </div>
+      <div class="campo" id="n-borden-box">
+        <label>Número de proceso de IT este año</label>
+        <div class="opts">
+          <label><input type="radio" name="n-borden" value="1" checked><b>El primero</b><small>tramos 1-3 y 4-20 completos</small></label>
+          <label><input type="radio" name="n-borden" value="2"><b>Segundo o tercero</b><small>mantiene el tramo 4-20</small></label>
+          <label><input type="radio" name="n-borden" value="4"><b>Cuarto o posterior</b><small>solo prestación legal</small></label>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="n-bbase">Base de contingencias comunes del mes anterior (€)</label>
+        <input type="number" id="n-bbase" min="0" step="0.01" value="0" inputmode="decimal">
+        <p class="ayuda">De tu nómina anterior. Si la dejas en 0, se estima con las tablas del convenio</p>
+      </div>
+      <div class="campo">
+        <label>Transporte y vestuario durante los días de baja</label>
+        <div class="opts">
+          <label><input type="radio" name="n-bsupl" value="prop" checked><b>Me los descuentan</b>
+            <small>proporcionales a los días trabajados · es lo que suele hacer la empresa</small></label>
+          <label><input type="radio" name="n-bsupl" value="int"><b>Me los pagan enteros</b>
+            <small>cuantía anual repartida en doce mensualidades · art. 46</small></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>Deducciones</h2>
+    <div class="dos">
+      <div class="campo">
+        <label for="n-irpf">Retención de IRPF (%)</label>
+        <input type="number" id="n-irpf" min="0" max="50" step="0.01" placeholder="Pon tu % de IRPF" inputmode="decimal">
+        <p class="ayuda">Mírala en tu última nómina</p>
+      </div>
+      <div class="campo">
+        <label for="n-ss">Cotización a tu cargo (%)</label>
+        <input type="number" id="n-ss" min="0" max="15" step="0.01" value="6.50" inputmode="decimal">
+        <p class="ayuda">4,70 comunes + 1,55 desempleo + 0,10 formación + 0,15 MEI</p>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="n-cuota">Cuota sindical descontada en nómina (€/mes)</label>
+      <input type="number" id="n-cuota" min="0" step="0.01" placeholder="Pon tu cuota" inputmode="decimal">
+      <p class="ayuda">Solo si te la descuenta la empresa. Va en el apartado "A deducir" del recibo, después de IRPF y Seguridad Social. Puede desgravar en la declaración de la renta</p>
+    </div>
+  </div>
+
+  <button class="calc" id="b-nom">Calcular nómina</button>
+  <div id="r-nom"></div>
+</section>
+
+<!-- =============== FINIQUITO =============== -->
+<section id="p-fin" role="tabpanel" aria-labelledby="t-fin" class="oculto">
+
+  <div class="bloque">
+    <h2>Tu puesto</h2>
+    <div class="campo">
+      <label for="f-cat">Nivel funcional</label>
+      <select class="full" id="f-cat"></select>
+    </div>
+    <div class="campo">
+      <div class="sw">
+        <input type="checkbox" id="f-arma">
+        <label for="f-arma">Servicio con arma de fuego</label>
+      </div>
+    </div>
+    <div class="dos">
+      <div class="campo">
+        <label for="f-ini">Fecha de alta en la empresa</label>
+        <input type="date" id="f-ini">
+      </div>
+      <div class="campo">
+        <label for="f-fin">Fecha de baja</label>
+        <input type="date" id="f-fin">
+      </div>
+    </div>
+    <p class="ayuda">Si te subrogaron, cuenta la antigüedad desde la primera empresa (art. 14 y ss.)</p>
+  </div>
+
+  <div class="bloque">
+    <h2>Vacaciones y pagas</h2>
+    <div class="campo">
+      <label for="f-vac">Días de vacaciones ya disfrutados este año</label>
+      <input type="number" id="f-vac" min="0" max="31" step="1" value="0" inputmode="numeric">
+      <p class="ayuda">El convenio da 31 días naturales al año (art. 57). Se te debe la parte devengada y no disfrutada</p>
+    </div>
+    <p class="ayuda" style="margin:16px 0 10px"><b>Marca las pagas que ya cobras prorrateadas.</b> Las que no marques se calcularán como pendientes.</p>
+    <div class="sw"><input type="checkbox" id="f-pj"><label for="f-pj">Julio prorrateada <small>Devengo del 1 de julio al 30 de junio</small></label></div>
+    <div class="sw"><input type="checkbox" id="f-pn"><label for="f-pn">Navidad prorrateada <small>Devengo del 1 de enero al 31 de diciembre</small></label></div>
+    <div class="sw"><input type="checkbox" id="f-pm"><label for="f-pm">Marzo prorrateada <small>Devengo del 1 de enero al 31 de diciembre, se paga en marzo del año siguiente</small></label></div>
+  </div>
+
+  <div class="bloque">
+    <h2>Causa de la salida</h2>
+    <div class="campo">
+      <div class="opts">
+        <label><input type="radio" name="f-tipo" value="0" checked><b>Baja voluntaria</b><small>sin indemnización</small></label>
+        <label><input type="radio" name="f-tipo" value="12"><b>Fin de contrato temporal</b><small>12 días por año · art. 49.1.c ET</small></label>
+        <label><input type="radio" name="f-tipo" value="20"><b>Despido objetivo</b><small>20 días por año · tope 12 mensualidades</small></label>
+        <label><input type="radio" name="f-tipo" value="33"><b>Despido improcedente</b><small>33 días por año · tope 24 mensualidades</small></label>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="f-irpf">Retención de IRPF (%)</label>
+      <input type="number" id="f-irpf" min="0" max="50" step="0.01" placeholder="Pon tu % de IRPF" inputmode="decimal">
+      <p class="ayuda">Solo se aplica a vacaciones y pagas. La indemnización está exenta hasta el límite del art. 7.e LIRPF</p>
+    </div>
+  </div>
+
+  <button class="calc" id="b-fin">Calcular finiquito</button>
+  <div id="r-fin"></div>
+</section>
+
+<!-- =============== BAJA IT =============== -->
+<section id="p-it" role="tabpanel" aria-labelledby="t-it" class="oculto">
+
+  <div class="bloque">
+    <h2>Tu puesto</h2>
+    <div class="campo">
+      <label for="i-cat">Nivel funcional</label>
+      <select class="full" id="i-cat"></select>
+    </div>
+    <div class="campo">
+      <div class="sw"><input type="checkbox" id="i-arma"><label for="i-arma">Servicio con arma de fuego</label></div>
+    </div>
+    <div class="campo">
+      <label for="i-quin">Años en la empresa</label>
+      <input type="number" id="i-quin" min="0" max="50" step="1" value="0" inputmode="numeric">
+    </div>
+    <div class="campo">
+      <label for="i-base">Base de contingencias comunes del mes anterior (€)</label>
+      <input type="number" id="i-base" min="0" step="0.01" value="0" inputmode="decimal">
+      <p class="ayuda">Cópiala de tu nómina anterior a la baja. Esa base ya incluye tus pluses cotizables y la prorrata de pagas. Si la dejas en 0, se estima con las tablas del convenio</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>La baja</h2>
+    <div class="campo">
+      <label>Contingencia</label>
+      <div class="opts">
+        <label><input type="radio" name="i-tipo" value="ec" checked><b>Enfermedad común o accidente no laboral</b><small>art. 51.b · por tramos</small></label>
+        <label><input type="radio" name="i-tipo" value="at"><b>Accidente de trabajo o enfermedad profesional</b><small>art. 51.a · 100 % desde el día siguiente</small></label>
+        <label><input type="radio" name="i-tipo" value="hosp"><b>Hospitalización</b><small>100 % de la base durante 40 días máximo</small></label>
+      </div>
+    </div>
+    <div class="campo" id="i-orden-box">
+      <label>Número de proceso de IT este año</label>
+      <div class="opts">
+        <label><input type="radio" name="i-orden" value="1" checked><b>Es el primero del año</b><small>da derecho a los tramos de días 1-3 y 4-20</small></label>
+        <label><input type="radio" name="i-orden" value="2"><b>Es el segundo o tercero</b><small>mantiene el tramo 4-20, no el de 1-3</small></label>
+        <label><input type="radio" name="i-orden" value="4"><b>Es el cuarto o posterior</b><small>solo prestación legal en los primeros 20 días</small></label>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="i-dias">Días de baja</label>
+      <input type="number" id="i-dias" min="1" max="545" step="1" value="30" inputmode="numeric">
+    </div>
+    <div class="campo">
+      <label for="i-irpf">Retención de IRPF (%)</label>
+      <input type="number" id="i-irpf" min="0" max="50" step="0.01" placeholder="Pon tu % de IRPF" inputmode="decimal">
+    </div>
+  </div>
+
+  <button class="calc" id="b-it">Calcular baja</button>
+  <div id="r-it"></div>
+</section>
+
+<!-- =============== REVISA TU NÓMINA =============== -->
+<section id="p-chk" role="tabpanel" aria-labelledby="t-chk" class="oculto">
+
+  <div class="bloque">
+    <h2>Sube tu nómina</h2>
+    <p class="ayuda" style="margin-bottom:14px">Solo admite <b>PDF</b>, que es el formato que entrega la empresa.
+    Léelo antes de subirlo: el archivo no sale de tu móvil, se procesa aquí dentro, igual que el resto de la
+    calculadora.</p>
+    <div class="campo">
+      <label for="chk-file">PDF de tu nómina</label>
+      <input type="file" id="chk-file" accept="application/pdf,.pdf">
+      <p class="ayuda">Si te la mandan por un enlace de Adobe y no tienes ahí un botón para descargar, busca el icono
+      de descarga o "Guardar como" dentro de esa página, guarda el PDF en Archivos o Descargas de tu móvil, y luego
+      selecciónalo aquí.</p>
+    </div>
+    <div id="chk-estado"></div>
+  </div>
+
+  <div id="chk-revision" class="oculto">
+    <div class="bloque">
+      <h2>Esto hemos leído de tu nómina</h2>
+      <p class="ayuda" style="margin-bottom:14px">Revísalo y corrige lo que no sea correcto o se nos haya escapado
+      antes de comparar. Los campos vacíos no se han podido leer del PDF.</p>
+      <div class="campo">
+        <label for="chk-cat">Nivel funcional</label>
+        <select class="full" id="chk-cat"></select>
+      </div>
+      <div class="campo">
+        <div class="sw">
+          <input type="checkbox" id="chk-arma">
+          <label for="chk-arma">Presto servicio con arma de fuego
+            <small>Esto no se puede leer del PDF, márcalo si es tu caso</small></label>
+        </div>
+      </div>
+      <div class="dos">
+        <div class="campo">
+          <label for="chk-quin">Años en la empresa</label>
+          <input type="number" id="chk-quin" min="0" max="50" step="1" inputmode="numeric">
+        </div>
+        <div class="campo">
+          <label for="chk-mes">Mes de la nómina</label>
+          <select class="full" id="chk-mes">
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+        </div>
+      </div>
+      <div class="dos">
+        <div class="campo">
+          <label for="chk-noc">Horas nocturnas</label>
+          <input type="number" id="chk-noc" min="0" max="400" step="0.5" inputmode="decimal">
+        </div>
+        <div class="campo">
+          <label for="chk-fes">Horas sábado, domingo o festivo</label>
+          <input type="number" id="chk-fes" min="0" max="400" step="0.5" inputmode="decimal">
+        </div>
+      </div>
+      <div class="campo">
+        <label for="chk-irpf">Retención de IRPF (%)</label>
+        <input type="number" id="chk-irpf" min="0" max="50" step="0.01" inputmode="decimal">
+      </div>
+      <div class="campo">
+        <div class="sw">
+          <input type="checkbox" id="chk-hubobaja">
+          <label for="chk-hubobaja">Hubo baja médica este mes
+            <small>Lo marcamos solo si lo hemos visto en las observaciones del PDF; revísalo igualmente</small></label>
+        </div>
+      </div>
+      <div id="chk-baja-box" class="oculto">
+        <div class="dos">
+          <div class="campo">
+            <label for="chk-bdias">Días de baja dentro de este mes</label>
+            <input type="number" id="chk-bdias" min="0" max="31" step="1" inputmode="numeric">
+          </div>
+          <div class="campo">
+            <label for="chk-bprev">Días de baja previos a este mes</label>
+            <input type="number" id="chk-bprev" min="0" max="540" step="1" inputmode="numeric">
+          </div>
+        </div>
+        <div class="campo">
+          <label>Contingencia</label>
+          <div class="opts">
+            <label><input type="radio" name="chk-btipo" value="ec" checked><b>Enfermedad común o accidente no laboral</b></label>
+            <label><input type="radio" name="chk-btipo" value="at"><b>Accidente de trabajo o enfermedad profesional</b></label>
+            <label><input type="radio" name="chk-btipo" value="hosp"><b>Hospitalización</b></label>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="chk-it-real">Total pagado por IT según tu nómina (€)</label>
+          <input type="number" id="chk-it-real" min="0" step="0.01" inputmode="decimal">
+          <p class="ayuda">Suma de los conceptos de prestación/complemento de IT que hemos detectado en tu recibo</p>
+        </div>
+        <div class="campo">
+          <label for="chk-base-cotiz">Base de cotización de tu nómina (€)</label>
+          <input type="number" id="chk-base-cotiz" min="0" step="0.01" inputmode="decimal">
+          <p class="ayuda">De la tabla de aportaciones (fila Conting. Comunes). Durante la baja es una cifra fija
+          que se repite cada mes: se usa tal cual para la Seguridad Social, en vez de recalcularla</p>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="chk-otros">Otros pluses de tu nómina no identificados (€/mes)</label>
+        <input type="number" id="chk-otros" min="0" step="0.01" inputmode="decimal">
+        <p class="ayuda" id="chk-otros-ay">Conceptos de tu nómina que no reconocemos como del convenio (pluses de
+        centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h2>Lo que dice tu nómina en total</h2>
+      <p class="ayuda" style="margin-bottom:14px">Estas dos cifras son las que compararemos con el mínimo de
+      convenio.</p>
+      <div class="dos">
+        <div class="campo">
+          <label for="chk-real-bruto">Total devengado (€)</label>
+          <input type="number" id="chk-real-bruto" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <div class="campo">
+          <label for="chk-real-neto">Líquido a percibir (€)</label>
+          <input type="number" id="chk-real-neto" min="0" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <button class="calc" id="b-chk">Comparar con el convenio</button>
+    <div id="r-chk"></div>
+  </div>
+</section>
+
+<div class="cta" id="contacto">
+  <h3>¿No te cuadra la nómina?</h3>
+  <p>Si lo que te pagan no coincide con lo que sale aquí, guarda tu cuadrante y tu recibo de salarios y escríbenos. La sección sindical lo revisa y reclama por ti.</p>
+  <a class="cta-btn" id="btn-mail" href="mailto:seccionsindical.ilunion.ccoo@gmail.com?subject=Revisi%C3%B3n%20de%20n%C3%B3mina&amp;body=Hola%2C%20mi%20n%C3%B3mina%20no%20me%20cuadra.%0A%0AMi%20centro%20de%20trabajo%3A%20%0AMes%20de%20la%20n%C3%B3mina%3A%20%0ALo%20que%20no%20cuadra%3A%20">Abrir mi app de correo</a>
+  <a class="cta-btn alt" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=seccionsindical.ilunion.ccoo@gmail.com&amp;su=Revisi%C3%B3n%20de%20n%C3%B3mina&amp;body=Hola%2C%20mi%20n%C3%B3mina%20no%20me%20cuadra.%0A%0AMi%20centro%20de%20trabajo%3A%20%0AMes%20de%20la%20n%C3%B3mina%3A%20%0ALo%20que%20no%20cuadra%3A%20" target="_blank" rel="noopener">Escribir desde Gmail</a>
+  <p class="cta-mail">O copia la dirección y escríbenos por donde quieras:
+    <button type="button" id="copia-mail">seccionsindical.ilunion.ccoo@gmail.com</button></p>
+</div>
+
+</main>
+
+<footer class="wrap">
+  <h4>De dónde salen los números</h4>
+  Convenio Colectivo Estatal de Empresas de Seguridad 2026–2030, publicado en el BOE núm. 95 de 18 de abril de 2026 (BOE-A-2026-8569). Artículos 41 a 47 (salarios y complementos), 51 (incapacidad temporal), 52 y 53 (jornada y horas extraordinarias), 57 (vacaciones) y anexos 1 y 2 (tablas salariales 2026 a 2030).
+
+  <h4>Qué no calcula</h4>
+  Los pluses y mejoras pactados en acuerdo de empresa por encima del convenio. Si tu empresa tiene condiciones propias, introdúcelas en el campo de plus de empresa. Los importes son mínimos de convenio: lo que cobres por encima es mejora voluntaria y no se pierde.
+
+  <h4>Tus datos</h4>
+  Todo el cálculo ocurre dentro de tu móvil. No hay servidor, no hay registro, no se guarda ni se envía ningún dato. Esta herramienta no lleva publicidad ni rastreadores.
+
+  <h4>Aviso</h4>
+  Herramienta orientativa de la Sección Sindical de CCOO. No sustituye al recibo oficial de salarios ni al asesoramiento jurídico. Ante cualquier diferencia, contrasta con tu nómina y consúltanos.
+
+  <p style="margin-top:18px">Sección Sindical CCOO · Ilunion Seguridad Sevilla · <a href="mailto:seccionsindical.ilunion.ccoo@gmail.com">seccionsindical.ilunion.ccoo@gmail.com</a></p>
+</footer>
+
+<section class="afi">
+  <div class="wrap">
+    <p class="afi-eyebrow">Esta herramienta la ha hecho un sindicato</p>
+    <h3>Si quieres más ayuda,<br><em>afíliate</em></h3>
+    <p class="afi-txt">Esta calculadora te dice lo que te corresponde. Afiliarte es lo que hace que alguien lo reclame
+    por ti: asesoramiento laboral, defensa jurídica y respaldo cuando la empresa se planta. Además, la cuota sindical
+    desgrava en la declaración de la renta.</p>
+    <a class="afi-btn" href="#afiliacion" id="btn-abrir-afi">
+      Afiliarme a CCOO <span aria-hidden="true">→</span></a>
+    <p class="afi-pie">Solo entrar a mirar no te compromete a nada. Puedes informarte, dejarlo a medias o darte
+    de baja cuando quieras.</p>
+  </div>
+</section>
+
+<!-- =============== FORMULARIO DE AFILIACIÓN =============== -->
+<section id="afiliacion" class="oculto">
+  <div class="afi-head">
+    <div class="wrap">
+      <button type="button" id="cerrar-afi" class="volver">← Volver a la calculadora</button>
+      <h2>Solicitud de afiliación a CCOO</h2>
+      <p>Rellénala desde el móvil, fírmala con el dedo y te generas el PDF. <b>Nada de lo que escribas sale de tu
+      teléfono:</b> el documento se crea aquí dentro y tú decides a quién se lo mandas.</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="bloque">
+      <h2>Tus datos</h2>
+      <div class="campo"><label for="a-dni">DNI o NIE</label>
+        <input type="text" id="a-dni" autocomplete="off" placeholder="00000000A"></div>
+      <div class="dos">
+        <div class="campo"><label for="a-ape">Apellidos</label><input type="text" id="a-ape" autocomplete="family-name"></div>
+        <div class="campo"><label for="a-nom">Nombre</label><input type="text" id="a-nom" autocomplete="given-name"></div>
+      </div>
+      <div class="dos">
+        <div class="campo"><label for="a-nac">Fecha de nacimiento</label><input type="date" id="a-nac"></div>
+        <div class="campo"><label for="a-sexo">Sexo</label>
+          <select class="full" id="a-sexo"><option value="M">Mujer</option><option value="H">Hombre</option></select></div>
+      </div>
+      <div class="campo"><label for="a-via">Domicilio</label>
+        <input type="text" id="a-via" placeholder="Calle, avenida, plaza…" autocomplete="street-address"></div>
+      <div class="dos">
+        <div class="campo"><label for="a-numero">Número, piso y puerta</label><input type="text" id="a-numero"></div>
+        <div class="campo"><label for="a-cp">Código postal</label><input type="text" id="a-cp" inputmode="numeric" autocomplete="postal-code"></div>
+      </div>
+      <div class="dos">
+        <div class="campo"><label for="a-loc">Localidad</label><input type="text" id="a-loc" autocomplete="address-level2"></div>
+        <div class="campo"><label for="a-pais">País</label><input type="text" id="a-pais" value="España"></div>
+      </div>
+      <div class="dos">
+        <div class="campo"><label for="a-movil">Teléfono móvil</label><input type="tel" id="a-movil" inputmode="tel" autocomplete="tel"></div>
+        <div class="campo"><label for="a-fijo">Teléfono fijo</label><input type="tel" id="a-fijo" inputmode="tel"></div>
+      </div>
+      <div class="campo"><label for="a-email">Correo electrónico</label>
+        <input type="email" id="a-email" inputmode="email" autocomplete="email"></div>
+    </div>
+
+    <div class="bloque">
+      <h2>Tu empresa</h2>
+      <p class="ayuda" style="margin-bottom:14px">Los datos de Ilunion ya vienen puestos, son los que salen en tu
+      recibo de salarios. Tú solo tienes que indicar <b>tu centro de trabajo</b>.</p>
+      <div class="campo"><label for="a-empresa">Empresa</label><input type="text" id="a-empresa" value="ILUNION SEGURIDAD, S.A."></div>
+      <div class="dos">
+        <div class="campo"><label for="a-nif">CIF de la empresa</label><input type="text" id="a-nif" value="A78917465"></div>
+        <div class="campo"><label for="a-ccc">Nº de Seguridad Social de la empresa</label><input type="text" id="a-ccc" value="41015034131"></div>
+      </div>
+      <div class="campo"><label for="a-social">Domicilio social</label>
+        <input type="text" id="a-social" value="CL. Albacete, 3 - 28027 Madrid">
+        <p class="ayuda">El que figura en la cabecera de la nómina</p></div>
+      <div class="campo"><label for="a-centro">Centro de trabajo</label>
+        <input type="text" id="a-centro" placeholder="Metro de Sevilla, HUVR, Morón…">
+        <p class="ayuda">Dónde prestas servicio de verdad. De esto depende que tu alta vaya a CCOO de Sevilla</p></div>
+      <div class="campo"><label for="a-dircentro">Domicilio del centro de trabajo</label>
+        <input type="text" id="a-dircentro" value="C/ Leonardo Da Vinci 13"></div>
+      <div class="dos">
+        <div class="campo"><label for="a-cpcentro">CP del centro</label><input type="text" id="a-cpcentro" value="41092" inputmode="numeric"></div>
+        <div class="campo"><label for="a-loccentro">Localidad del centro</label><input type="text" id="a-loccentro" value="Sevilla"></div>
+      </div>
+      <div class="campo"><label for="a-cat">Categoría profesional</label>
+        <select class="full" id="a-cat">
+          <option>Vigilante de Seguridad</option><option>Escolta</option>
+          <option>Vigilante de Explosivos</option><option>Guarda Rural</option>
+          <option>VS de Transporte</option><option>VS de Transporte-Conductor</option>
+          <option>Operador de Seguridad</option><option>Personal administrativo</option>
+        </select></div>
+      <div class="dos">
+        <div class="campo"><label for="a-contrato">Tipo de contrato</label>
+          <select class="full" id="a-contrato">
+            <option>Indefinido a tiempo completo</option><option>Indefinido a tiempo parcial</option>
+            <option>Fijo discontinuo</option><option>Temporal</option>
+          </select></div>
+        <div class="campo"><label for="a-antig">Antigüedad en la empresa</label><input type="date" id="a-antig"></div>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h2>Cómo quieres pagar la cuota</h2>
+      <p class="ayuda" style="margin-bottom:14px">La cuota va en función de tus ingresos brutos anuales, según el Plan
+      Integral de Cuotas. El importe lo asigna la Unidad Administrativa de Recaudación: déjalo en blanco si no lo sabes.</p>
+      <div class="campo">
+        <div class="opts">
+          <label><input type="radio" name="a-pago" value="banco" checked><b>Domiciliación bancaria</b>
+            <small>se te cobra en tu cuenta · la empresa no se entera</small></label>
+          <label><input type="radio" name="a-pago" value="nomina"><b>Descuento en nómina</b>
+            <small>no hace falta dar el banco · lo descuenta la empresa</small></label>
+        </div>
+      </div>
+
+      <div id="a-banco-box">
+        <div class="campo">
+          <label>Cada cuánto quieres que te lo cobren</label>
+          <div class="opts g2">
+            <label><input type="radio" name="a-per" value="M" checked><b>Mensual</b><small>doce cargos al año</small></label>
+            <label><input type="radio" name="a-per" value="T"><b>Trimestral</b><small>cuatro cargos al año</small></label>
+          </div>
+          <p class="ayuda">Es el mismo dinero al año, solo cambia el reparto de los cargos</p>
+        </div>
+        <div class="campo"><label for="a-iban">IBAN</label>
+          <input type="text" id="a-iban" placeholder="ES00 0000 0000 0000 0000 0000" autocomplete="off">
+          <p class="ayuda" id="a-iban-msg">Un IBAN mal puesto impide el cobro y bloquea el alta</p></div>
+        <div class="campo"><label for="a-banco">Entidad bancaria</label><input type="text" id="a-banco"></div>
+      </div>
+
+      <div id="a-nomina-box" class="oculto">
+        <div class="aviso" style="margin-top:0"><b>Ojo con esto antes de elegirlo.</b> Para descontarte la cuota,
+        la empresa tiene que saber que estás afiliado a CCOO. Es legal: el art. 11.2 de la Ley Orgánica de Libertad
+        Sindical lo permite si tú lo autorizas. Pero pierdes la confidencialidad frente a Ilunion. Si prefieres que la
+        empresa no lo sepa, elige domiciliación bancaria: es igual de fácil y solo lo sabe el sindicato.</div>
+      </div>
+
+      <div class="dos" style="margin-top:16px">
+        <div class="campo"><label for="a-brutos">Ingresos brutos del año anterior (€)</label>
+          <input type="number" id="a-brutos" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="campo"><label for="a-cuota">Importe mensual de la cuota (€)</label>
+          <input type="text" id="a-cuota" placeholder="lo asigna la UAR"></div>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h2>Tu firma</h2>
+      <p class="ayuda" style="margin-bottom:12px">Firma con el dedo dentro del recuadro. Se usa para la solicitud y
+      para la orden de domiciliación.</p>
+      <div class="firma-caja"><canvas id="a-firma" width="900" height="300"></canvas></div>
+      <button type="button" class="copiar" id="a-borrar-firma" style="margin-top:10px">Borrar y repetir la firma</button>
+    </div>
+
+    <div class="bloque">
+      <h2>Antes de generar el documento</h2>
+      <div class="sw"><input type="checkbox" id="a-ok1">
+        <label for="a-ok1">He leído la <a href="https://www.ccoo.es/Politica_de_privacidad" target="_blank" rel="noopener">información sobre protección de datos</a>
+        y solicito el alta como persona afiliada a CCOO
+        <small>se abre en la web de CCOO · también va incluida en el propio documento</small></label></div>
+      <div class="sw"><input type="checkbox" id="a-ok2">
+        <label for="a-ok2"><span id="a-ok2-txt">Autorizo el cargo de la cuota sindical en la cuenta indicada</span>
+          <small id="a-ok2-sub">orden de domiciliación SEPA a favor de CCOO Unidad Administrativa de Recaudación</small></label></div>
+    </div>
+
+    <button class="calc" id="a-generar">Generar mi solicitud en PDF</button>
+    <div id="a-salida"></div>
+
+    <div class="nota" style="margin-bottom:24px">Si prefieres hacerlo por la vía oficial de CCOO sin pasar por aquí,
+    puedes afiliarte directamente en <a href="https://afiliate.ccoo.es" target="_blank" rel="noopener">afiliate.ccoo.es</a>.
+    Dudas sobre cuotas o sobre tu alta: Unidad Administrativa de Recaudación de CCOO Andalucía,
+    C/ Cardenal Buenos Monreal 58, 41013 Sevilla · 954 22 66 77 · uar@and.ccoo.es</div>
+  </div>
+</section>
+
+<script>
+"use strict";
+
+/* ====== TABLAS DEL CONVENIO 2026-2030 (BOE-A-2026-8569) ====== */
+/* Para actualizar cada año: solo hay que tocar este bloque. */
+const A = ["2026","2027","2028","2029","2030"];
+
+// [salario base, plus peligrosidad de tabla, plus actividad, plus transporte, plus vestuario]
+const CAT = {
+  vs:    {n:"Vigilante de Seguridad", arma:true, t:{
+    2026:[1161.28,24.08,0,137.81,112.28], 2027:[1201.92,24.93,0,142.63,116.21],
+    2028:[1250.00,25.93,0,148.34,120.85], 2029:[1300.00,26.97,0,154.27,125.68],
+    2030:[1358.50,28.18,0,161.21,131.34]}},
+  esc:   {n:"Escolta", arma:false, t:{
+    2026:[1161.28,177.15,0,137.81,115.67], 2027:[1201.92,183.36,0,142.63,119.72],
+    2028:[1250.00,190.69,0,148.34,124.51], 2029:[1300.00,198.32,0,154.27,129.49],
+    2030:[1358.50,207.24,0,161.21,135.32]}},
+  vex:   {n:"Vigilante de Explosivos", arma:false, t:{
+    2026:[1161.28,210.55,40.17,137.81,112.25], 2027:[1201.92,217.92,41.58,142.63,116.18],
+    2028:[1250.00,226.64,43.24,148.34,120.82], 2029:[1300.00,235.71,44.97,154.27,125.65],
+    2030:[1358.50,246.32,47.00,161.21,131.30]}},
+  gr:    {n:"Guarda Rural", arma:false, t:{
+    2026:[1161.28,201.13,0,137.81,116.19], 2027:[1201.92,208.17,0,142.63,120.26],
+    2028:[1250.00,216.50,0,148.34,125.06], 2029:[1300.00,225.17,0,154.27,130.06],
+    2030:[1358.50,235.31,0,161.21,135.91]}},
+  vst:   {n:"VS de Transporte", arma:false, t:{
+    2026:[1227.74,179.90,210.19,137.81,113.27], 2027:[1270.71,186.20,217.55,142.63,117.23],
+    2028:[1321.54,193.65,226.25,148.34,121.92], 2029:[1374.40,201.40,235.30,154.27,126.80],
+    2030:[1436.25,210.46,245.89,161.21,132.51]}},
+  vstc:  {n:"VS de Transporte-Conductor", arma:false, t:{
+    2026:[1285.55,179.90,210.19,137.81,114.56], 2027:[1330.54,186.20,217.55,142.63,118.57],
+    2028:[1383.76,193.65,226.25,148.34,123.31], 2029:[1439.11,201.40,235.30,154.27,128.24],
+    2030:[1503.87,210.46,245.89,161.21,134.01]}},
+  vste:  {n:"VS de Transporte de Explosivos", arma:false, t:{
+    2026:[1227.74,191.59,152.44,137.81,113.27], 2027:[1270.71,198.30,157.78,142.63,117.23],
+    2028:[1321.54,206.23,164.09,148.34,121.92], 2029:[1374.40,214.48,170.66,154.27,126.80],
+    2030:[1436.25,224.13,178.34,161.21,132.51]}},
+  vstec: {n:"VS de Transporte de Explosivos-Conductor", arma:false, t:{
+    2026:[1285.55,191.59,152.44,137.81,114.56], 2027:[1330.54,198.30,157.78,142.63,118.57],
+    2028:[1383.76,206.23,164.09,148.34,123.31], 2029:[1439.11,214.48,170.66,154.27,128.24],
+    2030:[1503.87,224.13,178.34,161.21,134.01]}},
+  ops:   {n:"Operador de Seguridad", arma:false, t:{
+    2026:[1139.60,0,0,137.81,68.53], 2027:[1179.49,0,0,142.63,70.93],
+    2028:[1226.67,0,0,148.34,73.76], 2029:[1275.74,0,0,154.27,76.71],
+    2030:[1333.15,0,0,161.21,80.16]}}
+};
+
+// Quinquenio (anexo 2, ap. 2)
+const QUIN = {
+  vs:[45.86,47.47,49.37,51.34,53.65], esc:[45.86,47.47,49.37,51.34,53.65],
+  vex:[45.86,47.47,49.37,51.34,53.65], gr:[45.86,47.47,49.37,51.34,53.65],
+  vst:[46.59,48.22,50.15,52.16,54.51], vstc:[50.23,51.99,54.07,56.23,58.76],
+  vste:[46.59,47.99,49.67,51.91,54.51], vstec:[50.23,51.74,53.55,55.96,58.76],
+  ops:[38.74,40.10,41.70,43.37,45.32]
+};
+// Plus de trabajo nocturno por hora (anexo 2, ap. 10)
+const NOC = {
+  vs:[1.26,1.30,1.35,1.40,1.46], esc:[1.26,1.30,1.35,1.40,1.46],
+  vex:[1.26,1.30,1.35,1.40,1.46], gr:[1.26,1.30,1.35,1.40,1.46],
+  vst:[1.27,1.31,1.36,1.41,1.47], vstc:[1.36,1.41,1.47,1.53,1.60],
+  vste:[1.27,1.31,1.36,1.42,1.49], vstec:[1.36,1.40,1.45,1.52,1.60],
+  ops:[0.99,1.02,1.06,1.10,1.15]
+};
+const FES   = [1.02,1.06,1.10,1.14,1.19];      // ap. 11 fin de semana y festivos €/h
+const ARMA_M= [179.90,186.20,193.65,201.40,210.46]; // ap. 3 peligrosidad con arma €/mes
+const JEFE_H= [0.72,0.74,0.77,0.80,0.84];      // ap. 5 responsable de equipo €/h
+const AERO  = [0.82,0.85,0.88,0.92,0.96];      // ap. 6
+const RADIOA= [1.46,1.51,1.57,1.63,1.70];      // ap. 7
+const RADIOB= [0.21,0.22,0.23,0.24,0.25];      // ap. 9
+const NBNV  = [83.48,86.40,89.86,93.45,97.66]; // ap. 12 Nochebuena y Nochevieja
+const JORNADA_MES = 162, JORNADA_ANIO = 1782, N_PAGAS = 3;
+
+/* ====== UTILIDADES ====== */
+const ix = () => A.indexOf(document.getElementById("anio").value);
+const yr = () => document.getElementById("anio").value;
+const eur = v => (v||0).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €";
+const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? 0 : v; };
+const chk = id => document.getElementById(id).checked;
+const rad = n => document.querySelector(`input[name="${n}"]:checked`).value;
+
+/* Devuelve los conceptos base según categoría, año, arma y antigüedad */
+function base(catKey, conArma, anios){
+  const i = ix(), y = yr(), t = CAT[catKey].t[y];
+  let pelig = t[1];
+  if (CAT[catKey].arma && conArma) pelig = ARMA_M[i];   // se cobra el mayor, nunca la suma
+  const quinq = Math.floor(anios/5);
+  let antig = quinq * QUIN[catKey][i];
+  // Tope del art. 42.c sobre el salario base
+  const tope = anios>=25 ? 0.60 : anios>=20 ? 0.40 : anios>=15 ? 0.25 : anios>=5 ? 0.10 : 0;
+  if (tope && antig > t[0]*tope) antig = t[0]*tope;
+  return {sb:t[0], pelig, act:t[2], trans:t[3], vest:t[4], antig, quinq, cat:CAT[catKey].n};
+}
+/* Salario que entra en pagas extra y en el valor de la hora extra (art. 45 y 53):
+   excluye transporte y vestuario por ser extrasalariales (art. 46) */
+const salPaga = b => b.sb + b.pelig + b.act + b.antig;
+const valorHoraExtra = b => salPaga(b) * (12 + N_PAGAS) / JORNADA_ANIO;
+
+function linea(concepto, valor, clase, sub){
+  return `<div class="ln ${clase||""}"><span class="cn">${concepto}${sub?`<small>${sub}</small>`:""}</span>
+    <span class="pt"></span><span class="vl">${typeof valor==="string"?valor:eur(valor)}</span></div>`;
+}
+function botonCopiar(id){
+  return `<button class="copiar" data-copia="${id}">Copiar desglose</button>`;
+}
+
+/* ====== TRAMOS DE IT (art. 51) ======
+   Devuelve los tramos de un periodo de baja. 'previos' son los días de proceso ya
+   transcurridos antes del periodo que se calcula, para encadenar meses. */
+function pctIT(n, tipo, orden){
+  if (tipo==="at") return {p:100, t:"Accidente de trabajo · art. 51.a"};
+  if (tipo==="hosp" && n<=40) return {p:100, t:"Hospitalización · art. 51.b"};
+  if (n<=3)  return orden===1 ? {p:50,t:"Días 1 a 3 · 50 % art. 51.b.1"} : {p:0,t:"Días 1 a 3 · sin prestación"};
+  if (n<=20) return orden<=2 ? {p:80,t:"Días 4 a 20 · 80 % art. 51.b.2"} : {p:60,t:"Días 4 a 20 · 60 % legal"};
+  if (n<=40) return {p:100,t:"Días 21 a 40 · 100 % art. 51.b.3"};
+  if (n<=60) return {p:90, t:"Días 41 a 60 · 90 % art. 51.b.4"};
+  if (n<=90) return {p:80, t:"Días 61 a 90 · 80 % art. 51.b.5"};
+  if (n<=100)return {p:80, t:"Días 91 a 100 · 80 % art. 51.b.6"};
+  return {p:75, t:"Día 101 en adelante · prestación legal"};
+}
+function tramosIT(dias, previos, tipo, orden, diario){
+  const out = [];
+  for (let i=1; i<=dias; i++){
+    const n = previos + i;
+    const {p,t} = pctIT(n, tipo, orden);
+    const ult = out[out.length-1];
+    if (ult && ult.pct===p && ult.et===t) ult.d++;
+    else out.push({d:1, pct:p, et:t});
+  }
+  out.forEach(x=> x.im = x.d * diario * x.pct/100);
+  return out;
+}
+
+/* ====== PESTAÑAS ====== */
+const tabs = [["t-nom","p-nom"],["t-fin","p-fin"],["t-it","p-it"],["t-chk","p-chk"]];
+tabs.forEach(([tb,pn])=>{
+  document.getElementById(tb).addEventListener("click",()=>{
+    tabs.forEach(([t2,p2])=>{
+      const act = t2===tb;
+      document.getElementById(t2).setAttribute("aria-selected",act);
+      document.getElementById(p2).classList.toggle("oculto",!act);
+    });
+    window.scrollTo({top:0,behavior:"smooth"});
+  });
+});
+
+document.getElementById("n-bdias").addEventListener("input", e=>{
+  document.getElementById("n-baja-box").classList.toggle("oculto", !(parseFloat(e.target.value)>0));
+});
+document.querySelectorAll('input[name="n-btipo"]').forEach(r=>{
+  r.addEventListener("change",()=>{
+    document.getElementById("n-borden-box").classList.toggle("oculto", rad("n-btipo")!=="ec");
+  });
+});
+
+/* ====== SELECTORES DE CATEGORÍA ====== */
+["n-cat","f-cat","i-cat","chk-cat"].forEach(id=>{
+  const s = document.getElementById(id);
+  s.innerHTML = Object.entries(CAT).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join("");
+});
+function pintaArma(){
+  const c = document.getElementById("n-cat").value;
+  document.getElementById("n-arma-box").classList.toggle("oculto",!CAT[c].arma);
+}
+document.getElementById("n-cat").addEventListener("change",pintaArma);
+pintaArma();
+
+document.querySelectorAll('input[name="n-jor"]').forEach(r=>{
+  r.addEventListener("change",()=>{
+    document.getElementById("n-parc-box").classList.toggle("oculto",rad("n-jor")!=="p");
+  });
+});
+document.querySelectorAll('input[name="n-reg"]').forEach(r=>{
+  r.addEventListener("change",()=>{
+    document.getElementById("n-prog-box").classList.toggle("oculto",rad("n-reg")!=="cuad");
+  });
+});
+document.querySelectorAll('input[name="i-tipo"]').forEach(r=>{
+  r.addEventListener("change",()=>{
+    document.getElementById("i-orden-box").classList.toggle("oculto",rad("i-tipo")!=="ec");
+  });
+});
+
+/* ====== 1. NÓMINA ======
+   calcularNomina() lee los campos n-* del DOM, hace todo el cálculo y devuelve
+   {html, data}. Lo usan tanto el botón "Calcular nómina" como la pestaña de
+   revisión de PDF, para no duplicar la lógica ya verificada. */
+function calcularNomina(){
+  const i = ix();
+  const cat = document.getElementById("n-cat").value;
+  const b = base(cat, chk("n-arma"), num("n-quin"));
+  const parcial = rad("n-jor")==="p";
+  const conCuadrante = rad("n-reg")==="cuad";
+  const mes = parseInt(document.getElementById("n-mes").value);
+  const feb = mes===2;
+  const coef = parcial ? Math.min(num("n-pact")/JORNADA_MES,1) : 1;
+
+  // Referencia sobre la que se miden las horas extraordinarias (art. 53)
+  //  a) con cuadrante anual: las horas reflejadas en el reparto mensual de esa persona
+  //  b) sin cuadrante anual: 162 h, o las pactadas si es tiempo parcial
+  const programadas = num("n-prog");
+  const referencia = conCuadrante ? programadas : (parcial ? num("n-pact") : JORNADA_MES);
+
+  // Horquilla del art. 52.2.b, ajustada proporcionalmente en tiempo parcial
+  const hqMin = (feb ? 134 : 144) * coef;
+  const hqMax = (feb ? 162 : 176) * coef;
+
+  const trabajadas = num("n-tot");
+
+  const sb = b.sb*coef, pel = b.pelig*coef, act = b.act*coef,
+        tra = b.trans*coef, ves = b.vest*coef, ant = b.antig*coef;
+
+  const extras = Math.max(0, trabajadas - referencia);
+  const vhe = valorHoraExtra(b);
+  const noc = num("n-noc"), fes = num("n-fes");
+  const impNoc = noc * NOC[cat][i];
+  const impFes = fes * FES[i];
+  const impExt = extras * vhe;
+  const jefe = chk("n-jefe") ? trabajadas * JEFE_H[i] : 0;
+  const aero = chk("n-aero") ? trabajadas * AERO[i] : 0;
+  const rada = chk("n-radio") ? trabajadas * RADIOA[i] : 0;
+  const radb = chk("n-radiob") ? trabajadas * RADIOB[i] : 0;
+  const nbnv = num("n-nb") * NBNV[i];
+  const plusEmp = num("n-plus");
+
+  const nPagas = (chk("n-pj")?1:0)+(chk("n-pn")?1:0)+(chk("n-pm")?1:0);
+
+  /* --- Días de baja dentro del mes (art. 51) --- */
+  const bDias = Math.min(30, Math.round(num("n-bdias")));
+  const hayBaja = bDias > 0;
+  const bTipo = hayBaja ? rad("n-btipo") : "ec";
+  const bPrev = hayBaja ? Math.round(num("n-bprev")) : 0;
+  const bOrden = hayBaja ? parseInt(rad("n-borden")) : 1;
+  const dTrab = 30 - bDias;                 // días de salario ordinario, mes comercial de 30
+  const kTrab = hayBaja ? dTrab/30 : 1;     // proporción de mes efectivamente trabajado
+
+  // Salario diario para el complemento: en AT sobre la tabla del anexo, en el resto sobre la base de cotización
+  let bBase = num("n-bbase"), bEstim = false;
+  if (!bBase){ bBase = salPaga(b)*(12+N_PAGAS)/12*coef; bEstim = true; }
+  const brd = bTipo==="at" ? (sb+pel+act+ant+tra+ves)/30 : bBase/30;
+  const tramos = hayBaja ? tramosIT(bDias, bPrev, bTipo, bOrden, brd) : [];
+  const impIT = tramos.reduce((s,t)=>s+t.im,0);
+
+  // Suplidos: enteros o proporcionales, según lo que haga la empresa
+  const kSupl = (hayBaja && rad("n-bsupl")==="prop") ? kTrab : 1;
+  // Prorrata de pagas: en AT no hay merma (art. 51.a); en enfermedad común va con los días trabajados
+  const kPagas = (hayBaja && bTipo!=="at") ? kTrab : 1;
+  const prorrata = nPagas * salPaga(b) * coef * kPagas / 12;
+  // La base de cotización incluye SIEMPRE la parte proporcional de las 3 pagas (art. 147 LGSS),
+  // se cobren o no prorrateadas en la nómina. Si alguna paga no está marcada, igualmente cotiza.
+  const prorrataCotiz = N_PAGAS * salPaga(b) * coef * kPagas / 12;
+
+  const sbP = sb*kTrab, pelP = pel*kTrab, actP = act*kTrab, antP = ant*kTrab,
+        traP = tra*kSupl, vesP = ves*kSupl;
+
+  const bruto = sbP+pelP+actP+antP+traP+vesP+impIT+impExt+impNoc+impFes+jefe+aero+rada+radb+nbnv+plusEmp+prorrata;
+  // El convenio llama "extrasalariales" a transporte y vestuario (art. 46), pero en la práctica sí
+  // cotizan: Hacienda/TGSS solo exime gastos justificados documentalmente, no un plus fijo mensual.
+  // La prorrata de pagas se sustituye por la obligatoria (prorrataCotiz), se pague o no este mes.
+  const baseCot = bruto - prorrata + prorrataCotiz;
+  const ss = baseCot * num("n-ss")/100;
+  const irpf = bruto * num("n-irpf")/100;
+  const cuota = num("n-cuota");
+  const neto = bruto - ss - irpf - cuota;
+
+  let h = `<div class="recibo" id="rec-nom"><h3>Devengos · ${b.cat} · tablas ${yr()}</h3>`;
+  if (hayBaja) h += linea("Días efectivos", `${dTrab} de 30`, "", `${bDias} día${bDias===1?"":"s"} de baja`);
+  h += linea("Salario base", sbP);
+  if (pelP) h += linea("Plus de peligrosidad", pelP, "", chk("n-arma")&&CAT[cat].arma ? "importe con arma, art. 43.a.2" : "mínimo garantizado, art. 43.a.3");
+  if (actP) h += linea("Plus de actividad", actP);
+  if (antP) h += linea("Antigüedad", antP, "", `${b.quinq} quinquenio${b.quinq===1?"":"s"}`);
+  h += linea("Plus de transporte", traP, "", "extrasalarial según convenio, pero cotiza en la práctica");
+  h += linea("Plus de vestuario", vesP, "", "extrasalarial según convenio, pero cotiza en la práctica");
+  if (impExt) h += linea("Horas extraordinarias", impExt, "", `${extras.toLocaleString("es-ES")} h × ${eur(vhe)}`);
+  if (impNoc) h += linea("Plus de nocturnidad", impNoc, "", `${noc.toLocaleString("es-ES")} h × ${eur(NOC[cat][i])}`);
+  if (impFes) h += linea("Plus de fin de semana y festivos", impFes, "", `${fes.toLocaleString("es-ES")} h × ${eur(FES[i])}`);
+  if (jefe) h += linea("Responsable de equipo", jefe, "", `${trabajadas.toLocaleString("es-ES")} h × ${eur(JEFE_H[i])}`);
+  if (aero) h += linea("Plus de aeropuerto", aero);
+  if (rada) h += linea("Radioscopia aeroportuaria", rada);
+  if (radb) h += linea("Radioscopia básica", radb);
+  if (nbnv) h += linea("Nochebuena y Nochevieja", nbnv);
+  if (plusEmp) h += linea("Plus de empresa", plusEmp);
+  if (hayBaja){
+    h += `<h3>Incapacidad temporal · ${bDias} día${bDias===1?"":"s"}</h3>`;
+    tramos.forEach(t=> h += linea(`${t.d} día${t.d===1?"":"s"} al ${t.pct} %`, t.im, "", t.et));
+  }
+  if (prorrata) h += linea("Prorrata de pagas extra", prorrata, "", `${nPagas} de 3 pagas`);
+  h += linea("Salario bruto", bruto, "sum");
+
+  h += `<h3>Deducciones</h3>`;
+  h += linea(`Cotización a la Seguridad Social (${num("n-ss").toLocaleString("es-ES")} %)`, -ss, "neg", "sobre "+eur(baseCot));
+  h += linea(`Retención de IRPF (${num("n-irpf").toLocaleString("es-ES")} %)`, -irpf, "neg");
+  if (cuota) h += linea("Cuota sindical", -cuota, "neg", "puede desgravar en la declaración de la renta");
+
+  h += `<div class="neto"><span class="et">Neto<b>Lo que debe entrar en tu cuenta</b></span><span class="im">${eur(neto)}</span></div>`;
+
+  if (extras>0){
+    h += `<div class="aviso"><b>Has hecho ${extras.toLocaleString("es-ES")} horas por encima de tu referencia
+    (${referencia.toLocaleString("es-ES")} h).</b> ${conCuadrante
+      ? "Con cuadrante anual son extraordinarias las que excedan de las reflejadas en tu reparto mensual, no las que pasen de 176 (art. 53.a)."
+      : "Sin cuadrante anual, son extraordinarias las que pasen de 162 h al mes (art. 53.b)."}
+    Hay que abonarlas en la nómina del mes siguiente al de su realización, sin poder diferirlas al final del año.
+    Si te las compensan en descanso tiene que ser con tu acuerdo. Guarda el cuadrante y el registro de jornada.</div>`;
+  }
+
+  if (conCuadrante){
+    if (programadas > hqMax){
+      h += `<div class="aviso"><b>Tu cuadrante se sale de la horquilla.</b> Este mes te han programado
+      ${programadas.toLocaleString("es-ES")} h y el máximo que permite el convenio es ${hqMax.toLocaleString("es-ES")} h
+      (art. 52.2.b${feb?", horquilla de febrero":""}). Ese exceso de programación no cabe en la distribución irregular:
+      son horas extraordinarias desde el propio cuadrante. Comunícalo a la sección sindical.</div>`;
+    } else if (programadas > 0 && programadas < hqMin){
+      h += `<div class="nota">Este mes tu cuadrante marca ${programadas.toLocaleString("es-ES")} h, por debajo del mínimo
+      de la horquilla (${hqMin.toLocaleString("es-ES")} h${feb?", febrero":""}). No pierdes salario por ello, pero
+      revisa que no te lo estén recuperando a base de meses cargados.</div>`;
+    }
+    h += `<div class="nota"><b>Cobras lo mismo trabajes 148 o 174 horas.</b> El convenio es expreso: la distribución
+    irregular de la jornada no cambia la forma de devengar el salario, que es siempre el de las tablas con
+    independencia de las horas efectivamente realizadas (art. 52.2.b). Que un mes vayas corto no justifica que otro
+    te carguen horas sin pagarlas.</div>`;
+  }
+
+  if (hayBaja){
+    if (bTipo==="at"){
+      h += `<div class="nota"><b>Accidente de trabajo:</b> la empresa complementa hasta el 100 % de la tabla del anexo
+      más antigüedad y peligrosidad, y el convenio dice expresamente que eso no puede suponer merma de las pagas
+      extraordinarias (art. 51.a). Si te recortan la paga por los días de baja de un accidente, está mal.</div>`;
+    }
+    if (rad("n-bsupl")==="prop"){
+      h += `<div class="nota"><b>Sobre el transporte y el vestuario:</b> aquí se han descontado proporcionalmente
+      porque es lo que suele hacer la empresa, pero es discutible. El art. 46 los define como una cuantía
+      <b>anual</b> redistribuida en doce mensualidades, y el convenio no prevé en ningún punto que se reduzcan por
+      días de baja. Vuelve a calcular marcando la otra opción y verás la diferencia: eso es lo que podrías reclamar.</div>`;
+    } else {
+      const dif = (tra+ves) - (tra+ves)*kTrab;
+      h += `<div class="aviso"><b>Diferencia en juego: ${eur(dif)} este mes.</b> Es lo que te descontarían de
+      transporte y vestuario si los prorratean por días de baja. El art. 46 los configura como cuantía anual en doce
+      mensualidades, así que su reducción es reclamable. Si se repite en toda la plantilla, multiplícalo.</div>`;
+    }
+    if (bEstim){
+      h += `<div class="nota">La prestación se ha calculado con una base de cotización estimada a partir del convenio.
+      Para que salga exacta, copia la base de contingencias comunes de tu nómina del mes anterior a la baja.</div>`;
+    }
+    if (bTipo==="ec" && bOrden>1){
+      h += `<div class="nota">El convenio limita los primeros tramos: el de los días 1 a 3 solo una vez al año y el de
+      los días 4 a 20 un máximo de dos veces al año (art. 51.b.1 y b.2).</div>`;
+    }
+  }
+
+  const acum = num("n-acum");
+  if (acum > 0){
+    const topeAnual = JORNADA_ANIO * coef;
+    if (acum > topeAnual){
+      const exc = acum - topeAnual;
+      h += `<div class="aviso"><b>Llevas ${exc.toLocaleString("es-ES")} horas por encima de tu jornada anual.</b>
+      El cuadrante tiene como horizonte garantizar ${topeAnual.toLocaleString("es-ES")} h efectivas al año. Todo lo que
+      pase de ahí es hora extraordinaria aunque cada mes te hayas mantenido dentro de la horquilla, y a razón de
+      ${eur(vhe)} la hora son ${eur(exc*vhe)} sin contar pluses. Reclámalo antes de que cierre el año.</div>`;
+    } else {
+      const rest = topeAnual - acum;
+      h += `<div class="nota">Llevas ${acum.toLocaleString("es-ES")} h de las ${topeAnual.toLocaleString("es-ES")} h
+      anuales: te quedan ${rest.toLocaleString("es-ES")} h. Divídelas entre los meses que falten y compáralo con lo que
+      te programan: así ves venir el exceso antes de hacerlo.</div>`;
+    }
+  }
+  const noPag = 3 - nPagas;
+  if (noPag>0){
+    h += `<div class="nota"><b>Te quedan ${noPag} paga${noPag===1?"":"s"} sin prorratear.</b> Se cobran aparte: julio entre
+    el 13 y el 15 de julio, Navidad entre el 13 y el 15 de diciembre y la de marzo entre el 13 y el 15 de marzo del
+    año siguiente. Cada una es una mensualidad de salario base, peligrosidad, actividad y antigüedad, sin transporte
+    ni vestuario (art. 45).</div>`;
+  }
+  h += `<div class="nota">La hora extraordinaria sale a <b>${eur(vhe)}</b>: es el mínimo del art. 53, sumando salario base,
+  pagas, peligrosidad, actividad y antigüedad, dividido entre 1.782 horas anuales. Si además cae en noche, festivo o
+  la haces como responsable de equipo, hay que sumarle esos pluses.</div>`;
+  h += botonCopiar("rec-nom") + `</div>`;
+  return {html:h, data:{cat:b.cat, catKey:cat, bruto, neto, ss, irpf, cuota, baseCot,
+    sbP, pelP, actP, antP, traP, vesP, impIT, impExt, impNoc, impFes, jefe, aero, rada, radb,
+    nbnv, plusEmp, prorrata, extras, noc, fes, referencia, trabajadas, vhe, nPagas}};
+}
+document.getElementById("b-nom").addEventListener("click",()=>{
+  const r = calcularNomina();
+  document.getElementById("r-nom").innerHTML = r.html;
+  document.getElementById("r-nom").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+/* ====== 2. FINIQUITO ====== */
+document.getElementById("b-fin").addEventListener("click",()=>{
+  const cat = document.getElementById("f-cat").value;
+  const ini = document.getElementById("f-ini").value;
+  const fin = document.getElementById("f-fin").value;
+  if(!ini||!fin){ alert("Faltan las fechas de alta y de baja."); return; }
+  const d1 = new Date(ini), d2 = new Date(fin);
+  if (d2 < d1){ alert("La fecha de baja es anterior a la de alta."); return; }
+
+  const dia = 86400000;
+  const diasTot = Math.round((d2-d1)/dia)+1;
+  const anios = diasTot/365.25;
+  const b = base(cat, chk("f-arma"), Math.floor(anios));
+
+  // Vacaciones devengadas en el año de la baja
+  const y = d2.getFullYear();
+  const iniAnio = new Date(Math.max(d1.getTime(), new Date(y,0,1).getTime()));
+  const diasAnio = Math.round((d2-iniAnio)/dia)+1;
+  const devengados = 31 * diasAnio / 365;
+  const pendientes = Math.max(0, devengados - num("f-vac"));
+  const totalTabla = b.sb+b.pelig+b.act+b.trans+b.vest+b.antig;  // art. 57.2
+  const impVac = pendientes * totalTabla / 31;
+
+  // Pagas extra pendientes
+  const sp = salPaga(b);
+  let impPagas = 0, detPagas = "";
+  // Julio: devengo 1 julio (año anterior) a 30 junio
+  if (!chk("f-pj")){
+    const iniJ = new Date(d2.getMonth()>=6 ? y : y-1, 6, 1);
+    const arr = new Date(Math.max(d1.getTime(), iniJ.getTime()));
+    const dd = Math.max(0, Math.round((d2-arr)/dia)+1);
+    const im = sp * Math.min(dd,365)/365;
+    impPagas += im; detPagas += linea("Paga de julio", im, "", `${Math.min(dd,365)} días devengados`);
+  }
+  // Navidad y marzo: devengo natural 1 enero - 31 diciembre
+  [["Paga de Navidad","f-pn"],["Paga de marzo","f-pm"]].forEach(([nm,id])=>{
+    if (!document.getElementById(id).checked){
+      const im = sp * diasAnio/365;
+      impPagas += im; detPagas += linea(nm, im, "", `${diasAnio} días devengados`);
+    }
+  });
+
+  const brutoLiq = impVac + impPagas;
+  const ss = brutoLiq * 6.50/100;
+  const irpf = brutoLiq * num("f-irpf")/100;
+  const netoLiq = brutoLiq - ss - irpf;
+
+  // Indemnización
+  const diasInd = parseFloat(rad("f-tipo"));
+  const salDiaInd = sp * (12+N_PAGAS) / 365;
+  let indem = 0, topeTxt = "";
+  if (diasInd>0){
+    indem = salDiaInd * diasInd * anios;
+    const mens = sp;
+    const tope = diasInd===33 ? 24*mens : diasInd===20 ? 12*mens : Infinity;
+    if (indem > tope){ indem = tope; topeTxt = "aplicado el tope legal"; }
+  }
+
+  let h = `<div class="recibo" id="rec-fin"><h3>Liquidación · ${b.cat} · tablas ${yr()}</h3>`;
+  h += linea("Antigüedad reconocida", `${anios.toFixed(2)} años`, "", `${diasTot.toLocaleString("es-ES")} días`);
+  if (impVac) h += linea("Vacaciones no disfrutadas", impVac, "", `${pendientes.toFixed(1)} de ${devengados.toFixed(1)} días devengados`);
+  h += detPagas;
+  h += linea("Liquidación bruta", brutoLiq, "sum");
+  h += linea("Cotización a la Seguridad Social (6,50 %)", -ss, "neg");
+  h += linea(`Retención de IRPF (${num("f-irpf").toLocaleString("es-ES")} %)`, -irpf, "neg");
+  h += linea("Liquidación neta", netoLiq, "sum");
+
+  if (diasInd>0){
+    h += `<h3>Indemnización · exenta de IRPF</h3>`;
+    h += linea(`${diasInd} días por año trabajado`, indem, "", `salario/día ${eur(salDiaInd)}${topeTxt?" · "+topeTxt:""}`);
+  }
+  h += `<div class="neto"><span class="et">Total<b>Lo que debe entrar en tu cuenta</b></span><span class="im">${eur(netoLiq+indem)}</span></div>`;
+
+  h += `<div class="nota"><b>Antes de firmar nada:</b> el finiquito se firma con la expresión «no conforme» o
+  «recibo cantidad, no conforme con la liquidación» si no cuadra. Firmarlo a secas puede valer como renuncia.
+  Tienes 20 días hábiles para impugnar un despido y un año para reclamar cantidades.</div>`;
+  h += `<div class="nota">El salario/día de la indemnización se calcula sobre salario base, peligrosidad, actividad y
+  antigüedad, con las tres pagas. No se han incluido transporte ni vestuario porque el convenio los configura como
+  indemnizaciones y suplidos (art. 46). Si en tu caso se abonan de forma fija e incondicionada, cabe discutir que
+  computen: consúltalo con la sección sindical.</div>`;
+  h += botonCopiar("rec-fin") + `</div>`;
+  document.getElementById("r-fin").innerHTML = h;
+  document.getElementById("r-fin").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+/* ====== 3. BAJA IT ====== */
+document.getElementById("b-it").addEventListener("click",()=>{
+  const cat = document.getElementById("i-cat").value;
+  const b = base(cat, chk("i-arma"), num("i-quin"));
+  const tipo = rad("i-tipo");
+  const dias = Math.max(1, Math.round(num("i-dias")));
+  const orden = parseInt(rad("i-orden"));
+
+  // Base reguladora diaria
+  let baseMes = num("i-base");
+  let estimada = false;
+  if (!baseMes){ baseMes = salPaga(b) * (12+N_PAGAS)/12; estimada = true; }   // incluye prorrata de pagas
+  const brd = baseMes/30;
+
+  const tramos = tramosIT(dias, 0, tipo, orden, brd);
+
+  const bruto = tramos.reduce((s,t)=>s+t.im,0);
+  const ss = bruto * 6.50/100;
+  const irpf = bruto * num("i-irpf")/100;
+  const neto = bruto - ss - irpf;
+
+  let h = `<div class="recibo" id="rec-it"><h3>Prestación por tramos · ${b.cat} · tablas ${yr()}</h3>`;
+  h += linea("Base reguladora diaria", brd, "", estimada ? "estimada con las tablas del convenio" : "base de cotización / 30");
+  tramos.forEach(t=> h += linea(`${t.d} día${t.d===1?"":"s"} al ${t.pct} %`, t.im, "", t.et));
+  h += linea("Total bruto", bruto, "sum");
+  h += linea("Cotización a la Seguridad Social (6,50 %)", -ss, "neg");
+  h += linea(`Retención de IRPF (${num("i-irpf").toLocaleString("es-ES")} %)`, -irpf, "neg");
+  h += `<div class="neto"><span class="et">Neto<b>Lo que debes cobrar por la baja</b></span><span class="im">${eur(neto)}</span></div>`;
+
+  if (estimada){
+    h += `<div class="aviso"><b>Cálculo estimado.</b> No has puesto tu base de contingencias comunes, así que se ha
+    estimado con las tablas del convenio. Para afinarlo, copia la casilla «base de contingencias comunes» de la
+    nómina del mes anterior a la baja.</div>`;
+  }
+  if (tipo==="ec" && orden>1){
+    h += `<div class="nota">El convenio limita los primeros tramos: el de los días 1 a 3 solo una vez al año y el de
+    los días 4 a 20 un máximo de dos veces al año (art. 51.b.1 y b.2). Por eso este proceso arranca con menos
+    cobertura.</div>`;
+  }
+  if (tipo==="at"){
+    h += `<div class="nota">En accidente de trabajo la empresa complementa hasta el 100 % de la tabla de retribuciones
+    más antigüedad y peligrosidad, sin que se te recorten las pagas extra. Incluye los accidentes en prácticas de tiro
+    o gimnasio ordenados por la empresa.</div>`;
+  }
+  h += `<div class="nota">Si las pagas extra no las tienes prorrateadas, la parte proporcional ya va dentro de la base
+  diaria: la empresa descontará esos días cuando llegue el mes de cobro de la paga.</div>`;
+  h += botonCopiar("rec-it") + `</div>`;
+  document.getElementById("r-it").innerHTML = h;
+  document.getElementById("r-it").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+/* ====== 4. REVISA TU NÓMINA ======
+   Lee el PDF de la nómina (texto real, o reconocimiento de imagen si el PDF es
+   una foto sin texto), extrae los conceptos con expresiones regulares y deja
+   revisar/corregir antes de comparar con el mínimo de convenio. Reutiliza
+   calcularNomina() para no duplicar ninguna fórmula ya verificada. */
+const MESES_TXT = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO",
+                    "SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+
+let libPdfjs = null;
+function cargarPdfjs(){
+  if (libPdfjs) return libPdfjs;
+  libPdfjs = import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.2.108/pdf.min.mjs").then(mod=>{
+    mod.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.2.108/pdf.worker.min.mjs";
+    return mod;
+  });
+  return libPdfjs;
+}
+let libTess = null;
+function cargarTesseract(){
+  if (libTess) return libTess;
+  libTess = new Promise((res,rej)=>{
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/7.0.0/tesseract.min.js";
+    s.onload = ()=> res(window.Tesseract);
+    s.onerror = ()=> rej(new Error("sin conexión"));
+    document.head.appendChild(s);
+  });
+  return libTess;
+}
+
+/* Extrae el texto de la 1ª página. Si el PDF no trae texto (es una foto metida
+   dentro de un PDF), renderiza esa página como imagen y la lee con OCR. */
+async function leerTextoPDF(file, avisar){
+  const mod = await cargarPdfjs();
+  const buf = await file.arrayBuffer();
+  const doc = await mod.getDocument({data:buf}).promise;
+  const page = await doc.getPage(1);
+  const tc = await page.getTextContent();
+  const texto = tc.items.map(it=>it.str).join("");
+  if (texto.replace(/\s/g,"").length > 60) return {texto, ocr:false};
+
+  avisar("Tu PDF no lleva texto (parece una foto). Leyendo con reconocimiento de imagen, puede tardar un poco…");
+  const viewport = page.getViewport({scale:2.2});
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  await page.render({canvasContext:canvas.getContext("2d"), viewport}).promise;
+  const Tesseract = await cargarTesseract();
+  const {data} = await Tesseract.recognize(canvas, "spa");
+  return {texto:data.text.toUpperCase(), ocr:true};
+}
+
+/* Texto entre el final de labelPrev y el inicio de labelCur (ambos ya en MAYÚSCULAS) */
+function entreEtiquetas(txt, labelPrev, labelCur, desde){
+  const iPrev = labelPrev ? txt.indexOf(labelPrev, desde||0) : (desde||0);
+  if (labelPrev && iPrev < 0) return "";
+  const start = labelPrev ? iPrev + labelPrev.length : (desde||0);
+  const iCur = txt.indexOf(labelCur, start);
+  if (iCur < 0) return "";
+  return txt.slice(start, iCur).trim();
+}
+function numTxt(s){
+  if (!s) return null;
+  const m = String(s).match(/-?[\d.,]+/);
+  if (!m) return null;
+  const v = parseFloat(m[0].replace(/\./g,"").replace(",","."));
+  return isNaN(v) ? null : v;
+}
+const CAT_ALIAS = [
+  [/VIGILANTE DE EXPLOSIVOS/, "vex"],
+  [/TRANSPORTE DE EXPLOSIVOS.*CONDUCTOR/, "vstec"],
+  [/TRANSPORTE DE EXPLOSIVOS/, "vste"],
+  [/TRANSPORTE.*CONDUCTOR/, "vstc"],
+  [/TRANSPORTE/, "vst"],
+  [/ESCOLTA/, "esc"],
+  [/GUARDA RURAL/, "gr"],
+  [/OPERADOR/, "ops"],
+  [/VIGILANTE/, "vs"],
+];
+function detectaCategoria(txt){
+  for (const [re,key] of CAT_ALIAS) if (re.test(txt)) return key;
+  return null;
+}
+function detectaMes(txt){
+  for (let m=0;m<12;m++) if (txt.includes(MESES_TXT[m])) return m+1;
+  return null;
+}
+
+function parsearNomina(txtCrudo){
+  const txt = txtCrudo.toUpperCase();
+  const r = {otros:[]};
+
+  const periodoTxt = entreEtiquetas(txt, "ANTIG", "PERIODO LIQUIDACI");
+  const mes = detectaMes(periodoTxt);
+  if (mes) r.mes = mes;
+  const anioMatch = periodoTxt.match(/(20\d{2})/);
+  const anio = anioMatch ? +anioMatch[1] : null;
+  if (anio) r.anio = anio;
+
+  const catTxt = entreEtiquetas(txt, "PUESTO TRABAJO", "CATEGOR");
+  if (catTxt){ const k = detectaCategoria(catTxt); if (k) r.catKey = k; }
+
+  const antigTxt = entreEtiquetas(txt, "AFILIACI", "ANTIG");
+  const mAntig = antigTxt.match(/(\d{2})-(\d{2})-(\d{4})/);
+  if (mAntig){
+    r.antigFecha = mAntig[0];
+    const alta = new Date(+mAntig[3], +mAntig[2]-1, +mAntig[1]);
+    const ref = (anio && mes) ? new Date(anio, mes, 0) : new Date();
+    r.antigAnios = Math.max(0, Math.floor((ref.getTime()-alta.getTime())/(365.25*86400000)));
+  }
+
+  const diasTxt = entreEtiquetas(txt, "CATEGOR", "TOTAL D");
+  const diasNum = numTxt(diasTxt);
+  if (diasNum) r.totalDias = diasNum;
+
+  // Tabla de conceptos: entre "A DEDUCIR" (fin de cabecera) y "SUMATORIO"/"REMUNERACI" (fin de tabla)
+  const iTabla = txt.indexOf("A DEDUCIR");
+  const finCandidatos = ["SUMATORIO","REMUNERACI"].map(s=>txt.indexOf(s)).filter(x=>x>=0);
+  const iFin = finCandidatos.length ? Math.min(...finCandidatos) : txt.length;
+  const tabla = iTabla>=0 ? txt.slice(iTabla+9, iFin>iTabla?iFin:txt.length) : "";
+
+  // Los códigos de fila son numéricos (5001), de deducción (/398) o alfanuméricos de IT (PA10, PC10…)
+  const filas = tabla.split(/(?=(?:\d{4}|\/\d{3}|[A-Z]{2}\d{2})\s)/).map(s=>s.trim()).filter(Boolean);
+  let otrosSuma = 0;
+  filas.forEach(fila=>{
+    const mCod = fila.match(/^(\d{4}|\/\d{3}|[A-Z]{2}\d{2})\s+(.*)$/s);
+    if (!mCod) return;
+    const codigo = mCod[1], resto = mCod[2];
+    // Separa por palabras y va cogiendo desde el final los tokens puramente numéricos
+    // (así un "(15)" dentro de la descripción no rompe el corte, al no ser solo dígitos)
+    const tokens = resto.split(/\s+/).filter(Boolean);
+    const numTokens = [];
+    let corte = tokens.length;
+    for (let k=tokens.length-1; k>=0; k--){
+      if (/^-?[\d.,]+$/.test(tokens[k])){ numTokens.unshift(tokens[k]); corte = k; }
+      else break;
+    }
+    const desc = tokens.slice(0, corte).join(" ").trim();
+    const nums = numTokens.map(numTxt).filter(n=>n!=null);
+    if (!nums.length || !desc) return;
+    const esDeduccion = codigo.startsWith("/");
+
+    if (/SALARIO BASE/.test(desc)) r.salarioBase = nums[nums.length-1];
+    else if (/^ANTIG/.test(desc)) r.antigDevengado = nums[nums.length-1];
+    else if (/TRANSPORTE/.test(desc)) r.plusTransporte = nums[nums.length-1];
+    else if (/VESTUARIO/.test(desc)) r.plusVestuario = nums[nums.length-1];
+    else if (/PELIGROSIDAD/.test(desc)) r.plusPeligrosidad = nums[nums.length-1];
+    else if (/FESTIVO/.test(desc)){ if(nums.length>1) r.fesHoras=nums[0]; r.fesImporte=nums[nums.length-1]; }
+    else if (/NOCTURNID/.test(desc)){ if(nums.length>1) r.nocHoras=nums[0]; r.nocImporte=nums[nums.length-1]; }
+    else if (!esDeduccion && /PRESTAC|COMPLEMENTO IT|\bIT\b/.test(desc)){
+      r.itImporteReal = (r.itImporteReal||0) + nums[nums.length-1];
+      r.itConceptos = (r.itConceptos||[]); r.itConceptos.push({nombre:desc, importe:nums[nums.length-1]});
+    }
+    else if (esDeduccion && /SEG\.?\s*SOC|COTIZ/.test(desc)){ r.ssPct=nums[0]; r.ssImporte=nums[nums.length-1]; }
+    else if (esDeduccion && /IRPF/.test(desc)){ r.irpfPct=nums[0]; r.irpfImporte=nums[nums.length-1]; }
+    else if (!esDeduccion){
+      const importe = nums[nums.length-1];
+      if (importe){ r.otros.push({nombre:desc, importe}); otrosSuma += importe; }
+    }
+  });
+  r.otrosSuma = Math.round(otrosSuma*100)/100;
+
+  r.totalDevengado = numTxt(entreEtiquetas(txt, "TOTAL IMPORTE", "TOTAL DEVENGADO"));
+  r.totalDeducciones = numTxt(entreEtiquetas(txt, "TOTAL DEVENGADO", "TOTAL DEDUCCIONES"));
+  const iPercibir = txt.indexOf("PERCIBIR");
+  if (iPercibir>=0){
+    const m = txt.slice(iPercibir, iPercibir+250).match(/\d[\d.,]*\d/);
+    if (m) r.liquido = numTxt(m[0]);
+  }
+
+  // OBSERVACIONES: "1000 - Enfermedad no laboral - 09.02.2026 - 31.12.9999" (código - contingencia - inicio - fin)
+  const obs = txt.match(/(\d{3,4})\s*-\s*([A-ZÀ-Ý.\s]+?)\s*-\s*(\d{2})[.\-](\d{2})[.\-](\d{4})\s*-\s*(\d{2})[.\-](\d{2})[.\-](\d{4})/);
+  if (obs){
+    const contTxt = obs[2].trim();
+    r.bajaTipo = /ACCIDENTE DE TRABAJO|ENFERMEDAD PROFESIONAL/.test(contTxt) ? "at"
+               : /HOSPITAL/.test(contTxt) ? "hosp" : "ec";
+    r.bajaInicio = `${obs[3]}-${obs[4]}-${obs[5]}`;
+    // Fin del proceso: "31.12.9999" (u otro año muy lejano) es el centinela de "sigue abierta".
+    // Si trae una fecha real, hay que respetarla: la baja puede haberse cerrado antes de este mes,
+    // o dentro de él, y las nóminas siguen mostrando el registro histórico aunque ya se haya cerrado.
+    const finAnio = +obs[8];
+    const fin = finAnio >= 9000 ? null : new Date(finAnio, +obs[7]-1, +obs[6]);
+    if (fin) r.bajaFin = `${obs[6]}-${obs[7]}-${obs[8]}`;
+    if (r.anio && r.mes){
+      const inicio = new Date(+obs[5], +obs[4]-1, +obs[3]);
+      const diasMes = new Date(r.anio, r.mes, 0).getDate();
+      const inicioPeriodo = new Date(r.anio, r.mes-1, 1);
+      const finPeriodo = new Date(r.anio, r.mes-1, diasMes);
+      const empiezaAntesDeAcabarElMes = inicio <= finPeriodo;
+      const noHaCerradoAntesDeEsteMes = !fin || fin >= inicioPeriodo;
+      if (empiezaAntesDeAcabarElMes && noHaCerradoAntesDeEsteMes){
+        const diaInicioEnMes = inicio < inicioPeriodo ? 1 : inicio.getDate();
+        const diaFinEnMes = (fin && fin <= finPeriodo) ? fin.getDate() : diasMes;
+        r.bajaDiasEsteMes = diaFinEnMes - diaInicioEnMes + 1;
+        r.bajaDiasPrevios = inicio < inicioPeriodo ? Math.round((inicioPeriodo-inicio)/86400000) : 0;
+      }
+    }
+  }
+
+  // Base de cotización real (tabla APORTACIONES, fila CONTING. COMUNES). Durante una baja es una
+  // cifra fija que se repite mes a mes desde que empieza el proceso, no se recalcula sobre lo devengado.
+  const mBase = txt.match(/CONTING\.?\s*COMUNES\s+\d+\s+([\d.,]+)/);
+  if (mBase) r.baseCotizReal = numTxt(mBase[1]);
+
+  return r;
+}
+
+function rellenarRevision(d){
+  if (d.catKey) document.getElementById("chk-cat").value = d.catKey;
+  if (d.antigAnios!=null) document.getElementById("chk-quin").value = d.antigAnios;
+  if (d.mes) document.getElementById("chk-mes").value = d.mes;
+  if (d.nocHoras!=null) document.getElementById("chk-noc").value = d.nocHoras;
+  if (d.fesHoras!=null) document.getElementById("chk-fes").value = d.fesHoras;
+  if (d.irpfPct!=null) document.getElementById("chk-irpf").value = d.irpfPct;
+  document.getElementById("chk-otros").value = d.otrosSuma || 0;
+  const ay = document.getElementById("chk-otros-ay");
+  ay.textContent = (d.otros && d.otros.length)
+    ? "Detectado en tu nómina: " + d.otros.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
+      ". No son del convenio estatal: se suman tal cual, sin comprobar si están bien calculados."
+    : "Conceptos de tu nómina que no reconocemos como del convenio (pluses de centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.";
+  if (d.totalDevengado!=null) document.getElementById("chk-real-bruto").value = d.totalDevengado;
+  if (d.liquido!=null) document.getElementById("chk-real-neto").value = d.liquido;
+
+  const hayBaja = d.bajaDiasEsteMes!=null || d.itImporteReal!=null;
+  document.getElementById("chk-hubobaja").checked = hayBaja;
+  document.getElementById("chk-baja-box").classList.toggle("oculto", !hayBaja);
+  if (d.bajaDiasEsteMes!=null) document.getElementById("chk-bdias").value = d.bajaDiasEsteMes;
+  if (d.bajaDiasPrevios!=null) document.getElementById("chk-bprev").value = d.bajaDiasPrevios;
+  if (d.bajaTipo){
+    const radio = document.querySelector(`input[name="chk-btipo"][value="${d.bajaTipo}"]`);
+    if (radio) radio.checked = true;
+  }
+  document.getElementById("chk-it-real").value = d.itImporteReal || 0;
+  document.getElementById("chk-base-cotiz").value = d.baseCotizReal || 0;
+}
+document.getElementById("chk-hubobaja").addEventListener("change", e=>{
+  document.getElementById("chk-baja-box").classList.toggle("oculto", !e.target.checked);
+});
+
+document.getElementById("chk-file").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  const estado = document.getElementById("chk-estado");
+  const revision = document.getElementById("chk-revision");
+  document.getElementById("r-chk").innerHTML = "";
+  if (!file) return;
+  estado.innerHTML = `<div class="nota">Leyendo tu nómina…</div>`;
+  try{
+    const {texto, ocr} = await leerTextoPDF(file, msg=>{ estado.innerHTML = `<div class="nota">${msg}</div>`; });
+    if (texto.replace(/\s/g,"").length < 30){
+      estado.innerHTML = `<div class="err">No hemos podido leer nada de este PDF. Puede ser una imagen de muy baja
+      calidad o un formato distinto al habitual. Rellena los campos a mano más abajo.</div>`;
+    } else {
+      estado.innerHTML = ocr
+        ? `<div class="aviso">Leído con reconocimiento de imagen: puede confundir cifras parecidas (3↔8, 1↔7…).
+           Revisa bien los números de abajo antes de comparar.</div>`
+        : `<div class="nota">PDF leído correctamente. Revisa los datos antes de comparar.</div>`;
+    }
+    const d = parsearNomina(texto);
+    rellenarRevision(d);
+    revision.classList.remove("oculto");
+    revision.scrollIntoView({behavior:"smooth",block:"start"});
+  } catch(err){
+    console.error(err);
+    estado.innerHTML = `<div class="err">No se ha podido leer el archivo, puede que no haya conexión para cargar el
+    lector de PDF. Prueba otra vez con datos o wifi, o rellena los campos a mano más abajo.</div>`;
+    revision.classList.remove("oculto");
+  }
+});
+
+document.getElementById("b-chk").addEventListener("click", ()=>{
+  document.getElementById("n-cat").value = document.getElementById("chk-cat").value;
+  pintaArma();
+  document.getElementById("n-arma").checked = chk("chk-arma");
+  document.getElementById("n-quin").value = num("chk-quin");
+  document.getElementById("n-mes").value = document.getElementById("chk-mes").value;
+  document.querySelector('input[name="n-jor"][value="c"]').checked = true;
+  document.querySelector('input[name="n-reg"][value="fijo"]').checked = true;
+  document.getElementById("n-tot").value = JORNADA_MES;
+  document.getElementById("n-noc").value = num("chk-noc");
+  document.getElementById("n-fes").value = num("chk-fes");
+  document.getElementById("n-nb").value = 0;
+  document.getElementById("n-acum").value = 0;
+  ["n-jefe","n-aero","n-radio","n-radiob"].forEach(id=> document.getElementById(id).checked=false);
+  document.getElementById("n-plus").value = num("chk-otros");
+  ["n-pj","n-pn","n-pm"].forEach(id=> document.getElementById(id).checked=false);
+
+  const hayBaja = chk("chk-hubobaja");
+  document.getElementById("n-bdias").value = hayBaja ? num("chk-bdias") : 0;
+  document.getElementById("n-bprev").value = hayBaja ? num("chk-bprev") : 0;
+  if (hayBaja){
+    const tipoBaja = document.querySelector('input[name="chk-btipo"]:checked').value;
+    document.querySelector(`input[name="n-btipo"][value="${tipoBaja}"]`).checked = true;
+  }
+  document.querySelector('input[name="n-borden"][value="1"]').checked = true;
+  document.querySelector('input[name="n-bsupl"][value="prop"]').checked = true;
+  // La base de contingencias comunes real (de tu nómina) es la que se usa para calcular el importe
+  // diario de la IT. Si no la tenemos, se estima a partir de la categoría — menos exacto.
+  document.getElementById("n-bbase").value = hayBaja ? num("chk-base-cotiz") : 0;
+  document.getElementById("n-irpf").value = num("chk-irpf");
+  document.getElementById("n-ss").value = 6.50;
+  document.getElementById("n-cuota").value = "";
+
+  const r = calcularNomina();
+  const realBruto = num("chk-real-bruto"), realNeto = num("chk-real-neto");
+  const otros = num("chk-otros");
+  const itReal = num("chk-it-real");
+
+  // Durante la baja, la Seguridad Social cotiza sobre una base fija (la que ya traía la persona antes de
+  // la baja), no sobre lo devengado ese mes en concreto. Si tenemos esa base real, la usamos tal cual.
+  const baseCotizFija = num("chk-base-cotiz");
+  const usaBaseFija = hayBaja && baseCotizFija > 0;
+  const ssConvenio = usaBaseFija ? baseCotizFija * num("n-ss")/100 : r.data.ss;
+  const netoConvenio = usaBaseFija ? r.data.bruto - ssConvenio - r.data.irpf - r.data.cuota : r.data.neto;
+
+  let h = `<div class="recibo" id="rec-chk"><h3>Mínimo de convenio con estos datos · ${r.data.cat}</h3>`;
+  if (hayBaja){
+    h += `<div class="aviso"><b>Esta cantidad puede variar por varias razones</b> propias de los meses con baja:
+    el tramo de la incapacidad temporal cambia conforme avanza el proceso, la base de cotización puede ser una
+    cifra fija distinta a la de un mes normal, y algunas empresas prorratean el salario con los días reales del
+    mes en vez de con 30. Si no te cuadra, no lo des por hecho: consúltalo con tu representante de CCOO antes de
+    sacar conclusiones.</div>`;
+    h += linea("Días de baja este mes", `${num("chk-bdias").toLocaleString("es-ES")} días`, "", "según lo indicado arriba");
+  }
+  h += linea("Salario base", r.data.sbP);
+  if (r.data.pelP) h += linea("Plus de peligrosidad", r.data.pelP);
+  if (r.data.antP) h += linea("Antigüedad", r.data.antP);
+  h += linea("Plus de transporte", r.data.traP);
+  h += linea("Plus de vestuario", r.data.vesP);
+  if (r.data.impNoc) h += linea("Plus de nocturnidad", r.data.impNoc);
+  if (r.data.impFes) h += linea("Plus de fin de semana y festivos", r.data.impFes);
+  if (hayBaja && r.data.impIT) h += linea("Incapacidad temporal (mínimo convenio)", r.data.impIT, "",
+    "asumiendo que es tu primer proceso de baja del año — corrígelo en la pestaña Nómina si no lo es");
+  if (otros) h += linea("Otros pluses de tu nómina", otros, "", "sin comparar, se dan por buenos");
+  h += linea("Total mínimo de convenio (bruto)", r.data.bruto, "sum");
+
+  if (hayBaja){
+    h += `<h3>Incapacidad temporal: comparación aparte</h3>`;
+    h += linea("Según tu nómina (prestación + complementos)", itReal);
+    h += linea("Mínimo de convenio", r.data.impIT);
+    const difIT = itReal - r.data.impIT;
+    h += linea("Diferencia", difIT, difIT < -0.5 ? "neg" : "");
+    if (difIT < -1){
+      h += `<div class="aviso"><b>La incapacidad temporal de tu nómina está ${eur(Math.abs(difIT))} por debajo del
+      mínimo de convenio.</b> Revisa el número de proceso de baja (si no es el primero del año, corrígelo en la
+      pestaña Nómina) y, si sigue sin cuadrar, escríbenos.</div>`;
+    }
+  }
+
+  h += `<h3>Comparación con tu nómina</h3>`;
+  h += linea("Tu nómina (total devengado)", realBruto);
+  const difBruto = realBruto - r.data.bruto;
+  h += linea("Diferencia", difBruto, difBruto < -0.5 ? "neg" : "");
+  h += linea("Tu nómina (líquido a percibir)", realNeto);
+  h += linea("Líquido según convenio (con tu % de IRPF y SS)", netoConvenio, "",
+    usaBaseFija ? `SS calculada sobre ${eur(baseCotizFija)}, la base fija de tu nómina` : "");
+  const difNeto = realNeto - netoConvenio;
+  h += linea("Diferencia en el líquido", difNeto, difNeto < -0.5 ? "neg" : "");
+
+  if (difBruto < -1){
+    h += `<div class="aviso"><b>Tu nómina está ${eur(Math.abs(difBruto))} por debajo del mínimo de convenio</b> con
+    los datos de arriba. Puede ser un error de la empresa o que falte revisar algún dato (horas, antigüedad,
+    categoría${hayBaja?", número de proceso de baja":""}). Contrasta el desglose con tu recibo y, si no cuadra,
+    escríbenos con el PDF.</div>`;
+  } else if (difBruto > 1){
+    h += `<div class="nota">Tu nómina está ${eur(difBruto)} por encima del mínimo de convenio. Puede deberse a horas
+    extraordinarias, pluses de responsable de equipo, aeropuerto o radioscopia, u otros pluses de empresa que esta
+    comparación rápida no desglosa.</div>`;
+  } else {
+    h += `<div class="nota">El bruto de tu nómina coincide con el mínimo de convenio para estos datos.</div>`;
+  }
+  if (hayBaja){
+    h += `<div class="nota">Los días de baja se prorratean sobre 30 días de mes, que es el criterio estándar en
+    nómina (salario mensual ÷ 30 × días). Si tu empresa prorratea con los días naturales del mes (28, 30 o 31 según
+    el mes), el salario de los días trabajados puede salirte algo distinto al de aquí — coméntalo con la sección
+    sindical si la diferencia es grande.</div>`;
+  }
+  h += `<div class="nota">Esta comparación rápida no mete horas extraordinarias, ni pluses de responsable de equipo,
+  aeropuerto o radioscopia. Si tienes alguno de esos, ve a la pestaña Nómina, verás los mismos datos ya puestos, y
+  añádelos ahí para un cálculo completo.</div>`;
+  h += botonCopiar("rec-chk") + `</div>`;
+  document.getElementById("r-chk").innerHTML = h;
+  document.getElementById("r-chk").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+/* ====== COPIAR DESGLOSE ====== */
+document.addEventListener("click", e=>{
+  const btn = e.target.closest("[data-copia]");
+  if (!btn) return;
+  const rec = document.getElementById(btn.dataset.copia);
+  const txt = [...rec.querySelectorAll(".ln,.neto,h3")].map(el=>{
+    if (el.tagName==="H3") return "\n— " + el.textContent.trim().toUpperCase();
+    if (el.classList.contains("neto")) return "\n" + el.querySelector(".et b").textContent + ": " + el.querySelector(".im").textContent;
+    return el.querySelector(".cn").childNodes[0].textContent.trim() + ": " + el.querySelector(".vl").textContent;
+  }).join("\n");
+  const pie = "\n\nCalculado con la herramienta de la Seccion Sindical CCOO - Ilunion Seguridad Sevilla\nConvenio Estatal de Seguridad Privada 2026-2030 (BOE 18/04/2026)";
+  navigator.clipboard.writeText(txt+pie).then(()=>{
+    const t = btn.textContent; btn.textContent = "Copiado";
+    setTimeout(()=>btn.textContent = t, 1800);
+  }).catch(()=>{ btn.textContent = "No se pudo copiar"; });
+});
+
+/* ====== COPIAR CORREO DE LA SECCIÓN SINDICAL ====== */
+document.getElementById("copia-mail").addEventListener("click", e=>{
+  const b = e.currentTarget, dir = "seccionsindical.ilunion.ccoo@gmail.com";
+  navigator.clipboard.writeText(dir).then(()=>{
+    b.textContent = "Dirección copiada";
+    setTimeout(()=>b.textContent = dir, 1800);
+  }).catch(()=>{ b.textContent = "Copia manual: " + dir; });
+});
+
+/* ====== PANEL DE AFILIACIÓN ====== */
+const panelAfi = document.getElementById("afiliacion");
+const zonasCalc = [document.querySelector("header"), document.querySelector("nav.tabs"),
+                   document.querySelector("main"), document.querySelector("footer"),
+                   document.querySelector(".afi")];
+function verAfiliacion(v){
+  zonasCalc.forEach(z=> z && z.classList.toggle("oculto", v));
+  panelAfi.classList.toggle("oculto", !v);
+  window.scrollTo({top:0});
+}
+document.getElementById("btn-abrir-afi").addEventListener("click", e=>{ e.preventDefault(); verAfiliacion(true); });
+document.getElementById("cerrar-afi").addEventListener("click", ()=> verAfiliacion(false));
+
+/* ====== FIRMA ====== */
+const cv = document.getElementById("a-firma"), cx = cv.getContext("2d");
+let pintando = false, hayFirma = false;
+cx.lineWidth = 4; cx.lineCap = "round"; cx.lineJoin = "round"; cx.strokeStyle = "#14161A";
+function pos(e){
+  const r = cv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height)};
+}
+cv.addEventListener("pointerdown", e=>{
+  pintando = true; cv.setPointerCapture(e.pointerId);
+  const p = pos(e); cx.beginPath(); cx.moveTo(p.x,p.y);
+});
+cv.addEventListener("pointermove", e=>{
+  if(!pintando) return;
+  const p = pos(e); cx.lineTo(p.x,p.y); cx.stroke();
+  if(!hayFirma){ hayFirma = true; cv.parentElement.classList.add("hecha"); }
+});
+["pointerup","pointerleave","pointercancel"].forEach(ev=> cv.addEventListener(ev, ()=> pintando=false));
+document.getElementById("a-borrar-firma").addEventListener("click", ()=>{
+  cx.clearRect(0,0,cv.width,cv.height); hayFirma = false; cv.parentElement.classList.remove("hecha");
+});
+
+/* ====== FORMA DE PAGO DE LA CUOTA ====== */
+const porNomina = ()=> rad("a-pago")==="nomina";
+document.querySelectorAll('input[name="a-pago"]').forEach(r=>{
+  r.addEventListener("change",()=>{
+    const nom = porNomina();
+    document.getElementById("a-banco-box").classList.toggle("oculto", nom);
+    document.getElementById("a-nomina-box").classList.toggle("oculto", !nom);
+    document.getElementById("a-ok2-txt").textContent = nom
+      ? "Autorizo a la empresa a descontar la cuota sindical de mi nómina"
+      : "Autorizo el cargo de la cuota sindical en la cuenta indicada";
+    document.getElementById("a-ok2-sub").textContent = nom
+      ? "art. 11.2 de la Ley Orgánica 11/1985 de Libertad Sindical · la empresa conocerá tu afiliación"
+      : "orden de domiciliación SEPA a favor de CCOO Unidad Administrativa de Recaudación";
+  });
+});
+
+/* ====== VALIDACIÓN DE IBAN ====== */
+function ibanValido(v){
+  const s = (v||"").replace(/[\s-]/g,"").toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(s)) return false;
+  const r = s.slice(4) + s.slice(0,4);
+  let resto = 0;
+  for (const c of r){
+    const n = /[A-Z]/.test(c) ? (c.charCodeAt(0)-55).toString() : c;
+    for (const d of n) resto = (resto*10 + parseInt(d)) % 97;
+  }
+  return resto === 1;
+}
+const inpIban = document.getElementById("a-iban");
+inpIban.addEventListener("blur", ()=>{
+  const m = document.getElementById("a-iban-msg");
+  if (!inpIban.value.trim()){ m.textContent = "Un IBAN mal puesto impide el cobro y bloquea el alta"; m.style.color=""; return; }
+  const ok = ibanValido(inpIban.value);
+  m.textContent = ok ? "IBAN correcto" : "Este IBAN no es válido: repásalo dígito a dígito";
+  m.style.color = ok ? "var(--verde)" : "var(--rojo)";
+});
+
+/* ====== GENERADOR DE PDF ====== */
+let libPdf = null;
+function cargarPdfLib(){
+  if (libPdf) return libPdf;
+  libPdf = new Promise((res,rej)=>{
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
+    s.onload = ()=> res(window.PDFLib);
+    s.onerror = ()=> rej(new Error("sin conexión"));
+    document.head.appendChild(s);
+  });
+  return libPdf;
+}
+const val = id => (document.getElementById(id).value || "").trim();
+const T = t => (t||"").replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
+                      .replace(/[–—]/g,"-").replace(/[^\x00-\xFF]/g,"");
+const fFecha = v => { if(!v) return ""; const [y,m,d]=v.split("-"); return `${d}/${m}/${y}`; };
+
+document.getElementById("a-generar").addEventListener("click", async ()=>{
+  const salida = document.getElementById("a-salida");
+  const fallos = [];
+  if (!val("a-dni")) fallos.push("el DNI o NIE");
+  if (!val("a-ape")) fallos.push("los apellidos");
+  if (!val("a-nom")) fallos.push("el nombre");
+  if (!porNomina()){
+    if (!val("a-iban")) fallos.push("el IBAN");
+    else if (!ibanValido(val("a-iban"))) fallos.push("un IBAN válido");
+  }
+  if (!hayFirma) fallos.push("la firma");
+  if (!chk("a-ok1") || !chk("a-ok2")) fallos.push("marcar las dos casillas del final");
+  if (fallos.length){
+    salida.innerHTML = `<div class="err">Falta ${fallos.join(", ").replace(/, ([^,]*)$/," y $1")}.</div>`;
+    salida.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+
+  salida.innerHTML = `<div class="nota">Generando el documento…</div>`;
+  let PDFLib;
+  try { PDFLib = await cargarPdfLib(); }
+  catch(e){
+    salida.innerHTML = `<div class="err">No se ha podido preparar el PDF porque no hay conexión en este momento.
+    Conéctate a los datos o al wifi y vuelve a darle. Lo que has escrito no se pierde.</div>`;
+    return;
+  }
+
+  try{
+    const {PDFDocument, StandardFonts, rgb} = PDFLib;
+    const doc = await PDFDocument.create();
+    doc.setTitle("Solicitud de afiliacion a CCOO");
+    const fn = await doc.embedFont(StandardFonts.Helvetica);
+    const fb = await doc.embedFont(StandardFonts.HelveticaBold);
+    const ROJO = rgb(0.8,0,0), NEGRO = rgb(0.08,0.09,0.10), GRIS = rgb(0.45,0.48,0.52), LINEA = rgb(0.6,0.63,0.66);
+    const W = 595.28, H = 841.89, M = 30, AN = W - M*2;
+
+    const nueva = ()=> doc.addPage([W,H]);
+    function txt(p,s,x,y,size,font,color){ p.drawText(T(s), {x,y,size,font:font||fn,color:color||NEGRO}); }
+    function caja(p,x,y,w,h){ p.drawRectangle({x,y,width:w,height:h,borderColor:LINEA,borderWidth:.7}); }
+    function campo(p,x,y,w,h,et,v){
+      caja(p,x,y,w,h);
+      txt(p,et,x+4,y+h-8,5.2,fn,GRIS);
+      const s = T(v||""); let size = 9;
+      while (fn.widthOfTextAtSize(s,size) > w-8 && size > 5.5) size -= .25;
+      txt(p,s,x+4,y+5,size);
+    }
+    function fila(p,y,h,defs){
+      let x = M;
+      defs.forEach(([et,v,w])=>{ campo(p,x,y,w,h,et,v); x += w; });
+    }
+    function banda(p,y,t){
+      p.drawRectangle({x:M,y,width:AN,height:13,color:NEGRO});
+      txt(p,t,M+5,y+4,7,fb,rgb(1,1,1));
+    }
+    function membrete(p){
+      p.drawRectangle({x:M,y:H-62,width:96,height:26,color:ROJO});
+      txt(p,"CCOO",M+8,H-56,17,fb,rgb(1,1,1));
+      txt(p,"comisiones obreras de Andalucia",M,H-72,6,fn,GRIS);
+      const dx = M+130;
+      txt(p,"Unidad Administrativa de Recaudacion (U.A.R.)",dx,H-40,7.5,fb);
+      txt(p,"C/ Cardenal Buenos Monreal, 58 (Edf. Sponsor) - 41013 Sevilla",dx,H-51,7);
+      txt(p,"Telefono 954 22 66 77 - Email uar@and.ccoo.es",dx,H-62,7);
+      p.drawLine({start:{x:M,y:H-80},end:{x:W-M,y:H-80},thickness:1.4,color:ROJO});
+    }
+    function parrafo(p,s,x,y,w,size,font,lh){
+      const pal = T(s).split(" "); let ln = "", cy = y;
+      const f = font||fn, alto = lh||(size+2.6);
+      pal.forEach(pl=>{
+        const prueba = ln ? ln+" "+pl : pl;
+        if (f.widthOfTextAtSize(prueba,size) > w){ txt(p,ln,x,cy,size,f); ln = pl; cy -= alto; }
+        else ln = prueba;
+      });
+      if (ln) { txt(p,ln,x,cy,size,f); cy -= alto; }
+      return cy;
+    }
+
+    /* ---------- PÁGINA 1: SOLICITUD ---------- */
+    const p1 = nueva();
+    membrete(p1);
+    txt(p1,"SOLICITUD DE AFILIACION A CCOO",M,H-104,13,fb);
+    p1.drawRectangle({x:W-M-58,y:H-106,width:9,height:9,borderColor:NEGRO,borderWidth:.8});
+    txt(p1,"X",W-M-55.5,H-104,8,fb);
+    txt(p1,"ALTA DE AFILIACION",W-M-160,H-104,7.5,fb);
+
+    let y = H-132, h = 30;
+    banda(p1,y,"DATOS PERSONALES"); y -= (h+1);
+    fila(p1,y,h,[["DNI / NIE",val("a-dni"),120],["APELLIDOS",val("a-ape"),255],["NOMBRE",val("a-nom"),160]]); y -= (h+1);
+    fila(p1,y,h,[["DOMICILIO",val("a-via"),330],["NUMERO, PISO Y PUERTA",val("a-numero"),205]]); y -= (h+1);
+    fila(p1,y,h,[["CODIGO POSTAL",val("a-cp"),80],["LOCALIDAD",val("a-loc"),235],["PAIS",val("a-pais"),220]]); y -= (h+1);
+    fila(p1,y,h,[["FECHA DE NACIMIENTO",fFecha(val("a-nac")),130],["SEXO",val("a-sexo")==="M"?"M - Mujer":"H - Hombre",100],
+                 ["PROFESION",val("a-cat"),305]]); y -= (h+1);
+    fila(p1,y,h,[["TELEFONO MOVIL",val("a-movil"),150],["TELEFONO FIJO",val("a-fijo"),150],
+                 ["E-MAIL",val("a-email"),235]]); y -= (h+11);
+
+    banda(p1,y,"DATOS SINDICALES"); y -= (h+1);
+    const hoy = new Date(), fhoy = `${String(hoy.getDate()).padStart(2,"0")}/${String(hoy.getMonth()+1).padStart(2,"0")}/${hoy.getFullYear()}`;
+    fila(p1,y,h,[["FECHA DE ANTIGUEDAD",fhoy,130],["MOTIVO DE ALTA","Afiliacion voluntaria",175],
+                 ["ORIGEN DEL ALTA","Seccion Sindical CCOO Ilunion Seguridad Sevilla",230]]); y -= (h+1);
+    fila(p1,y,h,[["SITUACION LABORAL","En activo",150],["FEDERACION","CCOO del Habitat",190],
+                 ["UNION PROVINCIAL","Sevilla",195]]); y -= (h+11);
+
+    banda(p1,y,"DATOS DE LA EMPRESA"); y -= (h+1);
+    fila(p1,y,h,[["EMPRESA",val("a-empresa"),265],["CIF",val("a-nif"),120],
+                 ["Nº SEGURIDAD SOCIAL EMPRESA",val("a-ccc"),150]]); y -= (h+1);
+    fila(p1,y,h,[["DOMICILIO SOCIAL",val("a-social"),265],["ACTIVIDAD PRINCIPAL","Seguridad privada",270]]); y -= (h+1);
+    fila(p1,y,h,[["CENTRO DE TRABAJO",val("a-centro"),535]]); y -= (h+1);
+    fila(p1,y,h,[["DOMICILIO DEL CENTRO",val("a-dircentro"),300],["CODIGO POSTAL",val("a-cpcentro"),80],
+                 ["LOCALIDAD",val("a-loccentro"),155]]); y -= (h+1);
+    fila(p1,y,h,[["CONVENIO DE SECTOR","Estatal de Empresas de Seguridad",235],
+                 ["CATEGORIA PROFESIONAL",val("a-cat"),175],["TIPO DE CONTRATO",val("a-contrato"),125]]); y -= (h+1);
+    fila(p1,y,h,[["FECHA DE ANTIGUEDAD EN LA EMPRESA",fFecha(val("a-antig")),535]]); y -= (h+11);
+
+    const periodo = porNomina() ? "Mensual" : (rad("a-per")==="T" ? "Trimestral" : "Mensual");
+    banda(p1,y,"DATOS DE GESTION"); y -= (h+1);
+    fila(p1,y,h,[["FORMA DE COBRO",(porNomina()?"Descuento en nomina":"Domiciliacion bancaria")+" - "+periodo,235],
+                 ["TIPO DE CUOTA","Segun Plan Integral de Cuotas",115],
+                 ["IMPORTE",val("a-cuota"),85],["INGRESOS BRUTOS ANO ANTERIOR",val("a-brutos"),100]]); y -= (h+11);
+
+    banda(p1,y,"FIRMAS"); y -= 79;
+    caja(p1,M,y,265,78); txt(p1,"FIRMA Y SELLO DE LA ORGANIZACION SOLICITANTE",M+4,y+70,5.2,fn,GRIS);
+    caja(p1,M+265,y,270,78); txt(p1,"FIRMA DE LA PERSONA SOLICITANTE",M+269,y+70,5.2,fn,GRIS);
+    txt(p1,"Fecha: "+fhoy,M+269,y+8,7.5);
+
+    const firmaPng = await doc.embedPng(cv.toDataURL("image/png"));
+    const fw = 150, fh = fw * (cv.height/cv.width);
+    p1.drawImage(firmaPng,{x:M+340,y:y+16,width:fw,height:fh});
+
+    /* ---------- PÁGINA 2: ORDEN SEPA O DESCUENTO EN NÓMINA ---------- */
+    const p2 = nueva();
+    membrete(p2);
+    let y2;
+
+    if (porNomina()){
+      txt(p2,"AUTORIZACION DE DESCUENTO DE CUOTA SINDICAL EN NOMINA",M,H-104,12,fb);
+      y2 = parrafo(p2,"Al amparo del articulo 11.2 de la Ley Organica 11/1985, de 2 de agosto, de Libertad Sindical, "+
+        "la persona abajo firmante autoriza expresamente a la empresa a detraer de su nomina el importe de la cuota "+
+        "sindical correspondiente a su afiliacion a Comisiones Obreras, y a transferirlo a la organizacion sindical "+
+        "en los terminos que esta indique. Esta autorizacion se mantendra vigente en tanto la persona firmante no "+
+        "comunique por escrito su revocacion.", M, H-124, AN, 8.5);
+
+      y2 -= 12; banda(p2,y2,"DATOS DE LA PERSONA TRABAJADORA"); y2 -= (h+1);
+      fila(p2,y2,h,[["NOMBRE Y APELLIDOS",val("a-nom")+" "+val("a-ape"),380],["DNI / NIE",val("a-dni"),155]]); y2 -= (h+1);
+      fila(p2,y2,h,[["EMPRESA",val("a-empresa"),305],["Nº DE EMPLEADO / MATRICULA","",230]]); y2 -= (h+1);
+      fila(p2,y2,h,[["CENTRO DE TRABAJO",val("a-centro"),305],["CATEGORIA PROFESIONAL",val("a-cat"),230]]); y2 -= (h+11);
+
+      banda(p2,y2,"DESTINATARIO"); y2 -= (h+1);
+      fila(p2,y2,h,[["DIRIGIDO A","Departamento de Recursos Humanos - "+val("a-empresa"),535]]); y2 -= (h+1);
+      fila(p2,y2,h,[["SINDICATO","Comisiones Obreras (CCOO) - Seccion Sindical en "+val("a-empresa"),535]]); y2 -= (h+11);
+
+      banda(p2,y2,"FIRMA DE LA PERSONA TRABAJADORA"); y2 -= 89;
+      caja(p2,M,y2,AN,88);
+      txt(p2,"En "+(val("a-loccentro")||val("a-loc"))+", a "+fhoy,M+8,y2+10,8);
+      p2.drawImage(firmaPng,{x:M+330,y:y2+18,width:fw,height:fh});
+      y2 = parrafo(p2,"Nota: la afiliacion sindical es un dato de categoria especial protegido por el articulo 9 del "+
+        "Reglamento General de Proteccion de Datos. Al solicitar el descuento en nomina, la empresa conocera tu "+
+        "afiliacion, y solo podra tratar ese dato para gestionar el descuento autorizado. Puedes revocar esta "+
+        "autorizacion en cualquier momento comunicandolo por escrito.", M, y2-14, AN, 7.5);
+
+    } else {
+      txt(p2,"ORDEN DE DOMICILIACION DE ADEUDO DIRECTO SEPA",M,H-104,12,fb);
+      y2 = parrafo(p2,"Mediante la firma de este formulario de Orden de Domiciliacion, usted autoriza a (A) CCOO "+
+        "Unidad Administrativa de Recaudacion U.A.R. a enviar ordenes a su entidad financiera para adeudar en su cuenta "+
+        "y (B) a su entidad financiera para adeudar los importes correspondientes en su cuenta de acuerdo con las "+
+        "ordenes de CCOO Unidad Administrativa de Recaudacion (U.A.R.). Como parte de sus derechos, tiene derecho a ser "+
+        "reembolsado por su entidad financiera de acuerdo con los terminos y condiciones del contrato suscrito con su "+
+        "entidad financiera. Dicho reembolso debera reclamarse en un plazo de 8 semanas a partir de la fecha en que se "+
+        "realizo el adeudo en su cuenta.", M, H-124, AN, 8);
+
+      y2 -= 12; banda(p2,y2,"DATOS DEL DEUDOR"); y2 -= (h+1);
+      fila(p2,y2,h,[["NOMBRE Y APELLIDOS",val("a-nom")+" "+val("a-ape"),380],["DNI / NIE",val("a-dni"),155]]); y2 -= (h+1);
+      fila(p2,y2,h,[["DIRECCION",val("a-via")+" "+val("a-numero"),380],["CODIGO POSTAL",val("a-cp"),155]]); y2 -= (h+1);
+      fila(p2,y2,h,[["CIUDAD",val("a-loc"),270],["PAIS",val("a-pais"),265]]); y2 -= (h+1);
+      fila(p2,y2,h,[["IBAN",val("a-iban").toUpperCase(),320],["ENTIDAD BANCARIA",val("a-banco"),215]]); y2 -= (h+11);
+
+      banda(p2,y2,"DATOS DEL ACREEDOR"); y2 -= (h+1);
+      fila(p2,y2,h,[["NOMBRE","CCOO UNIDAD ADMINISTRATIVA DE RECAUDACION (UAR)",535]]); y2 -= (h+1);
+      fila(p2,y2,h,[["DIRECCION","C/ Manuel Cortina, 11 - 1º 4, 28010 Madrid (Espana)",535]]); y2 -= (h+1);
+      fila(p2,y2,h,[["TIPO DE PAGO","Periodico - "+periodo,165],["CONCEPTO","Cuota sindical",185],
+                    ["LOCALIDAD DONDE FIRMA",val("a-loc"),185]]); y2 -= (h+11);
+
+      banda(p2,y2,"FIRMA DEL TITULAR DE LA CUENTA"); y2 -= 89;
+      caja(p2,M,y2,AN,88);
+      txt(p2,"Fecha: "+fhoy,M+8,y2+10,8);
+      txt(p2,"DNI / NIE: "+val("a-dni"),M+150,y2+10,8);
+      p2.drawImage(firmaPng,{x:M+330,y:y2+18,width:fw,height:fh});
+      y2 = parrafo(p2,"Nota: en su entidad puede obtener informacion adicional sobre sus derechos relativos a esta "+
+        "orden de domiciliacion.", M, y2-14, AN, 7, fn);
+    }
+
+    /* ---------- PÁGINA 3: PROTECCIÓN DE DATOS ---------- */
+    const p3 = nueva();
+    membrete(p3);
+    txt(p3,"INFORMACION SOBRE PROTECCION DE DATOS DE CARACTER PERSONAL",M,H-104,11.5,fb);
+    let y3 = H-128;
+    const bloques = [
+      ["Responsables del tratamiento",
+       "Confederacion Sindical de Comisiones Obreras. Confederacion o Union Territorial de CCOO correspondiente segun "+
+       "el lugar en que radique tu centro de trabajo. Federacion de CCOO del sector al que pertenezca la empresa en que "+
+       "trabajes. En www.ccoo.es puedes consultar la organizacion interna de CCOO. Datos de contacto del Delegado de "+
+       "Proteccion de Datos: C/ Fernandez de la Hoz 12, 3a planta, 28010 Madrid. Correo: dpd@ccoo.es"],
+      ["Finalidad del tratamiento",
+       "Mantenimiento de la relacion como persona afiliada conforme a las finalidades establecidas en los articulos 7 "+
+       "y 28 de la Constitucion Espanola, la Ley Organica 11/1985 de Libertad Sindical y los Estatutos y Reglamentos de "+
+       "CCOO. Ejercicio de los derechos y cumplimiento de los deberes reconocidos estatutariamente. Gestion "+
+       "administrativa y cobro de cuotas. Fines estadisticos e historicos."],
+      ["Derechos",
+       "Puedes acceder, rectificar y suprimir tus datos, asi como ejercer el resto de derechos que se explican en la "+
+       "informacion adicional, dirigiendote a la direccion indicada arriba."],
+      ["Informacion adicional",
+       "Puedes consultar la informacion adicional y detallada sobre Proteccion de Datos en "+
+       "https://www.ccoo.es/Politica_de_privacidad"],
+      ["Confidencialidad de la afiliacion",
+       "La afiliacion sindical es un dato de categoria especial protegido por el articulo 9 del Reglamento General de "+
+       "Proteccion de Datos. No se comunicara a la empresa salvo que solicites expresamente el descuento de la cuota "+
+       "en nomina."]
+    ];
+    bloques.forEach(([t,c])=>{
+      txt(p3,t,M,y3,9,fb,ROJO); y3 -= 13;
+      y3 = parrafo(p3,c,M,y3,AN,8.2) - 12;
+    });
+
+    y3 -= 6;
+    p3.drawLine({start:{x:M,y:y3},end:{x:W-M,y:y3},thickness:.7,color:LINEA}); y3 -= 18;
+    txt(p3,"COMO ENTREGAR ESTA SOLICITUD",M,y3,9,fb,ROJO); y3 -= 13;
+    y3 = parrafo(p3,"Envia este documento firmado a la seccion sindical de CCOO en Ilunion Seguridad Sevilla "+
+      "(seccionsindical.ilunion.ccoo@gmail.com) o entregalo en mano a cualquier delegado o delegada de CCOO. Tambien "+
+      "puedes remitirlo directamente a la Union Provincial de CCOO de Sevilla. Si prefieres tramitarlo por la via "+
+      "telematica oficial, puedes hacerlo en afiliate.ccoo.es", M, y3, AN, 8.2);
+
+    y3 -= 14;
+    txt(p3,"Documento generado el "+fhoy+" con la herramienta de la Seccion Sindical de CCOO en Ilunion Seguridad Sevilla.",
+        M,y3,7,fn,GRIS);
+
+    /* ---------- SALIDA ---------- */
+    const bytes = await doc.save();
+    const blob = new Blob([bytes],{type:"application/pdf"});
+    const url = URL.createObjectURL(blob);
+    const nombre = ("Afiliacion_CCOO_"+val("a-ape")+"_"+val("a-nom")).replace(/[^A-Za-z0-9_]/g,"_")+".pdf";
+
+    salida.innerHTML = `<div class="ok-box">
+      <h3>Tu solicitud está lista</h3>
+      <p>Se ha creado dentro de tu propio teléfono. Revísala antes de mandarla y comprueba sobre todo el IBAN
+      y el centro de trabajo.</p>
+      <a class="calc" style="display:block;text-align:center;text-decoration:none;line-height:1.2" href="${url}" download="${nombre}">Descargar el PDF</a>
+      <button class="copiar" id="a-compartir">Enviar ahora</button>
+    </div>`;
+
+    document.getElementById("a-compartir").addEventListener("click", async ()=>{
+      const fichero = new File([blob], nombre, {type:"application/pdf"});
+      if (navigator.canShare && navigator.canShare({files:[fichero]})){
+        try{ await navigator.share({files:[fichero], title:"Solicitud de afiliacion a CCOO"}); }
+        catch(err){ /* el usuario ha cancelado */ }
+      } else {
+        salida.insertAdjacentHTML("beforeend",`<div class="nota">Tu navegador no permite compartir el archivo
+        directamente. Descárgalo con el botón de arriba y adjúntalo en un correo a
+        seccionsindical.ilunion.ccoo@gmail.com o mándalo por WhatsApp a tu delegado.</div>`);
+      }
+    });
+    salida.scrollIntoView({behavior:"smooth",block:"center"});
+
+  } catch(err){
+    salida.innerHTML = `<div class="err">Algo ha fallado al montar el documento. Vuelve a intentarlo y, si sigue sin
+    salir, escribe a la sección sindical y te lo tramitamos a mano.</div>`;
+    console.error(err);
+  }
+});
+
+/* Recalcular al cambiar de año si ya hay resultado en pantalla */
+document.getElementById("anio").addEventListener("change",()=>{
+  ["r-nom","r-fin","r-it"].forEach(id=>{ document.getElementById(id).innerHTML=""; });
+});
+</script>
+</body>
+</html>
