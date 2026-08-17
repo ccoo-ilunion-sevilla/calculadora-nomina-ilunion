@@ -1443,12 +1443,21 @@ document.getElementById("b-it").addEventListener("click",()=>{
 const MESES_TXT = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO",
                     "SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
 
+// Build clásico (no de módulos ES) de pdf.js: el worker de módulos falla en algunos
+// navegadores móviles (Safari de iPhone entre ellos) al cargarse desde otro dominio.
 let libPdfjs = null;
 function cargarPdfjs(){
   if (libPdfjs) return libPdfjs;
-  libPdfjs = import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.2.108/pdf.min.mjs").then(mod=>{
-    mod.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.2.108/pdf.worker.min.mjs";
-    return mod;
+  libPdfjs = new Promise((res,rej)=>{
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload = ()=>{
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      res(window.pdfjsLib);
+    };
+    s.onerror = ()=> rej(new Error("sin conexión"));
+    document.head.appendChild(s);
   });
   return libPdfjs;
 }
