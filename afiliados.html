@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base de afiliados · CCOO Ilunion Seguridad Sevilla</title>
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="theme-color" content="#14161A">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rojo:#CC0000;
+  --rojo-osc:#9E0000;
+  --verde:#009B48;
+  --tinta:#14161A;
+  --tinta-2:#4A5058;
+  --linea:#D4D8DD;
+  --papel:#ECEEF0;
+  --blanco:#FFFFFF;
+  --ambar:#B45309;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--papel);color:var(--tinta);
+  line-height:1.5;font-size:16px;
+}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+
+header{background:var(--tinta);color:#fff;padding:20px 0 18px;border-bottom:8px solid var(--rojo)}
+header h1{
+  font-family:'Archivo Black',sans-serif;font-size:clamp(22px,6vw,30px);line-height:1.04;
+  text-transform:uppercase;letter-spacing:-.01em;
+}
+header h1 em{color:var(--rojo);font-style:normal}
+header p{font-size:13px;color:#A8B0BA;margin-top:6px;max-width:60ch}
+
+main{padding:20px 0 60px}
+
+.aviso{font-size:13px;background:#FFF7ED;border-left:3px solid var(--ambar);padding:12px 14px;margin-bottom:18px;line-height:1.5}
+.aviso b{color:var(--tinta)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.toolbar button, .toolbar label.btn{
+  background:#fff;border:1px solid var(--tinta);color:var(--tinta);padding:10px 14px;cursor:pointer;
+  font-weight:600;font-size:13px;border-radius:4px;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px;
+}
+.toolbar button:hover, .toolbar label.btn:hover{background:var(--tinta);color:#fff}
+.toolbar button.primario{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.toolbar button.primario:hover{background:var(--rojo-osc)}
+.toolbar button.filtro-activo{background:#E4580B;border-color:#E4580B;color:#fff}
+.toolbar button.filtro-activo:hover{background:#B4400A}
+.toolbar button.papelera-activa{background:var(--tinta-2);border-color:var(--tinta-2);color:#fff}
+.toolbar button.papelera-activa:hover{background:var(--tinta)}
+tbody tr.fila-eliminada{background:#F1F2F4;color:var(--tinta-2)}
+tbody tr.fila-eliminada:hover{background:#E7E9EC}
+tbody tr.fila-eliminada .td-nombre b{text-decoration:line-through;color:var(--tinta-2)}
+.fila-restaurar{background:transparent;border:0;color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;padding:4px 6px}
+.fila-restaurar:hover{text-decoration:underline}
+/* Ocultos sin display:none: en Safari de iPhone un input display:none no
+   siempre abre el selector de archivos al pulsar su etiqueta. */
+.toolbar input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+.estado-linea{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;font-size:13px;color:var(--tinta-2)}
+.estado-linea b{color:var(--tinta)}
+.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pill.ok{background:#E7F6EC;color:var(--verde)}
+.pill.dirty{background:#FFF7ED;color:var(--ambar)}
+.pill.neutro{background:#EDEFF2;color:var(--tinta-2)}
+.pill.otro-sindicato{background:#E6EDF7;color:#25508C}
+.pill.simpatizante{background:#FDEBD3;color:#9A5B00}
+.pill.baja-it{background:#E7E4F7;color:#4A3B8C}
+.pill.baja-at{background:#FBE0E0;color:#A31111}
+.toolbar button.medica-activa{background:#4A3B8C;border-color:#4A3B8C;color:#fff}
+.toolbar button.medica-activa:hover{background:#372B6B}
+.aviso-baja{font-size:12px;background:#E7E4F7;border-left:3px solid #4A3B8C;padding:8px 10px;margin-bottom:14px;line-height:1.4;font-weight:600;color:#372B6B}
+.aviso-baja.es-accidente{background:#FBE0E0;border-left-color:#A31111;color:#7A0D0D}
+
+.buscador{margin-bottom:16px}
+.buscador input{
+  width:100%;padding:12px 14px;border:1px solid var(--linea);border-radius:4px;background:#fff;
+  font-family:'Inter',sans-serif;font-size:15px;
+}
+.buscador input:focus{outline:2px solid var(--rojo);outline-offset:1px;border-color:var(--rojo)}
+
+.tabla-caja{background:#fff;border:1px solid var(--linea);border-radius:4px;overflow-x:auto;margin-bottom:18px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+thead th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2);
+  padding:10px 9px;border-bottom:2px solid var(--tinta);white-space:nowrap;
+}
+tbody td{padding:10px 9px;border-bottom:1px solid var(--linea);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#F7F8F9}
+tbody tr{cursor:pointer}
+tbody tr.fila-sin-jornada{background:#FFF9DB}
+tbody tr.fila-sin-jornada:hover{background:#FFF3B8}
+.aviso-jornada{font-size:12px;background:#FFF9DB;border-left:3px solid #E6B800;padding:8px 10px;margin-bottom:14px;line-height:1.4;font-weight:600}
+tbody tr.fila-sin-cotizacion{background:#FFDCC2}
+tbody tr.fila-sin-cotizacion:hover{background:#FFCBA4}
+tbody tr.fila-sin-cotizacion .td-nombre b{color:#B4400A}
+.aviso-cotizacion{font-size:12px;background:#FFDCC2;border-left:3px solid #E4580B;padding:8px 10px;margin-bottom:14px;line-height:1.4;font-weight:600;color:#8A3208}
+.td-nombre b{display:block}
+.td-nombre small{color:var(--tinta-2);font-family:'IBM Plex Mono',monospace}
+.vacio{padding:40px 16px;text-align:center;color:var(--tinta-2);font-size:14px}
+.fila-borrar{background:transparent;border:0;color:var(--rojo);font-size:12px;font-weight:700;cursor:pointer;padding:4px 6px}
+.fila-borrar:hover{text-decoration:underline}
+
+/* ---------- FICHA / FORMULARIO ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(20,22,26,.6);display:flex;align-items:flex-start;justify-content:center;
+  padding:20px 12px;overflow-y:auto;z-index:50;
+}
+.overlay.oculto{display:none}
+.ficha{background:var(--papel);border-radius:6px;max-width:640px;width:100%;margin:0 auto 40px}
+.ficha-head{background:var(--tinta);color:#fff;padding:16px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ficha-head h2{font-family:'Archivo Black',sans-serif;font-size:16px;text-transform:uppercase}
+.ficha-head button{background:transparent;border:0;color:#A8B0BA;font-size:22px;cursor:pointer;line-height:1;padding:2px 6px}
+.ficha-head button:hover{color:#fff}
+.ficha-body{padding:18px}
+.bloque{background:var(--blanco);border:1px solid var(--linea);border-left:5px solid var(--rojo);padding:16px 14px;margin-bottom:14px}
+.bloque > h3{font-family:'Archivo Black',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;color:var(--tinta)}
+.campo{margin-bottom:14px}
+.campo:last-child{margin-bottom:0}
+.campo > label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.ayuda{font-size:12px;color:var(--tinta-2);margin-top:5px;line-height:1.4}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tres{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:520px){.dos,.tres{grid-template-columns:1fr}}
+input[type=text],input[type=email],input[type=tel],input[type=date],select,textarea{
+  width:100%;padding:10px 11px;border:1px solid var(--linea);border-radius:4px;background:#fff;
+  font-family:'Inter',sans-serif;font-size:15px;color:var(--tinta);
+}
+select{font-family:'Inter',sans-serif}
+textarea{resize:vertical;min-height:64px;font-family:'Inter',sans-serif}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--rojo);outline-offset:1px;border-color:var(--rojo)}
+.sw{display:flex;align-items:center;gap:10px;padding:6px 0}
+.sw input{width:18px;height:18px;accent-color:var(--rojo)}
+.sw label{font-size:13px;font-weight:600;cursor:pointer}
+
+#dialogo{align-items:center;z-index:60}
+.dialogo-caja{background:#fff;border-radius:6px;border-top:6px solid var(--rojo);max-width:460px;width:100%;padding:22px;margin:auto}
+.dialogo-caja p{font-size:15px;line-height:1.5;white-space:pre-line;margin-bottom:20px}
+.dialogo-botones{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.dialogo-botones button{flex:0 0 auto}
+
+.ficha-footer{padding:0 18px 20px;display:flex;gap:10px;flex-wrap:wrap}
+button.calc{
+  background:var(--rojo);color:#fff;border:0;padding:14px 18px;cursor:pointer;
+  font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:.06em;
+  border-radius:4px;flex:1 1 auto;
+}
+button.calc:hover{background:var(--rojo-osc)}
+button.secundario{
+  background:#fff;border:1px solid var(--tinta);color:var(--tinta);padding:14px 18px;cursor:pointer;
+  font-weight:700;font-size:13px;border-radius:4px;
+}
+button.secundario:hover{background:var(--papel)}
+
+footer{border-top:1px solid var(--linea);padding:18px 0 30px;font-size:12px;color:var(--tinta-2);line-height:1.6;text-align:center}
+footer a{color:var(--rojo)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.oculto{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Base de <em>afiliados</em></h1>
+    <p>Sección Sindical CCOO · Ilunion Seguridad Sevilla. Herramienta de uso interno para delegados/as.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="aviso">
+      <b>Esto no se guarda en el navegador.</b> Todo vive en un archivo <code>.json</code> que tú controlas.
+      Abre tu archivo al empezar y, cada vez que hagas cambios, pulsa <b>«Guardar cambios»</b> para descargar la
+      versión actualizada — sustituye al archivo anterior en tus dispositivos (por ejemplo, guardándolo en una
+      carpeta de iCloud Drive o Google Drive para tenerlo también en el móvil). En el iPhone se abre la hoja de
+      compartir: elige <b>«Guardar en Archivos»</b> y sobrescribe el archivo anterior. Si cierras esta pestaña sin
+      guardar, se pierden los cambios de esta sesión.
+    </div>
+
+    <div class="toolbar">
+      <label class="btn" for="file-abrir">📂 Abrir archivo…</label>
+      <!-- Sin accept: el selector de Archivos de iOS deja los .json en gris cuando
+           se filtra por tipo. El contenido se valida al abrirlo. -->
+      <input type="file" id="file-abrir">
+      <button type="button" class="primario" id="btn-guardar">💾 Guardar cambios</button>
+      <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
+      <button type="button" id="btn-csv">Exportar a CSV</button>
+      <button type="button" id="btn-filtro-bajas">🔶 Ver solo posibles bajas</button>
+      <button type="button" id="btn-bajas-medicas">🩺 Ver solo bajas médicas</button>
+      <button type="button" id="btn-eliminados">🗑 Ver eliminados</button>
+      <label class="btn" for="file-jornada">📅 Importar registro de jornada…</label>
+      <input type="file" id="file-jornada" accept="application/pdf,.pdf">
+      <label class="btn" for="file-tc2">🧾 Importar cotizaciones (TC2)…</label>
+      <input type="file" id="file-tc2" accept="application/pdf,.pdf">
+    </div>
+
+    <div class="estado-linea">
+      <span id="estado-archivo">Sin archivo abierto — puedes empezar uno nuevo con «Nuevo afiliado» y guardarlo al terminar.</span>
+      <span class="pill dirty oculto" id="pill-dirty">cambios sin guardar</span>
+    </div>
+    <div class="estado-linea oculto" id="estado-jornada"></div>
+    <div class="estado-linea oculto" id="estado-tc2"></div>
+
+    <div class="buscador">
+      <input type="text" id="buscar" placeholder="Buscar por cualquier dato de la ficha (nombre, DNI, centro, teléfono, notas…)">
+    </div>
+
+    <div class="tabla-caja">
+      <table>
+        <thead>
+          <tr>
+            <th>Afiliado/a</th>
+            <th>Centro de trabajo</th>
+            <th>Categoría</th>
+            <th>Teléfono</th>
+            <th>Estado</th>
+            <th>Baja médica</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="vacio oculto" id="vacio">Todavía no hay ningún afiliado cargado.</div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ============ FICHA DE AFILIADO ============ -->
+<!-- Diálogo propio: los navegadores pueden bloquear alert()/confirm() nativos -->
+<div class="overlay oculto" id="dialogo">
+  <div class="dialogo-caja">
+    <p id="dialogo-texto"></p>
+    <div class="dialogo-botones">
+      <button type="button" id="dialogo-cancelar" class="secundario">Cancelar</button>
+      <button type="button" id="dialogo-ok" class="calc">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay oculto" id="overlay">
+  <div class="ficha">
+    <div class="ficha-head">
+      <h2 id="ficha-titulo">Nuevo afiliado</h2>
+      <button type="button" id="ficha-cerrar" aria-label="Cerrar">×</button>
+    </div>
+    <div class="ficha-body">
+
+      <div class="aviso-baja oculto" id="aviso-baja"></div>
+      <div class="aviso-cotizacion oculto" id="aviso-cotizacion"></div>
+      <div class="aviso-jornada oculto" id="aviso-jornada"></div>
+
+      <div class="bloque">
+        <h3>Datos personales</h3>
+        <div class="campo"><label for="c-dni">DNI o NIE</label>
+          <input type="text" id="c-dni" placeholder="00000000A" autocomplete="off">
+          <p class="ayuda">Si todavía no lo sabes, pon un valor único (p. ej. «SINDNI-215921» con su nº de empleado) y complétalo cuando lo consigas.</p></div>
+        <div class="campo"><label for="c-numempleado">Nº de empleado (nº personal de la empresa)</label>
+          <input type="text" id="c-numempleado" placeholder="Ej. 215921" inputmode="numeric"></div>
+        <div class="dos">
+          <div class="campo"><label for="c-nom">Nombre</label><input type="text" id="c-nom"></div>
+          <div class="campo"><label for="c-ape">Apellidos</label><input type="text" id="c-ape"></div>
+        </div>
+        <div class="campo"><label for="c-nac">Fecha de nacimiento</label><input type="date" id="c-nac"></div>
+        <div class="campo"><label for="c-direccion">Dirección</label>
+          <input type="text" id="c-direccion" placeholder="Calle, número, piso…"></div>
+        <div class="tres">
+          <div class="campo"><label for="c-cp">Código postal</label><input type="text" id="c-cp" inputmode="numeric"></div>
+          <div class="campo"><label for="c-loc">Localidad</label><input type="text" id="c-loc" value="Sevilla"></div>
+          <div class="campo"><label for="c-prov">Provincia</label><input type="text" id="c-prov" value="Sevilla"></div>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <h3>Contacto</h3>
+        <div class="dos">
+          <div class="campo"><label for="c-movil">Teléfono móvil</label><input type="tel" id="c-movil" inputmode="tel"></div>
+          <div class="campo"><label for="c-fijo">Teléfono fijo</label><input type="tel" id="c-fijo" inputmode="tel"></div>
+        </div>
+        <div class="campo"><label for="c-email">Correo electrónico</label><input type="email" id="c-email"></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Datos laborales y sindicales</h3>
+        <div class="campo"><label for="c-centro">Centro de trabajo</label>
+          <input type="text" id="c-centro" placeholder="Metro de Sevilla, HUVR, Morón…"></div>
+        <div class="campo"><label for="c-cat">Categoría profesional</label>
+          <select id="c-cat">
+            <option>Vigilante de Seguridad</option><option>Escolta</option>
+            <option>Vigilante de Explosivos</option><option>Guarda Rural</option>
+            <option>VS de Transporte</option><option>VS de Transporte-Conductor</option>
+            <option>Operador de Seguridad</option><option>Personal administrativo</option>
+            <option>Encargado</option><option>Inspector</option>
+            <option>Jefe de Seguridad</option><option>Jefe de Servicios</option>
+            <option>Jefe de Vigilancia</option><option>Coordinador de Servicios</option>
+            <option>Oficial de Primera (M.E.)</option><option>Titulado Medio</option>
+            <option>Técnico de Relaciones Laborales</option>
+          </select></div>
+        <div class="sw"><input type="checkbox" id="c-delegado"><label for="c-delegado">Es delegado/a de personal, prevención o LOLS</label></div>
+      </div>
+
+      <div class="bloque">
+        <h3>Afiliación</h3>
+        <div class="campo"><label for="c-sindicato">Sindicato</label>
+          <select id="c-sindicato">
+            <option value="">Ninguno / sin datos</option>
+            <option value="Simpatizante">Simpatizante (se acerca, aún no da el paso)</option>
+            <option value="CCOO">CCOO</option>
+            <option value="UGT">UGT</option>
+            <option value="CSIF">CSIF</option>
+            <option value="USO">USO</option>
+          </select></div>
+        <div id="bloque-afiliacion" class="oculto">
+          <div class="dos">
+            <div class="campo"><label for="c-alta">Fecha de alta en CCOO</label><input type="date" id="c-alta"></div>
+            <div class="campo"><label for="c-numafi">Nº de afiliación</label><input type="text" id="c-numafi"></div>
+          </div>
+          <div class="campo"><label for="c-estado">Estado de la cuota</label>
+            <select id="c-estado">
+              <option value="Al corriente">Al corriente</option>
+              <option value="Impago">Impago</option>
+              <option value="Baja">Baja</option>
+            </select></div>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <h3>Notas</h3>
+        <div class="campo"><textarea id="c-notas" placeholder="Observaciones, historial, conflictos abiertos…"></textarea></div>
+      </div>
+
+    </div>
+    <div class="ficha-footer">
+      <button type="button" class="calc" id="btn-guardar-ficha">Guardar en la lista</button>
+      <button type="button" class="secundario" id="btn-cancelar-ficha">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla</div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  let afiliados = [];
+  let nombreArchivo = 'afiliados.json';
+  let sucio = false;
+  let dniEditando = null; // DNI original de la ficha abierta, para saber si es alta o edición
+  let vista = 'activos';  // 'activos' | 'bajas' (solo naranjas) | 'eliminados' (papelera)
+  let accionArchivo = '';  // última acción sobre el archivo, para mantener el contador al día
+
+  const $ = (id) => document.getElementById(id);
+  const tbody = $('tbody');
+  const vacio = $('vacio');
+  const estadoArchivo = $('estado-archivo');
+  const pillDirty = $('pill-dirty');
+  const overlay = $('overlay');
+  const buscar = $('buscar');
+  const estadoJornada = $('estado-jornada');
+  const estadoTc2 = $('estado-tc2');
+
+  const MESES_ES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO',
+                    'AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+  // "Julio 2026" -> "2026-07" (comparable como texto para saber qué mes es más reciente)
+  function periodoDeTexto(txt){
+    const m = /^([A-Za-zÁÉÍÓÚáéíóúÑñ]+)\s+(\d{4})$/.exec((txt || '').trim());
+    if (!m) return '';
+    const idx = MESES_ES.indexOf(claveNombre(m[1]));
+    return idx < 0 ? '' : `${m[2]}-${String(idx + 1).padStart(2, '0')}`;
+  }
+
+  // Alguien que no está en el TC2 pero SÍ trabajó en un mes posterior al de ese TC2
+  // no se ha ido: es un alta nueva que ese TC2 todavía no recogía.
+  function esAltaPosteriorAlTc2(a){
+    if (a.jornadaEncontrada !== true) return false;
+    const pJornada = periodoDeTexto(a.jornadaMes);
+    const pCotiz = periodoDeTexto(a.cotizacionMes);
+    return !!pJornada && !!pCotiz && pJornada > pCotiz;
+  }
+
+  // Está de baja médica según el último registro de jornada importado
+  const estaDeBajaMedica = (a) => (a.bajaIF > 0 || a.bajaIA > 0);
+
+  // Naranja = ha desaparecido de las cotizaciones (probable baja en la empresa)
+  function pareceBajaEnEmpresa(a){
+    return a.cotizacionEncontrada === false && !esAltaPosteriorAlTc2(a);
+  }
+
+  // Build clásico (no de módulos ES) de pdf.js: el worker de módulos falla en algunos
+  // navegadores móviles (Safari de iPhone entre ellos) al cargarse desde otro dominio.
+  let libPdfjs = null;
+  function cargarPdfjs(){
+    if (libPdfjs) return libPdfjs;
+    libPdfjs = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        res(window.pdfjsLib);
+      };
+      s.onerror = () => rej(new Error('sin conexión'));
+      document.head.appendChild(s);
+    });
+    return libPdfjs;
+  }
+
+  // pdf.js devuelve los fragmentos de texto en el orden interno del PDF, no en
+  // orden de lectura. Los reordenamos por posición (arriba→abajo, izq→dcha).
+  function textoEnOrdenDeLectura(tc){
+    const items = tc.items
+      .filter(it => it.str && it.str.trim() !== '')
+      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }))
+      .sort((a, b) => b.y - a.y || a.x - b.x);
+    const lineas = [];
+    let actual = [];
+    let yPrev = null;
+    const TOL = 2;
+    items.forEach(it => {
+      if (yPrev !== null && Math.abs(it.y - yPrev) > TOL) {
+        lineas.push(actual);
+        actual = [];
+      }
+      actual.push(it);
+      yPrev = it.y;
+    });
+    if (actual.length) lineas.push(actual);
+    return lineas
+      .map(l => l.sort((a, b) => a.x - b.x).map(it => it.str).join(' '))
+      .join(' ')
+      .replace(/\s+/g, ' ');
+  }
+
+  /* Diálogos propios. No usamos alert()/confirm() nativos porque algunos
+     navegadores y vistas incrustadas los bloquean: confirm() devolvía false
+     sin llegar a preguntar y la acción se cancelaba en silencio. */
+  function abrirDialogo(texto, textoOk, conCancelar){
+    return new Promise(resolve => {
+      const caja = $('dialogo');
+      const btnOk = $('dialogo-ok');
+      const btnCancelar = $('dialogo-cancelar');
+      $('dialogo-texto').textContent = texto;
+      btnOk.textContent = textoOk || 'Aceptar';
+      btnCancelar.classList.toggle('oculto', !conCancelar);
+      caja.classList.remove('oculto');
+      btnOk.focus();
+
+      const cerrar = (valor) => {
+        caja.classList.add('oculto');
+        btnOk.removeEventListener('click', alAceptar);
+        btnCancelar.removeEventListener('click', alCancelar);
+        document.removeEventListener('keydown', alTeclado);
+        resolve(valor);
+      };
+      const alAceptar = () => cerrar(true);
+      const alCancelar = () => cerrar(false);
+      const alTeclado = (ev) => {
+        if (ev.key === 'Escape') cerrar(false);
+        if (ev.key === 'Enter') cerrar(true);
+      };
+      btnOk.addEventListener('click', alAceptar);
+      btnCancelar.addEventListener('click', alCancelar);
+      document.addEventListener('keydown', alTeclado);
+    });
+  }
+  const avisar = (texto) => abrirDialogo(texto, 'Entendido', false);
+  const confirmar = (texto, textoOk) => abrirDialogo(texto, textoOk || 'Sí, continuar', true);
+
+  function textoEstadoArchivo(accion){
+    const activos = afiliados.filter(a => !a.eliminado).length;
+    const enPapelera = afiliados.length - activos;
+    return `${activos} afiliado(s)` +
+      (enPapelera ? ` + ${enPapelera} en la lista de eliminados` : '') +
+      ` — ${accion} «${nombreArchivo}»`;
+  }
+
+  function marcarSucio(){
+    sucio = true;
+    pillDirty.classList.remove('oculto');
+  }
+
+  function claveDni(v){
+    return (v || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+  }
+
+  function claveNombre(s){
+    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase().replace(/\s+/g, ' ').trim();
+  }
+
+  const CONECTORES = new Set(['de','del','la','las','los','y']);
+  function tituloNombre(s){
+    return (s || '').trim().split(/\s+/).map((p, i) => {
+      const low = p.toLowerCase();
+      return (i > 0 && CONECTORES.has(low)) ? low : (low.charAt(0).toUpperCase() + low.slice(1));
+    }).join(' ');
+  }
+
+  function render(){
+    if (accionArchivo) estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+    const filtro = buscar.value.trim().toLowerCase();
+    const activos = afiliados.filter(a => !a.eliminado);
+    const eliminados = afiliados.filter(a => a.eliminado);
+    const totalBajas = activos.filter(pareceBajaEnEmpresa).length;
+
+    const btnBajas = $('btn-filtro-bajas');
+    btnBajas.textContent = vista === 'bajas'
+      ? `↩ Ver todos (${activos.length})`
+      : `🔶 Ver solo posibles bajas (${totalBajas})`;
+    btnBajas.classList.toggle('filtro-activo', vista === 'bajas');
+
+    const btnMed = $('btn-bajas-medicas');
+    const totalMedicas = activos.filter(estaDeBajaMedica).length;
+    btnMed.textContent = vista === 'medicas'
+      ? `↩ Ver todos (${activos.length})`
+      : `🩺 Ver solo bajas médicas (${totalMedicas})`;
+    btnMed.classList.toggle('medica-activa', vista === 'medicas');
+
+    const btnElim = $('btn-eliminados');
+    btnElim.textContent = vista === 'eliminados'
+      ? `↩ Volver a la lista (${activos.length})`
+      : `🗑 Ver eliminados (${eliminados.length})`;
+    btnElim.classList.toggle('papelera-activa', vista === 'eliminados');
+
+    const base = vista === 'eliminados' ? eliminados
+               : vista === 'bajas' ? activos.filter(pareceBajaEnEmpresa)
+               : vista === 'medicas' ? activos.filter(estaDeBajaMedica)
+               : activos;
+
+    const filas = base
+      .filter(a => {
+        if (!filtro) return true;
+        const texto = Object.values(a).map(v => v == null ? '' : String(v)).join(' ').toLowerCase();
+        return texto.includes(filtro);
+      })
+      .sort((a,b) => (a.apellidos||'').localeCompare(b.apellidos||'', 'es'));
+
+    tbody.innerHTML = '';
+    vacio.classList.toggle('oculto', filas.length > 0);
+    vacio.textContent = afiliados.length === 0
+      ? 'Todavía no hay ningún afiliado cargado.'
+      : vista === 'eliminados'
+        ? 'No hay nadie en la lista de eliminados.'
+        : vista === 'medicas'
+          ? 'Nadie de baja médica. Importa un registro de jornada para detectarlas.'
+        : vista === 'bajas'
+          ? 'Ninguna posible baja que coincida. Importa un TC2 para detectarlas.'
+          : 'Ningún afiliado coincide con la búsqueda.';
+
+    filas.forEach(a => {
+      const tr = document.createElement('tr');
+      if (a.eliminado) tr.classList.add('fila-eliminada');
+      else if (pareceBajaEnEmpresa(a)) tr.classList.add('fila-sin-cotizacion');
+      else if (a.jornadaEncontrada === false) tr.classList.add('fila-sin-jornada');
+
+      const tdNombre = document.createElement('td');
+      tdNombre.className = 'td-nombre';
+      tdNombre.innerHTML = `<b></b><small></small>`;
+      tdNombre.querySelector('b').textContent = `${a.apellidos || ''}, ${a.nombre || ''}`.replace(/^, /, '');
+      tdNombre.querySelector('small').textContent = a.dni || '';
+
+      const tdCentro = document.createElement('td');
+      tdCentro.textContent = a.centro || '—';
+
+      const tdCat = document.createElement('td');
+      tdCat.textContent = a.categoria || '—';
+
+      const tdTel = document.createElement('td');
+      tdTel.textContent = a.movil || a.fijo || '—';
+
+      const tdEstado = document.createElement('td');
+      const pill = document.createElement('span');
+      if (a.sindicato === 'CCOO') {
+        pill.className = 'pill ' + (a.estado === 'Al corriente' ? 'ok' : 'dirty');
+        pill.textContent = a.estado || 'Al corriente';
+      } else if (a.sindicato === 'Simpatizante') {
+        pill.className = 'pill simpatizante';
+        pill.textContent = 'Simpatizante';
+      } else if (a.sindicato) {
+        pill.className = 'pill otro-sindicato';
+        pill.textContent = a.sindicato;
+      } else {
+        pill.className = 'pill neutro';
+        pill.textContent = 'No afiliado/a';
+      }
+      tdEstado.appendChild(pill);
+
+      const tdBaja = document.createElement('td');
+      if (a.bajaIA > 0) {
+        const p = document.createElement('span');
+        p.className = 'pill baja-at';
+        p.textContent = `AT ${a.bajaIA}d`;
+        p.title = `Accidente laboral: ${a.bajaIA} días en ${a.bajaMes || 'el último registro'}`;
+        tdBaja.appendChild(p);
+      }
+      if (a.bajaIF > 0) {
+        const p = document.createElement('span');
+        p.className = 'pill baja-it';
+        p.textContent = `IT ${a.bajaIF}d`;
+        p.title = `Enfermedad común: ${a.bajaIF} días en ${a.bajaMes || 'el último registro'}`;
+        if (tdBaja.childNodes.length) tdBaja.appendChild(document.createTextNode(' '));
+        tdBaja.appendChild(p);
+      }
+      if (!tdBaja.childNodes.length) tdBaja.textContent = '—';
+
+      const tdBorrar = document.createElement('td');
+      const btnBorrar = document.createElement('button');
+      btnBorrar.type = 'button';
+      if (a.eliminado) {
+        btnBorrar.className = 'fila-restaurar';
+        btnBorrar.textContent = 'Restaurar';
+        btnBorrar.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          restaurar(a, 'Restaurado/a a mano.');
+          marcarSucio();
+          render();
+        });
+      } else {
+        btnBorrar.className = 'fila-borrar';
+        btnBorrar.textContent = 'Eliminar';
+        btnBorrar.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const ok = await confirmar(
+            `¿Mandar a ${a.nombre} ${a.apellidos} a la lista de eliminados?\n\n` +
+            `No se pierde nada: podrás verlo en «Ver eliminados» y restaurarlo cuando quieras. ` +
+            `Si la empresa lo vuelve a dar de alta, volverá solo al importar el registro de jornada o el TC2.`,
+            'Sí, eliminar');
+          if (ok) {
+            a.eliminado = true;
+            a.fechaEliminado = new Date().toISOString().slice(0, 10);
+            marcarSucio();
+            render();
+          }
+        });
+      }
+      tdBorrar.appendChild(btnBorrar);
+
+      tr.append(tdNombre, tdCentro, tdCat, tdTel, tdEstado, tdBaja, tdBorrar);
+      tr.addEventListener('click', () => abrirFicha(a));
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* Saca a alguien de la lista de eliminados y deja constancia de por qué volvió. */
+  function restaurar(a, motivo){
+    delete a.eliminado;
+    delete a.fechaEliminado;
+    const partes = (a.notas || '').split(' · ').filter(Boolean);
+    partes.push(`Reincorporado/a a la lista el ${new Date().toISOString().slice(0,10)}: ${motivo}`);
+    a.notas = partes.join(' · ');
+  }
+
+  function actualizarBloqueAfiliacion(){
+    $('bloque-afiliacion').classList.toggle('oculto', $('c-sindicato').value !== 'CCOO');
+  }
+
+  function limpiarFicha(){
+    ['c-dni','c-numempleado','c-nom','c-ape','c-nac','c-numafi','c-direccion','c-cp','c-loc','c-prov',
+     'c-movil','c-fijo','c-email','c-centro','c-alta','c-notas'].forEach(id => $(id).value = '');
+    $('c-loc').value = 'Sevilla';
+    $('c-prov').value = 'Sevilla';
+    $('c-cat').selectedIndex = 0;
+    $('c-sindicato').value = '';
+    $('c-estado').value = 'Al corriente';
+    $('c-delegado').checked = false;
+    actualizarBloqueAfiliacion();
+    $('aviso-jornada').classList.add('oculto');
+    $('aviso-cotizacion').classList.add('oculto');
+    $('aviso-baja').classList.add('oculto');
+  }
+
+  function abrirFicha(a){
+    dniEditando = a ? claveDni(a.dni) : null;
+    $('ficha-titulo').textContent = a ? 'Editar afiliado' : 'Nuevo afiliado';
+    limpiarFicha();
+    if (a) {
+      $('c-dni').value = a.dni || '';
+      $('c-nom').value = a.nombre || '';
+      $('c-ape').value = a.apellidos || '';
+      $('c-nac').value = a.fechaNacimiento || '';
+      $('c-numafi').value = a.numAfiliacion || '';
+      $('c-numempleado').value = a.numEmpleado || '';
+      $('c-direccion').value = a.direccion || '';
+      $('c-cp').value = a.cp || '';
+      $('c-loc').value = a.localidad || 'Sevilla';
+      $('c-prov').value = a.provincia || 'Sevilla';
+      $('c-movil').value = a.movil || '';
+      $('c-fijo').value = a.fijo || '';
+      $('c-email').value = a.email || '';
+      $('c-centro').value = a.centro || '';
+      if (a.categoria) $('c-cat').value = a.categoria;
+      $('c-alta').value = a.fechaAlta || '';
+      $('c-sindicato').value = a.sindicato || '';
+      $('c-estado').value = a.estado || 'Al corriente';
+      $('c-delegado').checked = !!a.delegado;
+      $('c-notas').value = a.notas || '';
+      actualizarBloqueAfiliacion();
+      const avisoJ = $('aviso-jornada');
+      avisoJ.classList.toggle('oculto', a.jornadaEncontrada !== false);
+      if (a.jornadaEncontrada === false) {
+        avisoJ.textContent = `⚠ Esta persona no aparece en el último registro de jornada cargado${a.jornadaMes ? ' (' + a.jornadaMes + ')' : ''}.`;
+      }
+      const avisoB = $('aviso-baja');
+      avisoB.classList.toggle('oculto', !estaDeBajaMedica(a));
+      if (estaDeBajaMedica(a)) {
+        const partes = [];
+        if (a.bajaIA > 0) partes.push(`${a.bajaIA} día(s) por ACCIDENTE LABORAL`);
+        if (a.bajaIF > 0) partes.push(`${a.bajaIF} día(s) por enfermedad común`);
+        avisoB.textContent = `🩺 De baja en ${a.bajaMes || 'el último registro'}: ` + partes.join(' y ') + '.';
+        avisoB.classList.toggle('es-accidente', a.bajaIA > 0);
+      }
+
+      const avisoC = $('aviso-cotizacion');
+      avisoC.classList.toggle('oculto', !pareceBajaEnEmpresa(a));
+      if (pareceBajaEnEmpresa(a)) {
+        avisoC.textContent = `🔶 No cotiza en el último TC2 cargado${a.cotizacionMes ? ' (' + a.cotizacionMes + ')' : ''}: probablemente ya no está en la empresa. Confírmalo antes de darlo por baja.`;
+      }
+    }
+    overlay.classList.remove('oculto');
+    $('c-dni').focus();
+  }
+
+  function cerrarFicha(){
+    overlay.classList.add('oculto');
+    dniEditando = null;
+  }
+
+  function guardarFicha(){
+    const dni = $('c-dni').value.trim();
+    if (!dni) { avisar('Falta el DNI o NIE.'); $('c-dni').focus(); return; }
+    if (!$('c-nom').value.trim() && !$('c-ape').value.trim()) {
+      avisar('Falta el nombre o los apellidos.'); $('c-nom').focus(); return;
+    }
+
+    const clave = claveDni(dni);
+    const choque = afiliados.find(a => claveDni(a.dni) === clave && claveDni(a.dni) !== dniEditando);
+    if (choque) {
+      avisar(choque.eliminado
+        ? `Ese DNI/NIE ya existe, pero está en la lista de eliminados (${choque.apellidos}, ${choque.nombre}).\n\nEntra en «Ver eliminados» y pulsa «Restaurar» para recuperar su ficha con todo su historial.`
+        : 'Ya hay un afiliado guardado con ese DNI/NIE.');
+      return;
+    }
+
+    const original = dniEditando ? afiliados.find(a => claveDni(a.dni) === dniEditando) : null;
+    const registro = {
+      dni, nombre: $('c-nom').value.trim(), apellidos: $('c-ape').value.trim(),
+      fechaNacimiento: $('c-nac').value, numAfiliacion: $('c-numafi').value.trim(),
+      numEmpleado: $('c-numempleado').value.trim(),
+      direccion: $('c-direccion').value.trim(), cp: $('c-cp').value.trim(),
+      localidad: $('c-loc').value.trim(), provincia: $('c-prov').value.trim(),
+      movil: $('c-movil').value.trim(), fijo: $('c-fijo').value.trim(), email: $('c-email').value.trim(),
+      centro: $('c-centro').value.trim(), categoria: $('c-cat').value,
+      sindicato: $('c-sindicato').value, fechaAlta: $('c-alta').value,
+      estado: $('c-estado').value, delegado: $('c-delegado').checked, notas: $('c-notas').value.trim(),
+      jornadaEncontrada: original ? original.jornadaEncontrada : undefined,
+      jornadaMes: original ? original.jornadaMes : undefined,
+      cotizacionEncontrada: original ? original.cotizacionEncontrada : undefined,
+      cotizacionMes: original ? original.cotizacionMes : undefined,
+      bajaIF: original ? original.bajaIF : undefined,
+      bajaIA: original ? original.bajaIA : undefined,
+      bajaMes: original ? original.bajaMes : undefined,
+    };
+
+    if (dniEditando) {
+      afiliados = afiliados.map(a => claveDni(a.dni) === dniEditando ? registro : a);
+    } else {
+      afiliados.push(registro);
+    }
+    marcarSucio();
+    cerrarFicha();
+    render();
+  }
+
+  /* En el iPhone la descarga normal deja el archivo perdido en «Descargas».
+     Con la hoja de compartir se puede guardar directamente en iCloud Drive,
+     encima del archivo anterior. Si no hay hoja de compartir (ordenador), se
+     descarga como siempre. Devuelve false solo si el usuario la cierra. */
+  async function descargar(contenido, tipo, nombre){
+    const blob = new Blob([contenido], { type: tipo });
+    if (navigator.canShare) {
+      const archivo = new File([blob], nombre, { type: tipo });
+      if (navigator.canShare({ files: [archivo] })) {
+        try {
+          await navigator.share({ files: [archivo] });
+          return true;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return false;
+          // cualquier otro fallo: seguimos con la descarga de toda la vida
+        }
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return true;
+  }
+
+  async function guardarCambios(){
+    const guardado = await descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
+    if (!guardado) return;   // hoja de compartir cancelada: siguen sin guardar
+    sucio = false;
+    pillDirty.classList.add('oculto');
+    accionArchivo = 'guardado como';
+    estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+  }
+
+  function csvEscapar(v){
+    v = (v == null ? '' : String(v));
+    return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+
+  async function exportarCsv(){
+    const cols = ['dni','numEmpleado','apellidos','nombre','fechaNacimiento','numAfiliacion','direccion','cp','localidad',
+      'provincia','movil','fijo','email','centro','categoria','sindicato','fechaAlta','estado','delegado',
+      'jornadaEncontrada','jornadaMes','bajaIF','bajaIA','bajaMes','cotizacionEncontrada','cotizacionMes','eliminado','fechaEliminado','notas'];
+    const filas = [cols.join(';')].concat(
+      afiliados.map(a => cols.map(c => csvEscapar(a[c])).join(';'))
+    );
+    await descargar('﻿' + filas.join('\n'), 'text/csv;charset=utf-8', nombreArchivo.replace(/\.json$/i, '') + '.csv');
+  }
+
+  async function importarJornada(file){
+    if (afiliados.length === 0) {
+      avisar('Primero abre tu archivo de afiliados (o crea uno nuevo); luego importa el registro de jornada.');
+      return;
+    }
+    estadoJornada.classList.remove('oculto');
+    estadoJornada.textContent = 'Cargando lector de PDF…';
+
+    let pdfjsLib;
+    try {
+      pdfjsLib = await cargarPdfjs();
+    } catch (e) {
+      estadoJornada.textContent = 'No se ha podido cargar el lector de PDF (¿sin conexión a internet?).';
+      return;
+    }
+
+    let doc;
+    try {
+      const buf = await file.arrayBuffer();
+      doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    } catch (e) {
+      estadoJornada.textContent = 'Ese archivo no se ha podido leer como PDF.';
+      return;
+    }
+
+    const porNumero = new Map(); // numEmpleado -> {nombreCompleto, total}
+    let mesDetectado = '', anioDetectado = '';
+
+    for (let i = 1; i <= doc.numPages; i++) {
+      if (i % 15 === 0 || i === doc.numPages) {
+        estadoJornada.textContent = `Leyendo página ${i} de ${doc.numPages}…`;
+        await new Promise(r => setTimeout(r, 0));
+      }
+      let texto;
+      try {
+        const page = await doc.getPage(i);
+        const tc = await page.getTextContent();
+        texto = textoEnOrdenDeLectura(tc);
+      } catch (e) {
+        continue;
+      }
+      const mHead = texto.match(/EMPLEADO:\s*([\d.]+)\s*-\s*(.+?)\s+MES\s+(\S+)\s+A[ÑN]O\s+(\d{4})/);
+      if (!mHead) continue;
+      const numEmpleado = mHead[1].replace(/\./g, '');
+      const nombreCompleto = mHead[2].trim();
+      if (!mesDetectado) { mesDetectado = mHead[3]; anioDetectado = mHead[4]; }
+      const mTotal = texto.match(/FEST\.\s+[\d.]+\s+TOTAL\s+([\d.]+)/);
+      const total = mTotal ? mTotal[1] : null;
+
+      // Días de baja: cada día del cuadrante va marcado con su código y al pie
+      // de la página está la leyenda ("*IF - Enfermedad no laboral"), que hay
+      // que descontar para no contarla como un día más.
+      const diasDeCodigo = (cod) => {
+        const enRejilla = (texto.match(new RegExp('\\*' + cod + '\\b', 'g')) || []).length;
+        const enLeyenda = (texto.match(new RegExp('\\*' + cod + '\\s*-\\s*', 'g')) || []).length;
+        return Math.max(0, enRejilla - enLeyenda);
+      };
+      const bajaIF = diasDeCodigo('IF');  // enfermedad común / no laboral
+      const bajaIA = diasDeCodigo('IA');  // accidente laboral
+
+      const previo = porNumero.get(numEmpleado);
+      if (!previo || (previo.total === null && total !== null)) {
+        porNumero.set(numEmpleado, { nombreCompleto, total, bajaIF, bajaIA });
+      } else if (previo) {
+        // varias páginas del mismo mes: nos quedamos con el mayor recuento
+        previo.bajaIF = Math.max(previo.bajaIF || 0, bajaIF);
+        previo.bajaIA = Math.max(previo.bajaIA || 0, bajaIA);
+      }
+    }
+
+    if (porNumero.size === 0) {
+      estadoJornada.textContent = 'No se ha encontrado ningún trabajador en ese PDF — ¿es un "Informe Cuadrante Gráfico por Empleado"?';
+      return;
+    }
+
+    const mesTexto = mesDetectado
+      ? `${mesDetectado.charAt(0)}${mesDetectado.slice(1).toLowerCase()} ${anioDetectado}`
+      : 'este registro';
+
+    const numIndex = new Map();
+    const nameIndex = new Map();
+    afiliados.forEach(a => {
+      if (a.numEmpleado) numIndex.set(String(a.numEmpleado), a);
+      nameIndex.set(claveNombre(`${a.apellidos}, ${a.nombre}`), a);
+    });
+
+    const encontrados = new Set();
+    let nuevos = 0, conHoras = 0, sinHoras = 0, reincorporados = 0;
+
+    porNumero.forEach((info, numEmpleado) => {
+      const target = numIndex.get(numEmpleado) || nameIndex.get(claveNombre(info.nombreCompleto));
+      const notaNueva = info.total !== null
+        ? `Horas trabajadas en ${mesTexto} (REGJOR): ${info.total}`
+        : `${mesTexto} (REGJOR): sin horas de servicio registradas ese mes (posible baja/incidencia todo el mes)`;
+      if (info.total !== null) conHoras++; else sinHoras++;
+
+      if (target) {
+        encontrados.add(target.dni);
+        if (!target.numEmpleado) target.numEmpleado = numEmpleado;
+        if (target.eliminado) {
+          restaurar(target, `vuelve a aparecer en el registro de jornada de ${mesTexto}`);
+          reincorporados++;
+        }
+        const limpio = (target.notas || '').split(' · ').filter(seg => seg && !seg.includes('(REGJOR)'));
+        limpio.push(notaNueva);
+        target.notas = limpio.join(' · ');
+        target.jornadaEncontrada = true;
+        target.jornadaMes = mesTexto;
+        target.bajaIF = info.bajaIF || 0;
+        target.bajaIA = info.bajaIA || 0;
+        target.bajaMes = mesTexto;
+      } else {
+        const m = /^(.*?),\s*(.*)$/.exec(info.nombreCompleto);
+        const apellidosRaw = m ? m[1] : info.nombreCompleto;
+        const nombreRaw = m ? m[2] : '';
+        const nuevo = {
+          dni: `SINDNI-${numEmpleado}`, numEmpleado, nombre: tituloNombre(nombreRaw), apellidos: tituloNombre(apellidosRaw),
+          fechaNacimiento: '', numAfiliacion: '',
+          direccion: '', cp: '', localidad: 'Sevilla', provincia: 'Sevilla',
+          movil: '', fijo: '', email: '',
+          centro: '', categoria: 'Vigilante de Seguridad',
+          sindicato: '', fechaAlta: '', estado: 'Al corriente', delegado: false,
+          notas: `${notaNueva} · FALTA DNI REAL - completar a mano · Nuevo, no estaba en la lista (detectado en registro de jornada de ${mesTexto}).`,
+          jornadaEncontrada: true, jornadaMes: mesTexto,
+          bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, bajaMes: mesTexto,
+        };
+        afiliados.push(nuevo);
+        encontrados.add(nuevo.dni);
+        nuevos++;
+      }
+    });
+
+    let marcadosFuera = 0;
+    afiliados.forEach(a => {
+      if (!encontrados.has(a.dni)) {
+        a.jornadaEncontrada = false;
+        a.jornadaMes = mesTexto;
+        a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+        if (!a.eliminado) marcadosFuera++;
+      }
+    });
+
+    afiliados.sort((a, b) =>
+      (a.apellidos || '').localeCompare(b.apellidos || '', 'es') ||
+      (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+
+    marcarSucio();
+    render();
+    let msgJ = `Registro de ${mesTexto} importado: ${conHoras} con horas, ${sinHoras} sin horas ese mes, ` +
+      `${nuevos} trabajador(es) nuevo(s) añadidos, ${marcadosFuera} sin este registro (marcados en amarillo).`;
+    if (reincorporados) {
+      msgJ += ` ${reincorporados} estaban en la lista de eliminados y han vuelto a aparecer: los he restaurado.`;
+    }
+    estadoJornada.textContent = msgJ + ' Recuerda pulsar «Guardar cambios».';
+  }
+
+  /* El TC2 (Relación Nominal de Trabajadores) no imprime el nombre, pero sí un
+     código de 5 letras: 2 del primer apellido + 2 del segundo + 1 del nombre.
+     Sirve para reconocer a quien todavía no tiene su DNI real en la ficha. */
+  function generarCaf(apellidos, nombre){
+    const ap = claveNombre(apellidos).split(' ').filter(Boolean);
+    const no = claveNombre(nombre).split(' ').filter(Boolean);
+    const a1 = (ap[0] || '').slice(0, 2).padEnd(2, 'X');
+    const a2 = (ap[1] ? ap[1].slice(0, 2) : (ap[0] || '').slice(2, 4)).padEnd(2, 'X');
+    return a1 + a2 + ((no[0] || 'X').charAt(0));
+  }
+
+  async function importarTC2(file){
+    if (afiliados.length === 0) {
+      avisar('Primero abre tu archivo de afiliados; luego importa el TC2.');
+      return;
+    }
+    estadoTc2.classList.remove('oculto');
+    estadoTc2.textContent = 'Cargando lector de PDF…';
+
+    let pdfjsLib;
+    try {
+      pdfjsLib = await cargarPdfjs();
+    } catch (e) {
+      estadoTc2.textContent = 'No se ha podido cargar el lector de PDF (¿sin conexión a internet?).';
+      return;
+    }
+
+    let doc;
+    try {
+      const buf = await file.arrayBuffer();
+      doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    } catch (e) {
+      estadoTc2.textContent = 'Ese archivo no se ha podido leer como PDF.';
+      return;
+    }
+
+    const dnisEnTc2 = new Set();
+    const cafsEnTc2 = new Set();
+    let periodoMes = '', periodoAnio = '';
+
+    for (let i = 1; i <= doc.numPages; i++) {
+      if (i % 5 === 0 || i === doc.numPages) {
+        estadoTc2.textContent = `Leyendo página ${i} de ${doc.numPages}…`;
+        await new Promise(r => setTimeout(r, 0));
+      }
+      let texto;
+      try {
+        const page = await doc.getPage(i);
+        const tc = await page.getTextContent();
+        texto = textoEnOrdenDeLectura(tc);
+      } catch (e) {
+        continue;
+      }
+      if (!periodoMes) {
+        // "06/2026-06/2026". Se busca por el patrón de fechas y no por la etiqueta
+        // porque pdf.js devuelve los acentos sueltos ("liquidaci ó n").
+        const mPer = /\b(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{4})\b/.exec(texto);
+        if (mPer) { periodoMes = mPer[3]; periodoAnio = mPer[4]; }
+      }
+      // NAF (12 dígitos) + I.P.F. (2 dígitos de tipo de documento + DNI/NIE) + código de nombre
+      const re = /\b\d{12}\s+\d{2}([0-9A-Z]{8}[A-Z])\s+([A-Z]{2,6})\b/g;
+      let m;
+      while ((m = re.exec(texto)) !== null) {
+        dnisEnTc2.add(m[1]);
+        cafsEnTc2.add(m[2]);
+      }
+    }
+
+    if (dnisEnTc2.size === 0) {
+      estadoTc2.textContent = 'No se ha encontrado ningún trabajador en ese PDF — ¿es un TC2 / "Relación Nominal de Trabajadores"?';
+      return;
+    }
+
+    const idxMes = parseInt(periodoMes, 10) - 1;
+    const mesTexto = (idxMes >= 0 && idxMes < 12)
+      ? `${MESES_ES[idxMes].charAt(0)}${MESES_ES[idxMes].slice(1).toLowerCase()} ${periodoAnio}`
+      : 'este TC2';
+
+    let cotizan = 0, noCotizan = 0, altasPosteriores = 0, porCaf = 0, reincorporados = 0;
+    afiliados.forEach(a => {
+      let encontrado = dnisEnTc2.has((a.dni || '').toUpperCase());
+      if (!encontrado && (a.dni || '').startsWith('SINDNI') && cafsEnTc2.has(generarCaf(a.apellidos, a.nombre))) {
+        encontrado = true;
+        porCaf++;
+      }
+      a.cotizacionEncontrada = encontrado;
+      a.cotizacionMes = mesTexto;
+      if (encontrado && a.eliminado) {
+        restaurar(a, `vuelve a cotizar en el TC2 de ${mesTexto}`);
+        reincorporados++;
+      }
+      if (a.eliminado) return; // los de la papelera no cuentan en el resumen
+      if (encontrado) cotizan++;
+      else if (esAltaPosteriorAlTc2(a)) altasPosteriores++;
+      else noCotizan++;
+    });
+
+    marcarSucio();
+    render();
+    let msg = `TC2 de ${mesTexto} importado (${dnisEnTc2.size} personas cotizando): ` +
+      `${cotizan} de tu lista cotizan, ${noCotizan} NO cotizan y quedan marcados en naranja (probable baja en la empresa).`;
+    if (porCaf) msg += ` ${porCaf} identificados por su código de nombre al no tener DNI en la ficha.`;
+    if (reincorporados) msg += ` ${reincorporados} estaban en la lista de eliminados y vuelven a cotizar: los he restaurado.`;
+    if (altasPosteriores) {
+      msg += ` ${altasPosteriores} no cotizan en este TC2 pero sí tienen jornada en un mes posterior: son altas nuevas, no se marcan.`;
+    }
+    msg += ' Recuerda pulsar «Guardar cambios».';
+    estadoTc2.textContent = msg;
+  }
+
+  function abrirArchivo(file){
+    const lector = new FileReader();
+    lector.onload = () => {
+      try {
+        const datos = JSON.parse(lector.result);
+        if (!Array.isArray(datos)) throw new Error('formato');
+        // migración: archivos antiguos guardaban un booleano "afiliado" (siempre CCOO) en vez de "sindicato"
+        datos.forEach(a => {
+          if (a.sindicato === undefined) {
+            a.sindicato = a.afiliado ? 'CCOO' : '';
+          }
+          delete a.afiliado;
+          // migración: la marca de "no está en el último registro" era fija de julio 2026
+          if (a.sinRegistroJulio !== undefined && a.jornadaEncontrada === undefined) {
+            a.jornadaEncontrada = !a.sinRegistroJulio;
+            a.jornadaMes = 'julio 2026';
+          }
+          delete a.sinRegistroJulio;
+          // migración: el nº de empleado vivía escondido dentro del texto de notas
+          if (!a.numEmpleado) {
+            const m = /Nº Personal \(plantilla\):\s*(\d+)/.exec(a.notas || '');
+            if (m) a.numEmpleado = m[1];
+          }
+          if (a.notas) {
+            a.notas = a.notas.split(' · ')
+              .filter(seg => seg && !/^Nº Personal \(plantilla\):/.test(seg))
+              .join(' · ');
+          }
+        });
+        afiliados = datos;
+        nombreArchivo = file.name;
+        sucio = false;
+        pillDirty.classList.add('oculto');
+        accionArchivo = 'abierto de';
+        estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+        render();
+      } catch (e) {
+        avisar('Ese archivo no tiene el formato esperado (debe ser un .json generado por esta misma herramienta).');
+      }
+    };
+    lector.readAsText(file, 'utf-8');
+  }
+
+  $('file-abrir').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (file) abrirArchivo(file);
+    ev.target.value = '';
+  });
+  $('file-jornada').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (file) importarJornada(file);
+    ev.target.value = '';
+  });
+  $('file-tc2').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (file) importarTC2(file);
+    ev.target.value = '';
+  });
+  $('btn-guardar').addEventListener('click', guardarCambios);
+  $('btn-csv').addEventListener('click', exportarCsv);
+  $('btn-filtro-bajas').addEventListener('click', () => {
+    vista = (vista === 'bajas') ? 'activos' : 'bajas';
+    render();
+  });
+  $('btn-bajas-medicas').addEventListener('click', () => {
+    vista = (vista === 'medicas') ? 'activos' : 'medicas';
+    render();
+  });
+  $('btn-eliminados').addEventListener('click', () => {
+    vista = (vista === 'eliminados') ? 'activos' : 'eliminados';
+    render();
+  });
+  $('btn-nuevo').addEventListener('click', () => abrirFicha(null));
+  $('ficha-cerrar').addEventListener('click', cerrarFicha);
+  $('btn-cancelar-ficha').addEventListener('click', cerrarFicha);
+  $('btn-guardar-ficha').addEventListener('click', guardarFicha);
+  $('c-sindicato').addEventListener('change', actualizarBloqueAfiliacion);
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarFicha(); });
+  buscar.addEventListener('input', render);
+  window.addEventListener('beforeunload', (ev) => {
+    if (sucio) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
