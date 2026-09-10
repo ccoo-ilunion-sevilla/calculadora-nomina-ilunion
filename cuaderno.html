@@ -92,6 +92,7 @@ img{display:block;max-width:100%}
 .opciones-cat label{display:flex;align-items:center;gap:8px;border:1px solid var(--linea);border-radius:5px;padding:9px 10px;font-size:13px;cursor:pointer}
 .opciones-cat label:has(input:checked){border-color:var(--tinta);border-width:2px;background:#F7F8F9;padding:8px 9px}
 .opciones-cat input{accent-color:var(--rojo)}
+.modal textarea{width:100%;padding:10px 12px;border:1px solid var(--linea);border-radius:4px;font-size:15px;font-family:inherit;resize:vertical}
 .puntico{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
 .modal-acciones{display:flex;gap:10px;margin-top:18px}
 .modal-acciones button{flex:1;padding:12px;border-radius:5px;font-weight:700;font-size:14px;cursor:pointer;border:1px solid var(--linea);background:#fff}
@@ -130,7 +131,7 @@ img{display:block;max-width:100%}
 
 .area-lienzo{flex:1;background:#9CA3AC;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;touch-action:none}
 .zoom-wrap{transform-origin:0 0;position:relative}
-.pagina-caja{aspect-ratio:1240/1754;background:#fff;box-shadow:0 4px 22px rgba(0,0,0,.28);position:relative}
+.pagina-caja{background:#fff;box-shadow:0 4px 22px rgba(0,0,0,.28);position:relative;flex:0 0 auto}
 .pagina-caja canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .controles-zoom{position:absolute;bottom:14px;right:14px;background:rgba(20,22,26,.85);border-radius:8px;display:flex;gap:2px;padding:4px;z-index:6}
 .controles-zoom button{background:transparent;color:#fff;border:0;width:34px;height:34px;font-size:17px;border-radius:5px;cursor:pointer}
@@ -391,7 +392,7 @@ function pintarGrid(){
   }
   html += lista.map(n=>{
     const cat = CATEGORIAS[n.categoria] || {icono:'📓'};
-    return `<button class="tarjeta" data-id="${n.id}">
+    return `<div class="tarjeta" data-id="${n.id}" role="button" tabindex="0">
       <button class="btn-mas" data-menu="${n.id}">⋯</button>
       <div class="lomo" style="background:${n.color}"></div>
       <div class="cuerpo">
@@ -399,7 +400,7 @@ function pintarGrid(){
         <h3>${escapeHTML(n.nombre)}</h3>
         <div class="meta">${n.numPaginas||0} pág. · ${fechaRelativa(n.actualizado)}</div>
       </div>
-    </button>`;
+    </div>`;
   }).join('');
   cont.innerHTML = html;
 
@@ -407,6 +408,9 @@ function pintarGrid(){
     t.addEventListener('click',(e)=>{
       if(e.target.closest('.btn-mas')) return;
       abrirCuaderno(t.dataset.id);
+    });
+    t.addEventListener('keydown',(e)=>{
+      if((e.key==='Enter' || e.key===' ') && !e.target.closest('.btn-mas')){ e.preventDefault(); abrirCuaderno(t.dataset.id); }
     });
   });
   cont.querySelectorAll('.btn-mas').forEach(b=>{
@@ -417,6 +421,49 @@ function pintarGrid(){
 }
 
 function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* Cuadros propios: en un icono añadido a pantalla de inicio (modo standalone),
+   Safari bloquea alert()/confirm()/prompt() sin avisar. */
+function mostrarConfirmacion(mensaje, textoOk){
+  return new Promise(resolve=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `<div class="modal">
+      <h2>Confirmar</h2>
+      <p style="font-size:14px;line-height:1.5;margin-bottom:4px">${escapeHTML(mensaje)}</p>
+      <div class="modal-acciones">
+        <button id="cf-no">Cancelar</button>
+        <button class="primario" id="cf-si">${escapeHTML(textoOk||'Aceptar')}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const cerrar = v=>{ overlay.remove(); resolve(v); };
+    overlay.querySelector('#cf-no').onclick = ()=>cerrar(false);
+    overlay.querySelector('#cf-si').onclick = ()=>cerrar(true);
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) cerrar(false); });
+  });
+}
+function mostrarPrompt(mensaje, valorInicial){
+  return new Promise(resolve=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `<div class="modal">
+      <h2>${escapeHTML(mensaje)}</h2>
+      <div class="campo"><textarea id="pr-valor" rows="3">${escapeHTML(valorInicial||'')}</textarea></div>
+      <div class="modal-acciones">
+        <button id="pr-cancelar">Cancelar</button>
+        <button class="primario" id="pr-ok">Aceptar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#pr-valor');
+    const cerrar = v=>{ overlay.remove(); resolve(v); };
+    overlay.querySelector('#pr-cancelar').onclick = ()=>cerrar(null);
+    overlay.querySelector('#pr-ok').onclick = ()=>cerrar(input.value);
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) cerrar(null); });
+    setTimeout(()=>{ input.focus(); input.select(); }, 50);
+  });
+}
 
 function menuCuaderno(id, ancla){
   cerrarFlotantes();
@@ -429,13 +476,13 @@ function menuCuaderno(id, ancla){
   document.body.appendChild(menu);
   menu.querySelector('[data-a=ren]').onclick = async ()=>{
     const nb = est.notebooks.find(n=>n.id===id);
-    const nuevo = prompt('Nuevo nombre del cuaderno:', nb.nombre);
+    const nuevo = await mostrarPrompt('Nuevo nombre del cuaderno:', nb.nombre);
     if(nuevo && nuevo.trim()){ nb.nombre = nuevo.trim(); nb.actualizado = Date.now(); await idbPut('notebooks', nb); await cargarInicio(); }
     cerrarFlotantes();
   };
   menu.querySelector('[data-a=dup]').onclick = async ()=>{ await duplicarCuaderno(id); cerrarFlotantes(); };
   menu.querySelector('[data-a=bor]').onclick = async ()=>{
-    if(confirm('¿Eliminar este cuaderno y todas sus páginas? No se puede deshacer.')){
+    if(await mostrarConfirmacion('¿Eliminar este cuaderno y todas sus páginas? No se puede deshacer.', 'Eliminar')){
       await eliminarCuaderno(id);
     }
     cerrarFlotantes();
@@ -620,7 +667,7 @@ async function cargarPagina(id){
   est.undo = []; est.redo = [];
   const {w,h} = dimsPagina(p);
   [cvsVisible, cvsFondo, cvsTrazos].forEach(c=>{ c.width=w; c.height=h; });
-  document.getElementById('pagina-caja').style.aspectRatio = `${w}/${h}`;
+  ajustarTamanoPagina();
 
   if(p.fondo.tipo==='imagen'){
     await new Promise(res=>{
@@ -650,6 +697,25 @@ function componer(){
 }
 
 function paginaActualObj(){ return est.paginas.find(p=>p.id===est.paginaActual); }
+
+/* El tamaño de la página se calcula por JS: un aspect-ratio en CSS no basta
+   porque el canvas interior va con position:absolute y no aporta tamaño
+   propio al contenedor. */
+function ajustarTamanoPagina(){
+  const p = paginaActualObj();
+  const cont = document.getElementById('area-lienzo');
+  const caja = document.getElementById('pagina-caja');
+  if(!p || !cont) return;
+  const {w,h} = dimsPagina(p);
+  const margen = 28;
+  const maxW = Math.max(100, cont.clientWidth - margen*2);
+  const maxH = Math.max(100, cont.clientHeight - margen*2);
+  let anchoFinal = maxW, altoFinal = maxW * (h/w);
+  if(altoFinal > maxH){ altoFinal = maxH; anchoFinal = maxH * (w/h); }
+  caja.style.width = Math.round(anchoFinal) + 'px';
+  caja.style.height = Math.round(altoFinal) + 'px';
+}
+window.addEventListener('resize', ()=>{ if(!document.getElementById('pantalla-editor').classList.contains('oculto')) ajustarTamanoPagina(); });
 
 /* ---------------- Fondos y plantillas ---------------- */
 const NEGRO='#14161A', GRIS='#8C949E', LINEA='#D4D8DD', ROJO='#CC0000', VERDE='#009B48', AMBAR='#B45309', AZUL='#25508C';
@@ -819,7 +885,7 @@ async function insertarPaginaConPlantilla(plantillaId){
 }
 async function cambiarFondoPaginaActual(plantillaId){
   const p = paginaActualObj();
-  if(p.fondo.tipo==='imagen' && !confirm('Esta página tiene una imagen importada. ¿Sustituir el fondo? El dibujo se conserva.')) return;
+  if(p.fondo.tipo==='imagen' && !(await mostrarConfirmacion('Esta página tiene una imagen importada. ¿Sustituir el fondo? El dibujo se conserva.', 'Sustituir'))) return;
   p.fondo = { tipo: plantillaId };
   await guardarPaginaActual();
   await cargarPagina(p.id);
@@ -827,8 +893,8 @@ async function cambiarFondoPaginaActual(plantillaId){
 document.getElementById('btn-plantilla-pagina').addEventListener('click', ()=>abrirSelectorPlantilla('cambiar'));
 
 async function eliminarPaginaActual(){
-  if(est.paginas.length<=1){ alert('El cuaderno debe tener al menos una página.'); return; }
-  if(!confirm('¿Eliminar esta página?')) return;
+  if(est.paginas.length<=1){ mostrarAviso('El cuaderno debe tener al menos una página.'); setTimeout(ocultarAviso,2200); return; }
+  if(!(await mostrarConfirmacion('¿Eliminar esta página?', 'Eliminar'))) return;
   const idx = est.paginas.findIndex(p=>p.id===est.paginaActual);
   await idbDelete('paginas', est.paginaActual);
   est.paginas.splice(idx,1);
@@ -1107,14 +1173,16 @@ function iniciarGesto(e){
     lassoPath = [[pt.x,pt.y]];
     seleccionActiva = null;
   } else if(est.tool==='texto'){
-    const texto = prompt('Escribe el texto:');
-    if(texto && texto.trim()){
-      pushUndo();
-      p.textos.push({x:pt.x, y:pt.y, texto:texto, color:est.color, tam: est.tamTexto});
-      dibujarTexto(ctxTrazos, p.textos[p.textos.length-1]);
-      componer();
-      persistirTrasGesto();
-    }
+    (async ()=>{
+      const texto = await mostrarPrompt('Escribe el texto:', '');
+      if(texto && texto.trim()){
+        pushUndo();
+        p.textos.push({x:pt.x, y:pt.y, texto:texto, color:est.color, tam: est.tamTexto});
+        dibujarTexto(ctxTrazos, p.textos[p.textos.length-1]);
+        componer();
+        await persistirTrasGesto();
+      }
+    })();
   }
 }
 function continuarGesto(e){
