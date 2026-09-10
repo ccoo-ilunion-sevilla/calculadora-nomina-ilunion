@@ -568,10 +568,10 @@ async function crearCuaderno(nombre, categoria){
   await abrirCuaderno(id);
 }
 
-function crearObjetoPagina(notebookId, orden, plantilla){
+function crearObjetoPagina(notebookId, orden, plantilla, orientacion){
   return {
     id: uid(), notebookId, orden,
-    fondo: { tipo: plantilla || 'blanco' },
+    fondo: { tipo: plantilla || 'blanco', orientacion: orientacion || 'vertical' },
     trazos: [], textos: [],
     miniatura: null,
   };
@@ -666,6 +666,7 @@ async function moverPagina(i, dir){
 /* ---------------- Render de página ---------------- */
 function dimsPagina(p){
   if(p.fondo.tipo==='imagen') return {w:p.fondo.w, h:p.fondo.h};
+  if(p.fondo.orientacion==='horizontal') return {w:PAGE_H, h:PAGE_W};
   return {w:PAGE_W, h:PAGE_H};
 }
 
@@ -743,20 +744,31 @@ if(screen.orientation) screen.orientation.addEventListener('change', reajustarTa
 /* ---------------- Fondos y plantillas ---------------- */
 const NEGRO='#14161A', GRIS='#8C949E', LINEA='#D4D8DD', ROJO='#CC0000', VERDE='#009B48', AMBAR='#B45309', AZUL='#25508C';
 
+const PLANTILLAS_DOCUMENTO = ['acta','inspeccion','ficha','cuadrante'];
 function dibujarFondoPlantilla(ctx, w, h, tipo){
   ctx.clearRect(0,0,w,h);
   ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
   ctx.lineWidth = 1.4;
+  const esDocumento = PLANTILLAS_DOCUMENTO.includes(tipo);
+  if(esDocumento){
+    // Las 4 plantillas de documento están medidas para un folio vertical
+    // (PAGE_H de referencia). En horizontal, la página es más baja: se
+    // comprime solo el alto para que quepa entera sin perder el ancho
+    // real disponible ni tener que rediseñar cada plantilla a mano.
+    ctx.save();
+    ctx.scale(1, h/PAGE_H);
+  }
   switch(tipo){
     case 'rayas': lineasHorizontales(ctx,w,h); break;
     case 'cuadricula': cuadriculaFondo(ctx,w,h); break;
     case 'puntos': puntosFondo(ctx,w,h); break;
-    case 'acta': plantillaActa(ctx,w,h); break;
-    case 'inspeccion': plantillaInspeccion(ctx,w,h); break;
-    case 'ficha': plantillaFicha(ctx,w,h); break;
-    case 'cuadrante': plantillaCuadrante(ctx,w,h); break;
+    case 'acta': plantillaActa(ctx,w,PAGE_H); break;
+    case 'inspeccion': plantillaInspeccion(ctx,w,PAGE_H); break;
+    case 'ficha': plantillaFicha(ctx,w,PAGE_H); break;
+    case 'cuadrante': plantillaCuadrante(ctx,w,PAGE_H); break;
     default: break; // blanco
   }
+  if(esDocumento) ctx.restore();
 }
 function lineasHorizontales(ctx,w,h,paso=48,margen=70){
   ctx.strokeStyle = LINEA;
@@ -864,40 +876,57 @@ function plantillaCuadrante(ctx,w,h){
 
 /* ---------------- Selector de plantilla (nueva página / cambiar fondo) ---------------- */
 function abrirSelectorPlantilla(modo){
+  let orientacion = 'vertical';
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   overlay.innerHTML = `<div class="modal">
     <h2>${modo==='nueva' ? 'Añadir página' : 'Cambiar fondo de la página'}</h2>
+    <div class="opciones-cat" style="margin-bottom:14px">
+      <label><input type="radio" name="sp-orient" value="vertical" checked> Vertical (folio)</label>
+      <label><input type="radio" name="sp-orient" value="horizontal"> Horizontal (apaisado)</label>
+    </div>
     <div class="grid-plantillas" id="grid-plant"></div>
     <div class="modal-acciones"><button id="sp-cancelar">Cancelar</button></div>
   </div>`;
   document.body.appendChild(overlay);
   const grid = overlay.querySelector('#grid-plant');
-  PLANTILLAS.forEach(pl=>{
-    const div = document.createElement('button');
-    div.className = 'plant-op';
-    const cv = document.createElement('canvas');
-    cv.className='prev'; cv.width=140; cv.height=198;
-    const cx = cv.getContext('2d');
-    const esc = 140/PAGE_W;
-    cx.scale(esc,esc);
-    dibujarFondoPlantilla(cx, PAGE_W, PAGE_H, pl.id);
-    div.appendChild(cv);
-    const label = document.createElement('span'); label.textContent = pl.nombre; div.appendChild(label);
-    div.addEventListener('click', async ()=>{
-      overlay.remove();
-      if(modo==='nueva') await insertarPaginaConPlantilla(pl.id);
-      else await cambiarFondoPaginaActual(pl.id);
+
+  function pintarPrevisualizaciones(){
+    grid.innerHTML = '';
+    const {w:pw, h:ph} = orientacion==='horizontal' ? {w:PAGE_H,h:PAGE_W} : {w:PAGE_W,h:PAGE_H};
+    PLANTILLAS.forEach(pl=>{
+      const div = document.createElement('button');
+      div.className = 'plant-op';
+      const cv = document.createElement('canvas');
+      cv.className='prev'; cv.width=140; cv.height=198;
+      const cx = cv.getContext('2d');
+      cx.fillStyle = '#f3f4f6'; cx.fillRect(0,0,140,198);
+      const esc = Math.min(140/pw, 198/ph);
+      const offX = (140 - pw*esc)/2, offY = (198 - ph*esc)/2;
+      cx.save(); cx.translate(offX, offY); cx.scale(esc,esc);
+      dibujarFondoPlantilla(cx, pw, ph, pl.id);
+      cx.restore();
+      div.appendChild(cv);
+      const label = document.createElement('span'); label.textContent = pl.nombre; div.appendChild(label);
+      div.addEventListener('click', async ()=>{
+        overlay.remove();
+        if(modo==='nueva') await insertarPaginaConPlantilla(pl.id, orientacion);
+        else await cambiarFondoPaginaActual(pl.id, orientacion);
+      });
+      grid.appendChild(div);
     });
-    grid.appendChild(div);
+  }
+  pintarPrevisualizaciones();
+  overlay.querySelectorAll('input[name=sp-orient]').forEach(r=>{
+    r.addEventListener('change', ()=>{ orientacion = r.value; pintarPrevisualizaciones(); });
   });
   overlay.querySelector('#sp-cancelar').onclick = ()=>overlay.remove();
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
 }
 
-async function insertarPaginaConPlantilla(plantillaId){
+async function insertarPaginaConPlantilla(plantillaId, orientacion){
   const idxActual = est.paginas.findIndex(p=>p.id===est.paginaActual);
-  const nueva = crearObjetoPagina(est.notebookActual.id, idxActual+1, plantillaId);
+  const nueva = crearObjetoPagina(est.notebookActual.id, idxActual+1, plantillaId, orientacion);
   est.paginas.splice(idxActual+1, 0, nueva);
   est.paginas.forEach((p,i)=>p.orden=i);
   for(const p of est.paginas) await idbPut('paginas', p);
@@ -906,10 +935,10 @@ async function insertarPaginaConPlantilla(plantillaId){
   await idbPut('notebooks', est.notebookActual);
   await cargarPagina(nueva.id);
 }
-async function cambiarFondoPaginaActual(plantillaId){
+async function cambiarFondoPaginaActual(plantillaId, orientacion){
   const p = paginaActualObj();
   if(p.fondo.tipo==='imagen' && !(await mostrarConfirmacion('Esta página tiene una imagen importada. ¿Sustituir el fondo? El dibujo se conserva.', 'Sustituir'))) return;
-  p.fondo = { tipo: plantillaId };
+  p.fondo = { tipo: plantillaId, orientacion: orientacion || 'vertical' };
   await guardarPaginaActual();
   await cargarPagina(p.id);
 }
