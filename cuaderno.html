@@ -131,6 +131,7 @@ img{display:block;max-width:100%}
 
 .zona-editor{flex:1;display:flex;overflow:hidden;position:relative}
 .barra-lateral{width:118px;flex:0 0 auto;background:#DEE1E5;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 8px;display:flex;flex-direction:column;gap:10px}
+.barra-lateral.oculta{display:none}
 .mini-pagina{background:#fff;border:2px solid transparent;border-radius:4px;cursor:pointer;position:relative;padding:4px 4px 20px}
 .mini-pagina.activa{border-color:var(--rojo)}
 .mini-pagina canvas{width:100%;display:block;background:#fff;border:1px solid var(--linea)}
@@ -201,6 +202,10 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
     <div class="grupo">
       <button class="tbtn" id="btn-volver" title="Volver">←</button>
       <input class="nombre-cuaderno" id="input-nombre-cuaderno">
+    </div>
+    <div class="sep"></div>
+    <div class="grupo">
+      <button class="tbtn" id="btn-toggle-paginas" title="Mostrar/ocultar páginas" aria-pressed="true">🗂️<small>Páginas</small></button>
     </div>
     <div class="sep"></div>
     <div class="grupo">
@@ -1088,6 +1093,22 @@ document.getElementById('btn-modo-dedo').addEventListener('click', (e)=>{
   est.modoDedo = !est.modoDedo;
   e.currentTarget.setAttribute('aria-pressed', est.modoDedo);
 });
+
+/* Ocultar la barra de páginas deja más ancho para la hoja. Se recuerda
+   la preferencia y se recalcula el tamaño de la página al momento. */
+const btnTogglePaginas = document.getElementById('btn-toggle-paginas');
+const barraLateralEl = document.getElementById('barra-lateral');
+function aplicarVisibilidadBarraPaginas(visible){
+  barraLateralEl.classList.toggle('oculta', !visible);
+  btnTogglePaginas.setAttribute('aria-pressed', visible);
+  reajustarTamanoPagina();
+}
+btnTogglePaginas.addEventListener('click', ()=>{
+  const visible = barraLateralEl.classList.contains('oculta');
+  localStorage.setItem('cuaderno_barra_paginas', visible ? '1' : '0');
+  aplicarVisibilidadBarraPaginas(visible);
+});
+aplicarVisibilidadBarraPaginas(localStorage.getItem('cuaderno_barra_paginas') !== '0');
 
 /* ====================================================================
    DIBUJO — Pointer Events (Apple Pencil, ratón, dedo)
