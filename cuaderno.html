@@ -38,9 +38,19 @@ body{
   font-family:'Inter',system-ui,-apple-system,sans-serif;
   background:var(--papel);color:var(--tinta);
   line-height:1.5;font-size:16px;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+/* Sin esto, un contacto un poco largo (por ejemplo al levantar el lápiz)
+   dispara el menú nativo de iOS "Copiar / Buscar la selección", que
+   secuestra el toque como si la app fuera una página de texto normal. */
+input, textarea{
+  -webkit-user-select:text;user-select:text;
+  -webkit-touch-callout:default;
 }
 .oculto{display:none!important}
-button{font-family:inherit}
+button{font-family:inherit;touch-action:manipulation}
 img{display:block;max-width:100%}
 
 /* ================= PANTALLA INICIO ================= */
@@ -62,7 +72,7 @@ img{display:block;max-width:100%}
 .chip[aria-pressed="true"]{background:var(--tinta);color:#fff;border-color:var(--tinta)}
 
 .grid-cuadernos{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px}
-.tarjeta{background:#fff;border:1px solid var(--linea);border-radius:6px;overflow:hidden;cursor:pointer;position:relative;text-align:left;display:flex;flex-direction:column}
+.tarjeta{background:#fff;border:1px solid var(--linea);border-radius:6px;overflow:hidden;cursor:pointer;position:relative;text-align:left;display:flex;flex-direction:column;touch-action:manipulation}
 .tarjeta:active{transform:scale(.98)}
 .tarjeta .lomo{height:9px}
 .tarjeta .cuerpo{padding:14px 12px 12px;flex:1;display:flex;flex-direction:column}
