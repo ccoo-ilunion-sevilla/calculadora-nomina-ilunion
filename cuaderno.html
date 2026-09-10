@@ -725,7 +725,20 @@ function ajustarTamanoPagina(){
   caja.style.width = Math.round(anchoFinal) + 'px';
   caja.style.height = Math.round(altoFinal) + 'px';
 }
-window.addEventListener('resize', ()=>{ if(!document.getElementById('pantalla-editor').classList.contains('oculto')) ajustarTamanoPagina(); });
+function reajustarTamanoPagina(){
+  if(document.getElementById('pantalla-editor').classList.contains('oculto')) return;
+  ajustarTamanoPagina();
+  /* Entrar/salir de pantalla completa o girar el iPad anima el cambio de
+     tamaño de la ventana: si se mide el hueco disponible justo en ese
+     instante, se puede coger una medida a medio camino y la página se
+     queda pequeña. Se repite la medición cuando la animación ya terminó. */
+  setTimeout(ajustarTamanoPagina, 60);
+  setTimeout(ajustarTamanoPagina, 350);
+}
+window.addEventListener('resize', reajustarTamanoPagina);
+document.addEventListener('fullscreenchange', reajustarTamanoPagina);
+document.addEventListener('webkitfullscreenchange', reajustarTamanoPagina);
+if(screen.orientation) screen.orientation.addEventListener('change', reajustarTamanoPagina);
 
 /* ---------------- Fondos y plantillas ---------------- */
 const NEGRO='#14161A', GRIS='#8C949E', LINEA='#D4D8DD', ROJO='#CC0000', VERDE='#009B48', AMBAR='#B45309', AZUL='#25508C';
@@ -1376,7 +1389,7 @@ function aplicarTransformZoom(){
 }
 document.getElementById('zoom-mas').addEventListener('click', ()=>{ est.zoom=Math.min(4,est.zoom+0.25); aplicarTransformZoom(); });
 document.getElementById('zoom-menos').addEventListener('click', ()=>{ est.zoom=Math.max(0.5,est.zoom-0.25); aplicarTransformZoom(); });
-document.getElementById('zoom-reset').addEventListener('click', ()=>{ est.zoom=1; est.panX=0; est.panY=0; aplicarTransformZoom(); });
+document.getElementById('zoom-reset').addEventListener('click', ()=>{ est.zoom=1; est.panX=0; est.panY=0; aplicarTransformZoom(); ajustarTamanoPagina(); });
 
 /* ====================================================================
    IMPORTAR (foto / PDF)
