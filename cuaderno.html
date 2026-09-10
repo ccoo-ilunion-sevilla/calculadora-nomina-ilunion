@@ -951,20 +951,25 @@ function actualizarMiniaturaEnBarra(pageId){
   img.src = p.miniatura;
 }
 
-/* ---------------- Deshacer / rehacer ---------------- */
+/* ---------------- Deshacer / rehacer ----------------
+   Los trazos y textos ya colocados nunca se modifican, solo se añaden o
+   se quitan del array de la página: basta con guardar una copia
+   superficial (slice) de esos dos arrays para poder volver atrás. Antes
+   se convertía toda la página a texto (JSON) en cada pulsación del
+   lápiz, y ese coste crecía con lo ya escrito: al escribir un documento
+   largo, cada vez que volvías a apoyar el lápiz se notaba un corte. */
 function snapshot(){
   const p = paginaActualObj();
-  return JSON.stringify({trazos:p.trazos, textos:p.textos});
+  return { trazos: p.trazos.slice(), textos: p.textos.slice() };
 }
 function pushUndo(){
   est.undo.push(snapshot());
   if(est.undo.length>40) est.undo.shift();
   est.redo = [];
 }
-function restaurar(json){
+function restaurar(snap){
   const p = paginaActualObj();
-  const d = JSON.parse(json);
-  p.trazos = d.trazos; p.textos = d.textos;
+  p.trazos = snap.trazos; p.textos = snap.textos;
   reconstruirCapaTrazos(p);
   componer();
 }
@@ -1272,8 +1277,7 @@ function borrarEn(pt){
     }
   });
   if(cambio){
-    const p2 = JSON.parse(JSON.stringify({trazos:p.trazos.filter((_,i)=>!est.trazoActivo.tocados.has(i)), textos:p.textos}));
-    reconstruirCapaTrazos(p2);
+    reconstruirCapaTrazos({trazos:p.trazos.filter((_,i)=>!est.trazoActivo.tocados.has(i)), textos:p.textos});
     componer();
     ctxVisible.save(); ctxVisible.strokeStyle='rgba(204,0,0,.5)'; ctxVisible.lineWidth=2;
     ctxVisible.beginPath(); ctxVisible.arc(pt.x,pt.y,radio,0,7); ctxVisible.stroke(); ctxVisible.restore();
