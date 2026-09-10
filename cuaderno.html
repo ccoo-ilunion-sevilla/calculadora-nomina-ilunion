@@ -1123,6 +1123,18 @@ cvsVisible.addEventListener('pointerup', onPointerUp);
 cvsVisible.addEventListener('pointercancel', onPointerUp);
 cvsVisible.addEventListener('pointerleave', (e)=>{ if(e.pointerId===drawingId) onPointerUp(e); });
 
+/* El dibujo va por Pointer Events, pero Safari sigue despachando también
+   los Touch Events clásicos para el mismo contacto —incluido el Apple
+   Pencil— y con ellos decide si activa gestos propios del sistema
+   (selección de texto, Scribble, "mirar"...) aunque el CSS ya oculte el
+   menú. Solo el Pencil los dispara con la frecuencia suficiente como
+   para notarse cortando la escritura; el dedo no. Bloqueándolos aquí se
+   le dice a iOS, sin ambigüedad, que no hay nada más que hacer con ese
+   contacto. */
+['touchstart','touchmove','touchend','touchcancel'].forEach(tipo=>{
+  cvsVisible.addEventListener(tipo, e=>e.preventDefault(), {passive:false});
+});
+
 function toquesActivos(){
   let n=0; activePointers.forEach(p=>{ if(p.type==='touch') n++; }); return n;
 }
