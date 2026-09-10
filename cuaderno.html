@@ -936,8 +936,19 @@ function guardarMiniaturaActual(){
 async function persistirTrasGesto(){
   guardarMiniaturaActual();
   await guardarPaginaActual();
-  pintarBarraLateral();
+  actualizarMiniaturaEnBarra(est.paginaActual);
   actualizarBotonesUndo();
+}
+/* Solo repinta la miniatura de la página actual, en vez de reconstruir
+   toda la barra lateral (todas las páginas) después de cada trazo. */
+function actualizarMiniaturaEnBarra(pageId){
+  const p = est.paginas.find(x=>x.id===pageId);
+  const div = document.querySelector(`.mini-pagina[data-id="${pageId}"]`);
+  if(!p || !div || !p.miniatura) return;
+  const cv = div.querySelector('canvas');
+  const img = new Image();
+  img.onload = ()=>cv.getContext('2d').drawImage(img,0,0,140,198);
+  img.src = p.miniatura;
 }
 
 /* ---------------- Deshacer / rehacer ---------------- */
@@ -1071,6 +1082,20 @@ function dibujarTrazo(ctx, t){
   ctx.stroke();
   ctx.restore();
 }
+/* Dibuja solo el tramo nuevo de un trazo en curso, sin repintar los
+   puntos anteriores: repintar el trazo entero en cada pointermove hacía
+   que escribir una palabra larga se fuera ralentizando (más puntos, más
+   trabajo por cada movimiento) hasta notarse cortes al escribir seguido. */
+function dibujarSegmento(ctx, t, p1, p2){
+  ctx.save();
+  ctx.globalAlpha = t.opacidad; ctx.strokeStyle = t.color; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.lineWidth = t.tool==='pluma' ? t.grosor * (0.6 + (p2[2]||0.5)) : t.grosor;
+  ctx.beginPath();
+  ctx.moveTo(p1[0], p1[1]);
+  ctx.lineTo(p2[0], p2[1]);
+  ctx.stroke();
+  ctx.restore();
+}
 function dibujarTexto(ctx, t){
   ctx.save(); ctx.fillStyle=t.color; ctx.font = `${t.tam}px Inter, Arial`; ctx.textBaseline='top';
   const lineas = t.texto.split('\n');
@@ -1172,6 +1197,8 @@ function iniciarGesto(e){
   if(est.tool==='pluma' || est.tool==='marcador'){
     pushUndo();
     est.trazoActivo = nuevoTrazo(est.tool, pt);
+    componer();
+    dibujarTrazo(ctxVisible, est.trazoActivo);
   } else if(est.tool==='borrador'){
     pushUndo();
     est.trazoActivo = {borrando:true, radio: Math.max(est.grosor*2.5,16), tocados:new Set()};
@@ -1196,9 +1223,10 @@ function continuarGesto(e){
   const pt = posLogica(e); pt.presion = e.pressure && e.pressure>0 ? e.pressure : 0.5;
   if(est.tool==='pluma' || est.tool==='marcador'){
     if(!est.trazoActivo) return;
-    est.trazoActivo.puntos.push([pt.x,pt.y,pt.presion]);
-    componer();
-    dibujarTrazo(ctxVisible, est.trazoActivo);
+    const anterior = est.trazoActivo.puntos[est.trazoActivo.puntos.length-1];
+    const nuevo = [pt.x,pt.y,pt.presion];
+    est.trazoActivo.puntos.push(nuevo);
+    dibujarSegmento(ctxVisible, est.trazoActivo, anterior, nuevo);
   } else if(est.tool==='borrador'){
     borrarEn(pt);
   } else if(est.tool==='lazo'){
