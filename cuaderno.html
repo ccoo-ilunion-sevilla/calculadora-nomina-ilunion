@@ -1074,7 +1074,7 @@ function bboxTrazo(t){
 }
 
 let activePointers = new Map();
-let drawingId = null, panId = null;
+let drawingId = null;
 let pinch = null;
 
 cvsVisible.addEventListener('pointerdown', onPointerDown);
@@ -1083,27 +1083,28 @@ cvsVisible.addEventListener('pointerup', onPointerUp);
 cvsVisible.addEventListener('pointercancel', onPointerUp);
 cvsVisible.addEventListener('pointerleave', (e)=>{ if(e.pointerId===drawingId) onPointerUp(e); });
 
+function toquesActivos(){
+  let n=0; activePointers.forEach(p=>{ if(p.type==='touch') n++; }); return n;
+}
+
+/* Un solo dedo (o la palma apoyada al escribir) nunca mueve la página:
+   solo el lápiz dibuja, y mover/hacer zoom exige dos dedos a la vez.
+   Así la palma no puede desplazar el lienzo mientras escribes. */
 function onPointerDown(e){
   activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY, type:e.pointerType});
-  if(drawingId!==null) return; // ya hay un trazo de lápiz/ratón en curso: se ignora todo lo demás (rechazo de palma)
+  if(drawingId!==null) return; // ya se está escribiendo: se ignora cualquier otro contacto (rechazo de palma)
 
   if(e.pointerType==='pen' || e.pointerType==='mouse'){
     cvsVisible.setPointerCapture(e.pointerId);
     drawingId = e.pointerId;
     iniciarGesto(e);
   } else if(e.pointerType==='touch'){
-    if(activePointers.size===1){
-      if(est.modoDedo){
-        cvsVisible.setPointerCapture(e.pointerId);
-        drawingId = e.pointerId;
-        iniciarGesto(e);
-      } else {
-        panId = e.pointerId;
-      }
-    } else if(activePointers.size===2){
-      panId = null;
-      const pts = [...activePointers.values()];
-      pinch = iniciarPinch(pts);
+    if(toquesActivos()===1 && est.modoDedo){
+      cvsVisible.setPointerCapture(e.pointerId);
+      drawingId = e.pointerId;
+      iniciarGesto(e);
+    } else if(toquesActivos()===2){
+      pinch = iniciarPinch(puntosTactiles());
     }
   }
 }
@@ -1112,16 +1113,11 @@ function onPointerMove(e){
   activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY, type:e.pointerType});
 
   if(e.pointerId===drawingId){ continuarGesto(e); return; }
+  if(drawingId!==null) return; // se escribe con el lápiz: se ignora cualquier otro contacto
 
-  if(activePointers.size===2 && (pinch || (panId!==null))){
-    if(!pinch) pinch = iniciarPinch([...activePointers.values()]);
+  if(toquesActivos()===2){
+    if(!pinch) pinch = iniciarPinch(puntosTactiles());
     actualizarPinch();
-    return;
-  }
-  if(e.pointerId===panId && activePointers.size===1){
-    const dx = e.movementX||0, dy = e.movementY||0;
-    est.panX += dx; est.panY += dy;
-    aplicarTransformZoom();
   }
 }
 async function onPointerUp(e){
@@ -1130,9 +1126,10 @@ async function onPointerUp(e){
     drawingId = null;
     await finalizarGesto(e);
   }
-  if(e.pointerId===panId) panId=null;
-  if(activePointers.size<2) pinch = null;
+  if(toquesActivos()<2) pinch = null;
 }
+
+function puntosTactiles(){ return [...activePointers.values()].filter(p=>p.type==='touch'); }
 
 function iniciarPinch(pts){
   const [a,b] = pts;
@@ -1144,7 +1141,7 @@ function iniciarPinch(pts){
   };
 }
 function actualizarPinch(){
-  const pts = [...activePointers.values()];
+  const pts = puntosTactiles();
   if(pts.length<2 || !pinch) return;
   const [a,b] = pts;
   const dist = Math.hypot(a.x-b.x, a.y-b.y);
