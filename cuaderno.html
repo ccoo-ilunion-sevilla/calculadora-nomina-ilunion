@@ -1160,6 +1160,7 @@ function onPointerDown(e){
     }
   }
 }
+let pinchPendiente = false;
 function onPointerMove(e){
   if(!activePointers.has(e.pointerId)) return;
   activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY, type:e.pointerType});
@@ -1169,7 +1170,15 @@ function onPointerMove(e){
 
   if(toquesActivos()===2){
     if(!pinch) pinch = iniciarPinch(puntosTactiles());
-    actualizarPinch();
+    /* Cada dedo dispara su propio evento por separado: si se recalculara el
+       zoom en cada uno por turno, se mezclaría la posición ya actualizada
+       de un dedo con la todavía antigua del otro, y ese tira y afloja
+       descolocaba el punto de anclaje. Se agrupa en un único recálculo por
+       fotograma, ya con la posición real de ambos dedos. */
+    if(!pinchPendiente){
+      pinchPendiente = true;
+      requestAnimationFrame(()=>{ pinchPendiente = false; actualizarPinch(); });
+    }
   }
 }
 async function onPointerUp(e){
@@ -1183,25 +1192,36 @@ async function onPointerUp(e){
 
 function puntosTactiles(){ return [...activePointers.values()].filter(p=>p.type==='touch'); }
 
+/* El ancla del pellizco se recalcula en cada fotograma a partir del
+   punto medio ANTERIOR de los dedos, no de uno fijado al empezar el
+   gesto: así, si los dedos se desplazan mientras pellizcan (lo normal),
+   el punto lógico que tenían debajo se mantiene debajo del punto nuevo,
+   combinando zoom y arrastre en el mismo gesto. */
 function iniciarPinch(pts){
   const [a,b] = pts;
   const rect = document.getElementById('area-lienzo').getBoundingClientRect();
   return {
     dist: Math.hypot(a.x-b.x, a.y-b.y),
     mid: {x:(a.x+b.x)/2 - rect.left, y:(a.y+b.y)/2 - rect.top},
-    zoomIni: est.zoom, panXIni: est.panX, panYIni: est.panY,
   };
 }
 function actualizarPinch(){
   const pts = puntosTactiles();
   if(pts.length<2 || !pinch) return;
   const [a,b] = pts;
+  const rect = document.getElementById('area-lienzo').getBoundingClientRect();
+  const midNuevo = {x:(a.x+b.x)/2 - rect.left, y:(a.y+b.y)/2 - rect.top};
   const dist = Math.hypot(a.x-b.x, a.y-b.y);
   const factor = dist / pinch.dist;
-  let nuevoZoom = Math.min(4, Math.max(0.5, pinch.zoomIni * factor));
-  est.panX = pinch.mid.x - (pinch.mid.x - pinch.panXIni) * (nuevoZoom/pinch.zoomIni);
-  est.panY = pinch.mid.y - (pinch.mid.y - pinch.panYIni) * (nuevoZoom/pinch.zoomIni);
+  const zoomAnterior = est.zoom;
+  const nuevoZoom = Math.min(4, Math.max(0.5, zoomAnterior * factor));
+  const logX = (pinch.mid.x - est.panX) / zoomAnterior;
+  const logY = (pinch.mid.y - est.panY) / zoomAnterior;
+  est.panX = midNuevo.x - logX * nuevoZoom;
+  est.panY = midNuevo.y - logY * nuevoZoom;
   est.zoom = nuevoZoom;
+  pinch.dist = dist;
+  pinch.mid = midNuevo;
   aplicarTransformZoom();
 }
 
