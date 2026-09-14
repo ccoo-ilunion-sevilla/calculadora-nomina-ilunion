@@ -6,8 +6,10 @@
 <title>Base de afiliados · CCOO Ilunion Seguridad Sevilla</title>
 <meta name="robots" content="noindex, nofollow">
 
+<meta name="theme-color" content="#14161A">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,7 +65,9 @@ tbody tr.fila-eliminada:hover{background:#E7E9EC}
 tbody tr.fila-eliminada .td-nombre b{text-decoration:line-through;color:var(--tinta-2)}
 .fila-restaurar{background:transparent;border:0;color:var(--verde);font-size:12px;font-weight:700;cursor:pointer;padding:4px 6px}
 .fila-restaurar:hover{text-decoration:underline}
-.toolbar input[type=file]{display:none}
+/* Ocultos sin display:none: en Safari de iPhone un input display:none no
+   siempre abre el selector de archivos al pulsar su etiqueta. */
+.toolbar input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
 .estado-linea{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;font-size:13px;color:var(--tinta-2)}
 .estado-linea b{color:var(--tinta)}
@@ -181,14 +185,18 @@ footer a{color:var(--rojo)}
 
     <div class="aviso">
       <b>Esto no se guarda en el navegador.</b> Todo vive en un archivo <code>.json</code> que tú controlas.
-      Abre tu archivo al empezar y pulsa <b>«Guardar cambios»</b> cada vez que quieras dejarlo grabado.
-      Si cierras esta pestaña sin guardar, se pierden los cambios de esta sesión.
-      <span id="aviso-modo-guardado"></span>
+      Abre tu archivo al empezar y, cada vez que hagas cambios, pulsa <b>«Guardar cambios»</b> para descargar la
+      versión actualizada — sustituye al archivo anterior en tus dispositivos (por ejemplo, guardándolo en una
+      carpeta de iCloud Drive o Google Drive para tenerlo también en el móvil). En el iPhone se abre la hoja de
+      compartir: elige <b>«Guardar en Archivos»</b> y sobrescribe el archivo anterior. Si cierras esta pestaña sin
+      guardar, se pierden los cambios de esta sesión.
     </div>
 
     <div class="toolbar">
-      <button type="button" id="btn-abrir">📂 Abrir archivo…</button>
-      <input type="file" id="file-abrir" accept="application/json,.json">
+      <label class="btn" for="file-abrir" id="label-abrir">📂 Abrir archivo…</label>
+      <!-- Sin accept: el selector de Archivos de iOS deja los .json en gris cuando
+           se filtra por tipo. El contenido se valida al abrirlo. -->
+      <input type="file" id="file-abrir">
       <button type="button" class="primario" id="btn-guardar">💾 Guardar cambios</button>
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
       <button type="button" id="btn-csv">Exportar a CSV</button>
@@ -354,10 +362,12 @@ footer a{color:var(--rojo)}
 
   let afiliados = [];
   let nombreArchivo = 'afiliados.json';
-  // Chrome, Brave y Edge permiten escribir encima del mismo archivo (siempre uno,
-  // sin copias "-2"). Safari y Firefox no: en esos se descarga como siempre.
+  // En el ordenador con Chrome, Brave o Edge se puede escribir encima del mismo
+  // archivo. En iPhone y en Safari no existe esa API: allí se usa la hoja de
+  // compartir / la descarga de siempre.
   let manejadorArchivo = null;
   const puedeGuardarEncima = () => typeof window.showSaveFilePicker === 'function';
+  const TIPO_JSON = [{ description: 'Base de afiliados', accept: { 'application/json': ['.json'] } }];
   let sucio = false;
   let dniEditando = null; // DNI original de la ficha abierta, para saber si es alta o edición
   let vista = 'activos';  // 'activos' | 'bajas' (solo naranjas) | 'eliminados' (papelera)
@@ -786,19 +796,32 @@ footer a{color:var(--rojo)}
     render();
   }
 
-  function descargar(contenido, tipo, nombre){
+  /* En el iPhone la descarga normal deja el archivo perdido en «Descargas».
+     Con la hoja de compartir se puede guardar directamente en iCloud Drive,
+     encima del archivo anterior. Si no hay hoja de compartir (ordenador), se
+     descarga como siempre. Devuelve false solo si el usuario la cierra. */
+  async function descargar(contenido, tipo, nombre){
     const blob = new Blob([contenido], { type: tipo });
+    if (navigator.canShare) {
+      const archivo = new File([blob], nombre, { type: tipo });
+      if (navigator.canShare({ files: [archivo] })) {
+        try {
+          await navigator.share({ files: [archivo] });
+          return true;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return false;
+          // cualquier otro fallo: seguimos con la descarga de toda la vida
+        }
+      }
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = nombre;
     document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return true;
   }
 
-  const TIPO_JSON = [{ description: 'Base de afiliados', accept: { 'application/json': ['.json'] } }];
-
-  /* Abrir: si el navegador lo permite, nos quedamos con el "manejador" del archivo
-     para luego poder escribir encima de ese mismo archivo. */
   async function abrirConSelector(){
     try {
       const [h] = await window.showOpenFilePicker({ types: TIPO_JSON, multiple: false });
@@ -816,22 +839,17 @@ footer a{color:var(--rojo)}
   }
 
   async function guardarCambios(){
-    const contenido = JSON.stringify(afiliados, null, 2);
-
+    // Ordenador con Chrome/Brave/Edge: escribir encima del mismo archivo.
     if (puedeGuardarEncima()) {
       try {
         if (!manejadorArchivo) {
-          // primera vez: el navegador pregunta dónde y, si ya existe, si reemplazar
           manejadorArchivo = await window.showSaveFilePicker({
-            suggestedName: /^AFILIADOS_CCOO_/.test(nombreArchivo)
-              ? nombreArchivo
-              : `AFILIADOS_CCOO_${new Date().toISOString().slice(0, 10)}.json`,
-            types: TIPO_JSON,
+            suggestedName: nombreArchivo, types: TIPO_JSON,
           });
         }
         if (await permisoDeEscritura(manejadorArchivo)) {
           const w = await manejadorArchivo.createWritable();
-          await w.write(contenido);
+          await w.write(JSON.stringify(afiliados, null, 2));
           await w.close();
           nombreArchivo = manejadorArchivo.name;
           sucio = false;
@@ -841,17 +859,13 @@ footer a{color:var(--rojo)}
           return;
         }
       } catch (e) {
-        if (e.name === 'AbortError') return;   // ha cancelado el diálogo
-        manejadorArchivo = null;               // cualquier otro fallo: descarga normal
+        if (e.name === 'AbortError') return;
+        manejadorArchivo = null;   // si falla, se sigue por la vía de siempre
       }
     }
 
-    // Safari, Firefox y móvil: descarga de siempre, con la fecha en el nombre
-    // para que se distinga cuál es el más reciente.
-    if (!/^AFILIADOS_CCOO_/.test(nombreArchivo)) {
-      nombreArchivo = `AFILIADOS_CCOO_${new Date().toISOString().slice(0, 10)}.json`;
-    }
-    descargar(contenido, 'application/json', nombreArchivo);
+    const guardado = await descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
+    if (!guardado) return;   // hoja de compartir cancelada: siguen sin guardar
     sucio = false;
     pillDirty.classList.add('oculto');
     accionArchivo = 'guardado como';
@@ -863,14 +877,14 @@ footer a{color:var(--rojo)}
     return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   }
 
-  function exportarCsv(){
+  async function exportarCsv(){
     const cols = ['dni','numEmpleado','apellidos','nombre','fechaNacimiento','numAfiliacion','direccion','cp','localidad',
       'provincia','movil','fijo','email','centro','categoria','sindicato','fechaAlta','estado','delegado',
       'jornadaEncontrada','jornadaMes','bajaIF','bajaIA','bajaMes','cotizacionEncontrada','cotizacionMes','eliminado','fechaEliminado','notas'];
     const filas = [cols.join(';')].concat(
       afiliados.map(a => cols.map(c => csvEscapar(a[c])).join(';'))
     );
-    descargar('﻿' + filas.join('\n'), 'text/csv;charset=utf-8', nombreArchivo.replace(/\.json$/i, '') + '.csv');
+    await descargar('﻿' + filas.join('\n'), 'text/csv;charset=utf-8', nombreArchivo.replace(/\.json$/i, '') + '.csv');
   }
 
   async function importarJornada(file){
@@ -1182,13 +1196,12 @@ footer a{color:var(--rojo)}
     lector.readAsText(file, 'utf-8');
   }
 
-  $('btn-abrir').addEventListener('click', () => {
-    if (puedeGuardarEncima()) abrirConSelector();
-    else $('file-abrir').click();
+  $('label-abrir').addEventListener('click', (ev) => {
+    // En iPhone/Safari no se toca: la etiqueta abre el input como siempre.
+    if (puedeGuardarEncima()) { ev.preventDefault(); abrirConSelector(); }
   });
   $('file-abrir').addEventListener('change', (ev) => {
     const file = ev.target.files[0];
-    // por esta vía no hay permiso para escribir encima: se guardará por descarga
     manejadorArchivo = null;
     if (file) abrirArchivo(file);
     ev.target.value = '';
@@ -1227,11 +1240,6 @@ footer a{color:var(--rojo)}
   window.addEventListener('beforeunload', (ev) => {
     if (sucio) { ev.preventDefault(); ev.returnValue = ''; }
   });
-
-  // explica el modo de guardado según lo que permita este navegador
-  $('aviso-modo-guardado').innerHTML = puedeGuardarEncima()
-    ? ' Este navegador puede <b>escribir encima del mismo archivo</b>: lo eliges una vez y las siguientes veces se guarda ahí, sin crear copias.'
-    : ' Este navegador (Safari o Firefox) <b>no puede escribir encima</b>: cada guardado se descarga como archivo nuevo con la fecha en el nombre. Con Chrome, Brave o Edge sí se mantiene un único archivo.';
 
   render();
 })();
