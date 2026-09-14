@@ -181,14 +181,13 @@ footer a{color:var(--rojo)}
 
     <div class="aviso">
       <b>Esto no se guarda en el navegador.</b> Todo vive en un archivo <code>.json</code> que tú controlas.
-      Abre tu archivo al empezar y, cada vez que hagas cambios, pulsa <b>«Guardar cambios»</b> para descargar la
-      versión actualizada — sustituye al archivo anterior en tus dispositivos (por ejemplo, guardándolo en una
-      carpeta de iCloud Drive o Google Drive para tenerlo también en el móvil). Si cierras esta pestaña sin
-      guardar, se pierden los cambios de esta sesión.
+      Abre tu archivo al empezar y pulsa <b>«Guardar cambios»</b> cada vez que quieras dejarlo grabado.
+      Si cierras esta pestaña sin guardar, se pierden los cambios de esta sesión.
+      <span id="aviso-modo-guardado"></span>
     </div>
 
     <div class="toolbar">
-      <label class="btn" for="file-abrir">📂 Abrir archivo…</label>
+      <button type="button" id="btn-abrir">📂 Abrir archivo…</button>
       <input type="file" id="file-abrir" accept="application/json,.json">
       <button type="button" class="primario" id="btn-guardar">💾 Guardar cambios</button>
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
@@ -355,6 +354,10 @@ footer a{color:var(--rojo)}
 
   let afiliados = [];
   let nombreArchivo = 'afiliados.json';
+  // Chrome, Brave y Edge permiten escribir encima del mismo archivo (siempre uno,
+  // sin copias "-2"). Safari y Firefox no: en esos se descarga como siempre.
+  let manejadorArchivo = null;
+  const puedeGuardarEncima = () => typeof window.showSaveFilePicker === 'function';
   let sucio = false;
   let dniEditando = null; // DNI original de la ficha abierta, para saber si es alta o edición
   let vista = 'activos';  // 'activos' | 'bajas' (solo naranjas) | 'eliminados' (papelera)
@@ -792,8 +795,63 @@ footer a{color:var(--rojo)}
     URL.revokeObjectURL(url);
   }
 
-  function guardarCambios(){
-    descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
+  const TIPO_JSON = [{ description: 'Base de afiliados', accept: { 'application/json': ['.json'] } }];
+
+  /* Abrir: si el navegador lo permite, nos quedamos con el "manejador" del archivo
+     para luego poder escribir encima de ese mismo archivo. */
+  async function abrirConSelector(){
+    try {
+      const [h] = await window.showOpenFilePicker({ types: TIPO_JSON, multiple: false });
+      manejadorArchivo = h;
+      abrirArchivo(await h.getFile());
+    } catch (e) {
+      if (e.name !== 'AbortError') avisar('No se ha podido abrir el archivo.');
+    }
+  }
+
+  async function permisoDeEscritura(h){
+    const opciones = { mode: 'readwrite' };
+    if (await h.queryPermission(opciones) === 'granted') return true;
+    return await h.requestPermission(opciones) === 'granted';
+  }
+
+  async function guardarCambios(){
+    const contenido = JSON.stringify(afiliados, null, 2);
+
+    if (puedeGuardarEncima()) {
+      try {
+        if (!manejadorArchivo) {
+          // primera vez: el navegador pregunta dónde y, si ya existe, si reemplazar
+          manejadorArchivo = await window.showSaveFilePicker({
+            suggestedName: /^AFILIADOS_CCOO_/.test(nombreArchivo)
+              ? nombreArchivo
+              : `AFILIADOS_CCOO_${new Date().toISOString().slice(0, 10)}.json`,
+            types: TIPO_JSON,
+          });
+        }
+        if (await permisoDeEscritura(manejadorArchivo)) {
+          const w = await manejadorArchivo.createWritable();
+          await w.write(contenido);
+          await w.close();
+          nombreArchivo = manejadorArchivo.name;
+          sucio = false;
+          pillDirty.classList.add('oculto');
+          accionArchivo = 'guardado en';
+          estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+          return;
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') return;   // ha cancelado el diálogo
+        manejadorArchivo = null;               // cualquier otro fallo: descarga normal
+      }
+    }
+
+    // Safari, Firefox y móvil: descarga de siempre, con la fecha en el nombre
+    // para que se distinga cuál es el más reciente.
+    if (!/^AFILIADOS_CCOO_/.test(nombreArchivo)) {
+      nombreArchivo = `AFILIADOS_CCOO_${new Date().toISOString().slice(0, 10)}.json`;
+    }
+    descargar(contenido, 'application/json', nombreArchivo);
     sucio = false;
     pillDirty.classList.add('oculto');
     accionArchivo = 'guardado como';
@@ -1124,8 +1182,14 @@ footer a{color:var(--rojo)}
     lector.readAsText(file, 'utf-8');
   }
 
+  $('btn-abrir').addEventListener('click', () => {
+    if (puedeGuardarEncima()) abrirConSelector();
+    else $('file-abrir').click();
+  });
   $('file-abrir').addEventListener('change', (ev) => {
     const file = ev.target.files[0];
+    // por esta vía no hay permiso para escribir encima: se guardará por descarga
+    manejadorArchivo = null;
     if (file) abrirArchivo(file);
     ev.target.value = '';
   });
@@ -1163,6 +1227,11 @@ footer a{color:var(--rojo)}
   window.addEventListener('beforeunload', (ev) => {
     if (sucio) { ev.preventDefault(); ev.returnValue = ''; }
   });
+
+  // explica el modo de guardado según lo que permita este navegador
+  $('aviso-modo-guardado').innerHTML = puedeGuardarEncima()
+    ? ' Este navegador puede <b>escribir encima del mismo archivo</b>: lo eliges una vez y las siguientes veces se guarda ahí, sin crear copias.'
+    : ' Este navegador (Safari o Firefox) <b>no puede escribir encima</b>: cada guardado se descarga como archivo nuevo con la fecha en el nombre. Con Chrome, Brave o Edge sí se mantiene un único archivo.';
 
   render();
 })();
