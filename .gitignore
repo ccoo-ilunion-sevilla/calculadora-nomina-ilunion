@@ -1,1 +1,13 @@
 .claude/
+
+# NUNCA subir datos de afiliados/trabajadores al repositorio: es público.
+# La base de afiliados vive en un .json local que cada delegado guarda en su
+# propio dispositivo, nunca aquí.
+afiliados*.json
+*afiliado*.json
+*afiliado*.csv
+censo*
+*REGJOR*
+*TC1*
+*TC2*
+*.xlsx

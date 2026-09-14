@@ -193,7 +193,7 @@ footer a{color:var(--rojo)}
     </div>
 
     <div class="toolbar">
-      <label class="btn" for="file-abrir">📂 Abrir archivo…</label>
+      <label class="btn" for="file-abrir" id="label-abrir">📂 Abrir archivo…</label>
       <!-- Sin accept: el selector de Archivos de iOS deja los .json en gris cuando
            se filtra por tipo. El contenido se valida al abrirlo. -->
       <input type="file" id="file-abrir">
@@ -269,9 +269,9 @@ footer a{color:var(--rojo)}
         <h3>Datos personales</h3>
         <div class="campo"><label for="c-dni">DNI o NIE</label>
           <input type="text" id="c-dni" placeholder="00000000A" autocomplete="off">
-          <p class="ayuda">Si todavía no lo sabes, pon un valor único (p. ej. «SINDNI-215921» con su nº de empleado) y complétalo cuando lo consigas.</p></div>
+          <p class="ayuda">Si todavía no lo sabes, pon un valor único (p. ej. «SINDNI-123456» con su nº de empleado) y complétalo cuando lo consigas.</p></div>
         <div class="campo"><label for="c-numempleado">Nº de empleado (nº personal de la empresa)</label>
-          <input type="text" id="c-numempleado" placeholder="Ej. 215921" inputmode="numeric"></div>
+          <input type="text" id="c-numempleado" placeholder="Ej. 123456" inputmode="numeric"></div>
         <div class="dos">
           <div class="campo"><label for="c-nom">Nombre</label><input type="text" id="c-nom"></div>
           <div class="campo"><label for="c-ape">Apellidos</label><input type="text" id="c-ape"></div>
@@ -362,6 +362,12 @@ footer a{color:var(--rojo)}
 
   let afiliados = [];
   let nombreArchivo = 'afiliados.json';
+  // En el ordenador con Chrome, Brave o Edge se puede escribir encima del mismo
+  // archivo. En iPhone y en Safari no existe esa API: allí se usa la hoja de
+  // compartir / la descarga de siempre.
+  let manejadorArchivo = null;
+  const puedeGuardarEncima = () => typeof window.showSaveFilePicker === 'function';
+  const TIPO_JSON = [{ description: 'Base de afiliados', accept: { 'application/json': ['.json'] } }];
   let sucio = false;
   let dniEditando = null; // DNI original de la ficha abierta, para saber si es alta o edición
   let vista = 'activos';  // 'activos' | 'bajas' (solo naranjas) | 'eliminados' (papelera)
@@ -816,7 +822,48 @@ footer a{color:var(--rojo)}
     return true;
   }
 
+  async function abrirConSelector(){
+    try {
+      const [h] = await window.showOpenFilePicker({ types: TIPO_JSON, multiple: false });
+      manejadorArchivo = h;
+      abrirArchivo(await h.getFile());
+    } catch (e) {
+      if (e.name !== 'AbortError') avisar('No se ha podido abrir el archivo.');
+    }
+  }
+
+  async function permisoDeEscritura(h){
+    const opciones = { mode: 'readwrite' };
+    if (await h.queryPermission(opciones) === 'granted') return true;
+    return await h.requestPermission(opciones) === 'granted';
+  }
+
   async function guardarCambios(){
+    // Ordenador con Chrome/Brave/Edge: escribir encima del mismo archivo.
+    if (puedeGuardarEncima()) {
+      try {
+        if (!manejadorArchivo) {
+          manejadorArchivo = await window.showSaveFilePicker({
+            suggestedName: nombreArchivo, types: TIPO_JSON,
+          });
+        }
+        if (await permisoDeEscritura(manejadorArchivo)) {
+          const w = await manejadorArchivo.createWritable();
+          await w.write(JSON.stringify(afiliados, null, 2));
+          await w.close();
+          nombreArchivo = manejadorArchivo.name;
+          sucio = false;
+          pillDirty.classList.add('oculto');
+          accionArchivo = 'guardado en';
+          estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+          return;
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        manejadorArchivo = null;   // si falla, se sigue por la vía de siempre
+      }
+    }
+
     const guardado = await descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
     if (!guardado) return;   // hoja de compartir cancelada: siguen sin guardar
     sucio = false;
@@ -1149,8 +1196,13 @@ footer a{color:var(--rojo)}
     lector.readAsText(file, 'utf-8');
   }
 
+  $('label-abrir').addEventListener('click', (ev) => {
+    // En iPhone/Safari no se toca: la etiqueta abre el input como siempre.
+    if (puedeGuardarEncima()) { ev.preventDefault(); abrirConSelector(); }
+  });
   $('file-abrir').addEventListener('change', (ev) => {
     const file = ev.target.files[0];
+    manejadorArchivo = null;
     if (file) abrirArchivo(file);
     ev.target.value = '';
   });
