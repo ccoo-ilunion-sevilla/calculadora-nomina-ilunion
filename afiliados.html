@@ -1241,6 +1241,14 @@ footer a{color:var(--rojo)}
     if (sucio) { ev.preventDefault(); ev.returnValue = ''; }
   });
 
+  // El botón dice lo que va a hacer de verdad en ESTE navegador, para que no
+  // haya sorpresas: en Safari acaba descargando una copia.
+  if (!puedeGuardarEncima()) {
+    $('btn-guardar').textContent = '💾 Guardar (descarga copia)';
+    $('btn-guardar').title = 'Este navegador no puede escribir encima del archivo. '
+      + 'Ábrelo con Chrome, Brave o Edge para guardar sin crear copias.';
+  }
+
   render();
 })();
 </script>
