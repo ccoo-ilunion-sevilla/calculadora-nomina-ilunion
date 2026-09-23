@@ -1598,6 +1598,13 @@ function parsearNomina(txtCrudo){
     }
     else if (esDeduccion && /SEG\.?\s*SOC|COTIZ/.test(desc)){ r.ssPct=nums[0]; r.ssImporte=nums[nums.length-1]; }
     else if (esDeduccion && /IRPF/.test(desc)){ r.irpfPct=nums[0]; r.irpfImporte=nums[nums.length-1]; }
+    else if (!esDeduccion && /^P\.?\s*EXTRA|PAGA EXTRA|EXTRA\s*(NAVIDAD|VERANO|JULIO|MARZO|BENEFICIOS)/.test(desc)){
+      // Paga extra cobrada íntegra este mes (no prorrateada): se identifica aparte para no
+      // confundirla con un plus de empresa cualquiera, aunque no se valide su importe exacto
+      // (para eso haría falta la tabla salarial del año de esta nómina, que puede no ser la actual).
+      const importe = nums[nums.length-1];
+      if (importe){ r.pagaExtra = {nombre:desc, importe}; otrosSuma += importe; r.otros.push({nombre:desc, importe}); }
+    }
     else if (!esDeduccion){
       const importe = nums[nums.length-1];
       if (importe){ r.otros.push({nombre:desc, importe}); otrosSuma += importe; }
@@ -1659,10 +1666,16 @@ function rellenarRevision(d){
   if (d.irpfPct!=null) document.getElementById("chk-irpf").value = d.irpfPct;
   document.getElementById("chk-otros").value = d.otrosSuma || 0;
   const ay = document.getElementById("chk-otros-ay");
-  ay.textContent = (d.otros && d.otros.length)
-    ? "Detectado en tu nómina: " + d.otros.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
-      ". No son del convenio estatal: se suman tal cual, sin comprobar si están bien calculados."
-    : "Conceptos de tu nómina que no reconocemos como del convenio (pluses de centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.";
+  if (d.pagaExtra){
+    ay.textContent = `Incluye tu paga extra cobrada este mes (${d.pagaExtra.nombre.toLowerCase()}, ${eur(d.pagaExtra.importe)})` +
+      (d.otros.length>1 ? " y otros pluses de tu nómina" : "") +
+      ". No comprobamos si el importe de la paga está bien calculado (haría falta la tabla salarial de ese año en concreto), solo se da por bueno y se suma.";
+  } else {
+    ay.textContent = (d.otros && d.otros.length)
+      ? "Detectado en tu nómina: " + d.otros.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
+        ". No son del convenio estatal: se suman tal cual, sin comprobar si están bien calculados."
+      : "Conceptos de tu nómina que no reconocemos como del convenio (pluses de centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.";
+  }
   if (d.totalDevengado!=null) document.getElementById("chk-real-bruto").value = d.totalDevengado;
   if (d.liquido!=null) document.getElementById("chk-real-neto").value = d.liquido;
 
@@ -1702,6 +1715,17 @@ document.getElementById("chk-file").addEventListener("change", async (e)=>{
     }
     const d = parsearNomina(texto);
     rellenarRevision(d);
+    if (d.anio && String(d.anio) !== yr()){
+      if (A.includes(String(d.anio))){
+        document.getElementById("anio").value = String(d.anio);
+        estado.innerHTML += `<div class="nota">Tu nómina es de ${d.anio}: he cambiado las "tablas del año" arriba a
+        ${d.anio} para comparar con los importes correctos de ese año.</div>`;
+      } else {
+        estado.innerHTML += `<div class="aviso"><b>Tu nómina es de ${d.anio}</b> y solo tenemos tablas del convenio
+        de 2026 a 2030. La comparación va a usar las de ${yr()}, así que puede salir una diferencia grande que no es
+        un error — es la subida salarial de un año a otro, no un fallo de tu nómina.</div>`;
+      }
+    }
     revision.classList.remove("oculto");
     revision.scrollIntoView({behavior:"smooth",block:"start"});
   } catch(err){
