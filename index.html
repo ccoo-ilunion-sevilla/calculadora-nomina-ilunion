@@ -1590,7 +1590,11 @@ function parsearNomina(txtCrudo){
     const desc = tokens.slice(0, corte).join(" ").trim();
     const nums = numTokens.map(numTxt).filter(n=>n!=null);
     if (!nums.length || !desc) return;
-    const esDeduccion = codigo.startsWith("/");
+    // Algunos descuentos (anticipos, adelantos de nómina tipo Payflow...) van con un código
+    // numérico normal, no con "/" como la SS o el IRPF. Si el texto los delata, se tratan
+    // igualmente como descuento aunque el código no lo indique.
+    const esDeduccion = codigo.startsWith("/") ||
+      /PAYFLOW|ANTICIPO|ADELANTO|PR[ÉE]STAMO|EMBARGO/.test(desc);
 
     if (/SALARIO BASE/.test(desc)) r.salarioBase = nums[nums.length-1];
     else if (/^ANTIG/.test(desc)) r.antigDevengado = nums[nums.length-1];
