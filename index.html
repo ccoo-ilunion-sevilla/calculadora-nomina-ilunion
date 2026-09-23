@@ -696,6 +696,13 @@ footer a{color:var(--rojo)}
         <p class="ayuda" id="chk-otros-ay">Conceptos de tu nómina que no reconocemos como del convenio (pluses de
         centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.</p>
       </div>
+      <div class="campo">
+        <label for="chk-otras-deducciones">Otros descuentos de tu nómina (€/mes)</label>
+        <input type="number" id="chk-otras-deducciones" min="0" step="0.01" inputmode="decimal">
+        <p class="ayuda" id="chk-otras-deducciones-ay">Descuentos que no son ni Seguridad Social ni IRPF: anticipos,
+        regularizaciones, cantidades ya cobradas antes… No los calcula el convenio, se restan tal cual del líquido
+        para que la comparación no los confunda con un impago.</p>
+      </div>
     </div>
 
     <div class="bloque">
@@ -1609,6 +1616,17 @@ function parsearNomina(txtCrudo){
       const importe = nums[nums.length-1];
       if (importe){ r.otros.push({nombre:desc, importe}); otrosSuma += importe; }
     }
+    else {
+      // Deducción que no es ni SS ni IRPF: anticipos, regularizaciones, embargos, cantidades ya
+      // cobradas antes... Nada de esto lo calcula el convenio, pero reduce el líquido real y hay
+      // que tenerlo en cuenta para no leer una diferencia como si fuera un impago.
+      const importe = nums[nums.length-1];
+      if (importe){
+        r.otrasDeducciones = (r.otrasDeducciones||[]);
+        r.otrasDeducciones.push({nombre:desc, importe});
+        r.otrasDeduccionesSuma = (r.otrasDeduccionesSuma||0) + importe;
+      }
+    }
   });
   r.otrosSuma = Math.round(otrosSuma*100)/100;
 
@@ -1690,6 +1708,13 @@ function rellenarRevision(d){
   }
   document.getElementById("chk-it-real").value = d.itImporteReal || 0;
   document.getElementById("chk-base-cotiz").value = d.baseCotizReal || 0;
+
+  document.getElementById("chk-otras-deducciones").value = d.otrasDeduccionesSuma || 0;
+  const ayD = document.getElementById("chk-otras-deducciones-ay");
+  ayD.textContent = (d.otrasDeducciones && d.otrasDeducciones.length)
+    ? "Detectado en tu nómina: " + d.otrasDeducciones.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
+      ". No lo calcula el convenio, se resta tal cual del líquido."
+    : "Descuentos que no son ni Seguridad Social ni IRPF: anticipos, regularizaciones, cantidades ya cobradas antes… No los calcula el convenio, se restan tal cual del líquido para que la comparación no los confunda con un impago.";
 }
 document.getElementById("chk-hubobaja").addEventListener("change", e=>{
   document.getElementById("chk-baja-box").classList.toggle("oculto", !e.target.checked);
@@ -1779,7 +1804,10 @@ document.getElementById("b-chk").addEventListener("click", ()=>{
   const baseCotizFija = num("chk-base-cotiz");
   const usaBaseFija = hayBaja && baseCotizFija > 0;
   const ssConvenio = usaBaseFija ? baseCotizFija * num("n-ss")/100 : r.data.ss;
-  const netoConvenio = usaBaseFija ? r.data.bruto - ssConvenio - r.data.irpf - r.data.cuota : r.data.neto;
+  // Anticipos, regularizaciones y cosas por el estilo reducen el líquido real pero no los calcula
+  // el convenio: se restan también del líquido de referencia para no leerlos como un impago.
+  const otrasDeducciones = num("chk-otras-deducciones");
+  const netoConvenio = (usaBaseFija ? r.data.bruto - ssConvenio - r.data.irpf - r.data.cuota : r.data.neto) - otrasDeducciones;
 
   let h = `<div class="recibo" id="rec-chk"><h3>Mínimo de convenio con estos datos · ${r.data.cat}</h3>`;
   if (hayBaja){
@@ -1820,6 +1848,8 @@ document.getElementById("b-chk").addEventListener("click", ()=>{
   const difBruto = realBruto - r.data.bruto;
   h += linea("Diferencia", difBruto, difBruto < -0.5 ? "neg" : "");
   h += linea("Tu nómina (líquido a percibir)", realNeto);
+  if (otrasDeducciones) h += linea("Otros descuentos de tu nómina", -otrasDeducciones, "neg",
+    "anticipos, regularizaciones… ya restados abajo, sin comparar");
   h += linea("Líquido según convenio (con tu % de IRPF y SS)", netoConvenio, "",
     usaBaseFija ? `SS calculada sobre ${eur(baseCotizFija)}, la base fija de tu nómina` : "");
   const difNeto = realNeto - netoConvenio;
