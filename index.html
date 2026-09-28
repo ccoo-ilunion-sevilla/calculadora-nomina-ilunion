@@ -1468,8 +1468,11 @@ document.getElementById("b-it").addEventListener("click",()=>{
     más antigüedad y peligrosidad, sin que se te recorten las pagas extra. Incluye los accidentes en prácticas de tiro
     o gimnasio ordenados por la empresa.</div>`;
   }
-  h += `<div class="nota">Si las pagas extra no las tienes prorrateadas, la parte proporcional ya va dentro de la
-  base diaria: la empresa descontará esos días cuando llegue el mes de cobro de la paga.</div>`;
+  h += `<div class="nota">Si las pagas extra no las tienes prorrateadas: este total <b>no incluye</b> la parte de una
+  paga extra que ya habías generado ANTES de que empezara la baja — esa parte se cobra íntegra, sin recorte (por
+  ejemplo, si tu baja empezó en 2026, lo generado en 2025 de tu paga de marzo no se ve afectado). Solo se recorta la
+  parte de la paga que se genera DURANTE los días de baja, y ese recorte se nota en la nómina del mes en que se cobra
+  esa paga, no en este cálculo.</div>`;
   h += botonCopiar("rec-it") + `</div>`;
   document.getElementById("r-it").innerHTML = h;
   document.getElementById("r-it").scrollIntoView({behavior:"smooth",block:"start"});
