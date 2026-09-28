@@ -585,6 +585,12 @@ footer a{color:var(--rojo)}
       <input type="number" id="i-dias" min="1" max="545" step="1" placeholder="Pon aquí los días" inputmode="numeric">
     </div>
     <div class="campo">
+      <label for="i-inicio">Fecha en que empezó la baja (opcional)</label>
+      <input type="date" id="i-inicio">
+      <p class="ayuda">Con esto puedo avisarte si tu baja va a pillar de lleno una paga extra (julio, Navidad o
+      marzo) y calcularte cuánto se reduciría. Si lo dejas en blanco, no se calcula esa parte.</p>
+    </div>
+    <div class="campo">
       <label for="i-irpf">Retención de IRPF (%)</label>
       <input type="number" id="i-irpf" min="0" max="50" step="0.01" placeholder="Pon tu % de IRPF" inputmode="decimal">
     </div>
@@ -1396,6 +1402,35 @@ document.getElementById("b-fin").addEventListener("click",()=>{
   document.getElementById("r-fin").scrollIntoView({behavior:"smooth",block:"start"});
 });
 
+/* Días de solapamiento entre dos rangos de fechas (ambos extremos incluidos) */
+function diasSolapados(ini1, fin1, ini2, fin2){
+  const ini = ini1 > ini2 ? ini1 : ini2;
+  const fin = fin1 < fin2 ? fin1 : fin2;
+  if (fin < ini) return 0;
+  return Math.round((fin - ini) / 86400000) + 1;
+}
+/* Pagas extra cuyo periodo de devengo se solapa con el rango [bajaIni, bajaFin] de la baja.
+   Devuelve una lista de {nombre, dias, totalDevengo} solo para las que sí se solapan. */
+function pagasAfectadas(bajaIni, bajaFin){
+  const out = [];
+  const anioIni = bajaIni.getFullYear(), anioFin = bajaFin.getFullYear();
+  for (let y = anioIni; y <= anioFin + 1; y++){
+    const periodos = [
+      ["julio",   new Date(y-1, 6, 1), new Date(y, 5, 30)],   // devengo 1 jul (y-1) a 30 jun (y)
+      ["Navidad", new Date(y, 0, 1),   new Date(y, 11, 31)],  // devengo natural del año y
+      ["marzo",   new Date(y, 0, 1),   new Date(y, 11, 31)],  // devengo natural del año y, se cobra en marzo (y+1)
+    ];
+    periodos.forEach(([nombre, ini, fin])=>{
+      const dias = diasSolapados(bajaIni, bajaFin, ini, fin);
+      if (dias > 0){
+        const totalDevengo = Math.round((fin - ini) / 86400000) + 1;
+        out.push({nombre, anio:y, dias, totalDevengo});
+      }
+    });
+  }
+  return out;
+}
+
 /* ====== 3. BAJA IT ====== */
 document.getElementById("b-it").addEventListener("click",()=>{
   const cat = document.getElementById("i-cat").value;
@@ -1440,8 +1475,36 @@ document.getElementById("b-it").addEventListener("click",()=>{
     más antigüedad y peligrosidad, sin que se te recorten las pagas extra. Incluye los accidentes en prácticas de tiro
     o gimnasio ordenados por la empresa.</div>`;
   }
-  h += `<div class="nota">Si las pagas extra no las tienes prorrateadas, la parte proporcional ya va dentro de la base
-  diaria: la empresa descontará esos días cuando llegue el mes de cobro de la paga.</div>`;
+  const inicioTxt = document.getElementById("i-inicio").value;
+  if (inicioTxt){
+    const [yy,mm,dd] = inicioTxt.split("-").map(Number);
+    const bajaIni = new Date(yy, mm-1, dd);
+    const bajaFin = new Date(bajaIni.getTime() + (dias-1)*86400000);
+    const afectadas = pagasAfectadas(bajaIni, bajaFin);
+    if (!afectadas.length){
+      h += `<div class="nota">Con la fecha de inicio y los días que has puesto, tu baja no llega a pillar el periodo
+      de devengo de ninguna paga extra. Si se alarga más de lo calculado, vuelve a mirarlo.</div>`;
+    } else if (tipo==="at"){
+      h += `<div class="nota">Tu baja coincide con el periodo de alguna paga extra, pero al ser accidente de trabajo
+      no se te reduce (art. 51.a): la empresa complementa sin merma de pagas extra.</div>`;
+    } else {
+      h += `<h3>Impacto en tus pagas extra</h3>`;
+      let totalReduccion = 0;
+      afectadas.forEach(p=>{
+        const reduccion = salPaga(b) * p.dias / p.totalDevengo;
+        totalReduccion += reduccion;
+        h += linea(`Paga de ${p.nombre} ${p.anio}`, -reduccion, "neg",
+          `${p.dias} de ${p.totalDevengo} días de su periodo de devengo caen dentro de la baja`);
+      });
+      h += `<div class="aviso"><b>Con estos días, tus pagas extra se reducirían en total unos ${eur(totalReduccion)}.</b>
+      Es una estimación proporcional a los días de baja dentro del periodo de devengo de cada paga. No se descuenta de
+      esta prestación: te lo recortarán cuando llegue el mes de cobro de esa paga en concreto.</div>`;
+    }
+  } else {
+    h += `<div class="nota">Si las pagas extra no las tienes prorrateadas, la parte proporcional ya va dentro de la
+    base diaria: la empresa descontará esos días cuando llegue el mes de cobro de la paga. Pon la fecha de inicio de
+    la baja arriba para que te calcule cuánto sería.</div>`;
+  }
   h += botonCopiar("rec-it") + `</div>`;
   document.getElementById("r-it").innerHTML = h;
   document.getElementById("r-it").scrollIntoView({behavior:"smooth",block:"start"});
