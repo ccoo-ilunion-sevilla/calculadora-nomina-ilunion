@@ -258,7 +258,7 @@ footer a{color:var(--rojo)}
 <nav class="tabs" role="tablist">
   <button role="tab" id="t-nom" aria-selected="true" aria-controls="p-nom">Nómina<span>del mes</span></button>
   <button role="tab" id="t-fin" aria-selected="false" aria-controls="p-fin">Finiquito<span>al salir</span></button>
-  <button role="tab" id="t-it" aria-selected="false" aria-controls="p-it">Baja<span>IT</span></button>
+  <button role="tab" id="t-it" aria-selected="false" aria-controls="p-it">Prestación<span>total de tu baja</span></button>
   <button role="tab" id="t-chk" aria-selected="false" aria-controls="p-chk">Revisa<span>tu nómina</span></button>
 </nav>
 
@@ -537,6 +537,11 @@ footer a{color:var(--rojo)}
 <!-- =============== BAJA IT =============== -->
 <section id="p-it" role="tabpanel" aria-labelledby="t-it" class="oculto">
 
+  <p class="ayuda" style="margin:0 0 14px">Esto calcula el <b>total de la prestación</b> para el número de días que
+  le pongas, aunque la baja dure varios meses — no es la nómina de un mes concreto. Si quieres saber lo que vas a
+  cobrar <b>este mes</b> estando de baja (con tu salario de los días trabajados incluido), usa la sección de baja
+  dentro de la pestaña Nómina.</p>
+
   <div class="bloque">
     <h2>Tu puesto</h2>
     <div class="campo">
@@ -585,7 +590,7 @@ footer a{color:var(--rojo)}
     </div>
   </div>
 
-  <button class="calc" id="b-it">Calcular baja</button>
+  <button class="calc" id="b-it">Calcular prestación total</button>
   <div id="r-it"></div>
 </section>
 
