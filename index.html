@@ -581,14 +581,17 @@ footer a{color:var(--rojo)}
       </div>
     </div>
     <div class="campo">
-      <label for="i-dias">Días de baja desde que empezaste (o los que quieras calcular)</label>
-      <input type="number" id="i-dias" min="1" max="545" step="1" placeholder="Pon aquí los días" inputmode="numeric">
-    </div>
-    <div class="campo">
       <label for="i-inicio">Fecha en que empezó la baja (opcional)</label>
       <input type="date" id="i-inicio">
       <p class="ayuda">Con esto puedo avisarte si tu baja va a pillar de lleno una paga extra (julio, Navidad o
-      marzo) y calcularte cuánto se reduciría. Si lo dejas en blanco, no se calcula esa parte.</p>
+      marzo) y calcularte cuánto se reduciría. Si además dejas en blanco los días de abajo, te calculo los que van
+      desde esta fecha hasta hoy.</p>
+    </div>
+    <div class="campo">
+      <label for="i-dias">Días de baja</label>
+      <input type="number" id="i-dias" min="1" max="545" step="1" placeholder="Pon aquí los días" inputmode="numeric">
+      <p class="ayuda">Si has puesto la fecha de inicio arriba, puedes dejar esto en blanco: se calculan los días
+      transcurridos desde esa fecha hasta hoy.</p>
     </div>
     <div class="campo">
       <label for="i-irpf">Retención de IRPF (%)</label>
@@ -1436,8 +1439,25 @@ document.getElementById("b-it").addEventListener("click",()=>{
   const cat = document.getElementById("i-cat").value;
   const b = base(cat, chk("i-arma"), num("i-quin"));
   const tipo = rad("i-tipo");
-  const dias = Math.max(1, Math.round(num("i-dias")));
   const orden = parseInt(rad("i-orden"));
+
+  const inicioTxt = document.getElementById("i-inicio").value;
+  let bajaIni = null;
+  if (inicioTxt){
+    const [yy,mm,dd] = inicioTxt.split("-").map(Number);
+    bajaIni = new Date(yy, mm-1, dd);
+  }
+  const diasPuestos = Math.round(num("i-dias"));
+  let dias, diasAutomaticos = false;
+  if (diasPuestos > 0){
+    dias = diasPuestos;
+  } else if (bajaIni){
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    dias = Math.max(1, Math.round((hoy - bajaIni) / 86400000) + 1);
+    diasAutomaticos = true;
+  } else {
+    dias = 1;
+  }
 
   // Base reguladora diaria
   let baseMes = num("i-base");
@@ -1453,6 +1473,7 @@ document.getElementById("b-it").addEventListener("click",()=>{
   const neto = bruto - ss - irpf;
 
   let h = `<div class="recibo" id="rec-it"><h3>Prestación por tramos · ${b.cat} · tablas ${yr()}</h3>`;
+  if (diasAutomaticos) h += linea("Días de baja", `${dias} días`, "", "calculados desde el inicio hasta hoy, no has puesto un número de días");
   h += linea("Base reguladora diaria", brd, "", estimada ? "estimada con las tablas del convenio" : "base de cotización / 30");
   tramos.forEach(t=> h += linea(`${t.d} día${t.d===1?"":"s"} al ${t.pct} %`, t.im, "", t.et));
   h += linea("Total bruto", bruto, "sum");
@@ -1475,10 +1496,7 @@ document.getElementById("b-it").addEventListener("click",()=>{
     más antigüedad y peligrosidad, sin que se te recorten las pagas extra. Incluye los accidentes en prácticas de tiro
     o gimnasio ordenados por la empresa.</div>`;
   }
-  const inicioTxt = document.getElementById("i-inicio").value;
-  if (inicioTxt){
-    const [yy,mm,dd] = inicioTxt.split("-").map(Number);
-    const bajaIni = new Date(yy, mm-1, dd);
+  if (bajaIni){
     const bajaFin = new Date(bajaIni.getTime() + (dias-1)*86400000);
     const afectadas = pagasAfectadas(bajaIni, bajaFin);
     if (!afectadas.length){
