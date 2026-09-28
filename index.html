@@ -392,8 +392,8 @@ footer a{color:var(--rojo)}
 
   <div class="bloque">
     <h2>Pagas extraordinarias</h2>
-    <p class="ayuda" style="margin-bottom:12px">El convenio tiene <b>tres</b>: julio, Navidad y marzo (art. 45). Marca las que cobres prorrateadas mes a mes.</p>
-    <div class="sw"><input type="checkbox" id="n-pj"><label for="n-pj">Paga de julio prorrateada</label></div>
+    <p class="ayuda" style="margin-bottom:12px">El convenio tiene <b>tres</b>: verano, Navidad y marzo (art. 45). Marca las que cobres prorrateadas mes a mes.</p>
+    <div class="sw"><input type="checkbox" id="n-pj"><label for="n-pj">Paga de verano prorrateada</label></div>
     <div class="sw"><input type="checkbox" id="n-pn"><label for="n-pn">Paga de Navidad prorrateada</label></div>
     <div class="sw"><input type="checkbox" id="n-pm"><label for="n-pm">Paga de marzo prorrateada</label></div>
   </div>
@@ -508,7 +508,7 @@ footer a{color:var(--rojo)}
       <p class="ayuda">El convenio da 31 días naturales al año (art. 57). Se te debe la parte devengada y no disfrutada</p>
     </div>
     <p class="ayuda" style="margin:16px 0 10px"><b>Marca las pagas que ya cobras prorrateadas.</b> Las que no marques se calcularán como pendientes.</p>
-    <div class="sw"><input type="checkbox" id="f-pj"><label for="f-pj">Julio prorrateada <small>Devengo del 1 de julio al 30 de junio</small></label></div>
+    <div class="sw"><input type="checkbox" id="f-pj"><label for="f-pj">Verano prorrateada <small>Devengo del 1 de julio al 30 de junio, se paga en junio</small></label></div>
     <div class="sw"><input type="checkbox" id="f-pn"><label for="f-pn">Navidad prorrateada <small>Devengo del 1 de enero al 31 de diciembre</small></label></div>
     <div class="sw"><input type="checkbox" id="f-pm"><label for="f-pm">Marzo prorrateada <small>Devengo del 1 de enero al 31 de diciembre, se paga en marzo del año siguiente</small></label></div>
   </div>
@@ -1302,10 +1302,10 @@ function calcularNomina(){
   }
   const noPag = 3 - nPagas;
   if (noPag>0){
-    h += `<div class="nota"><b>Te quedan ${noPag} paga${noPag===1?"":"s"} sin prorratear.</b> Se cobran aparte: julio entre
-    el 13 y el 15 de julio, Navidad entre el 13 y el 15 de diciembre y la de marzo entre el 13 y el 15 de marzo del
-    año siguiente. Cada una es una mensualidad de salario base, peligrosidad, actividad y antigüedad, sin transporte
-    ni vestuario (art. 45).</div>`;
+    h += `<div class="nota"><b>Te quedan ${noPag} paga${noPag===1?"":"s"} sin prorratear.</b> Se cobran aparte: la de
+    verano a finales de junio, la de Navidad a mediados de diciembre y la de marzo a principios de marzo del año
+    siguiente (fechas aproximadas, pueden variar). Cada una es una mensualidad de salario base, peligrosidad,
+    actividad y antigüedad, sin transporte ni vestuario (art. 45).</div>`;
   }
   h += `<div class="nota">La hora extraordinaria sale a <b>${eur(vhe)}</b>: es el mínimo del art. 53, sumando salario base,
   pagas, peligrosidad, actividad y antigüedad, dividido entre 1.782 horas anuales. Si además cae en noche, festivo o
@@ -1353,7 +1353,7 @@ document.getElementById("b-fin").addEventListener("click",()=>{
     const arr = new Date(Math.max(d1.getTime(), iniJ.getTime()));
     const dd = Math.max(0, Math.round((d2-arr)/dia)+1);
     const im = sp * Math.min(dd,365)/365;
-    impPagas += im; detPagas += linea("Paga de julio", im, "", `${Math.min(dd,365)} días devengados`);
+    impPagas += im; detPagas += linea("Paga de verano", im, "", `${Math.min(dd,365)} días devengados`);
   }
   // Navidad y marzo: devengo natural 1 enero - 31 diciembre
   [["Paga de Navidad","f-pn"],["Paga de marzo","f-pm"]].forEach(([nm,id])=>{
@@ -1406,6 +1406,41 @@ document.getElementById("b-fin").addEventListener("click",()=>{
   document.getElementById("r-fin").scrollIntoView({behavior:"smooth",block:"start"});
 });
 
+/* Días de solapamiento entre dos rangos de fechas (ambos extremos incluidos) */
+function diasSolapados(ini1, fin1, ini2, fin2){
+  const ini = ini1 > ini2 ? ini1 : ini2;
+  const fin = fin1 < fin2 ? fin1 : fin2;
+  if (fin < ini) return 0;
+  return Math.round((fin - ini) / 86400000) + 1;
+}
+/* Pagas extra cuyo MES DE COBRO cae dentro del rango [bajaIni, bajaFin] de la baja, y de las que
+   una parte de su periodo de devengo queda FUERA de la baja (por tanto esa parte se cobra íntegra,
+   sin recorte, y hay que sumarla al total porque entra en la cuenta durante estos días). */
+function pagasYaGeneradas(b, bajaIni, bajaFin){
+  const out = [];
+  const anioIni = bajaIni.getFullYear(), anioFin = bajaFin.getFullYear();
+  for (let y = anioIni; y <= anioFin + 1; y++){
+    const periodos = [
+      // [nombre, inicio devengo, fin devengo, inicio mes de cobro, fin mes de cobro]
+      // Paga de verano: devengo 1 jul (y-1) a 30 jun (y), se cobra en JUNIO (y) — confirmado con nómina real
+      // ("P. Extra Verano SE" en la nómina de junio, no de julio).
+      ["verano",  new Date(y-1,6,1),  new Date(y,5,30),   new Date(y,5,1),  new Date(y,5,30)],
+      ["Navidad", new Date(y,0,1),    new Date(y,11,31),  new Date(y,11,1), new Date(y,11,31)],
+      ["marzo",   new Date(y-1,0,1),  new Date(y-1,11,31),new Date(y,2,1),  new Date(y,2,31)],
+    ];
+    periodos.forEach(([nombre, devIni, devFin, pagoIni, pagoFin])=>{
+      if (diasSolapados(bajaIni, bajaFin, pagoIni, pagoFin) <= 0) return;
+      const totalDevengo = Math.round((devFin - devIni) / 86400000) + 1;
+      const diasDentro = diasSolapados(bajaIni, bajaFin, devIni, devFin);
+      const diasFuera = totalDevengo - diasDentro;
+      if (diasFuera > 0){
+        out.push({nombre, anio:y, importe: salPaga(b) * diasFuera / totalDevengo, diasFuera, totalDevengo});
+      }
+    });
+  }
+  return out;
+}
+
 /* ====== 3. BAJA IT ====== */
 document.getElementById("b-it").addEventListener("click",()=>{
   const cat = document.getElementById("i-cat").value;
@@ -1438,8 +1473,15 @@ document.getElementById("b-it").addEventListener("click",()=>{
   const brd = baseMes/30;
 
   const tramos = tramosIT(dias, 0, tipo, orden, brd);
+  const brutoIT = tramos.reduce((s,t)=>s+t.im,0);
 
-  const bruto = tramos.reduce((s,t)=>s+t.im,0);
+  let pagasGeneradas = [];
+  if (bajaIni){
+    const bajaFin = new Date(bajaIni.getTime() + (dias-1)*86400000);
+    pagasGeneradas = pagasYaGeneradas(b, bajaIni, bajaFin);
+  }
+  const totalGenerado = pagasGeneradas.reduce((s,p)=>s+p.importe,0);
+  const bruto = brutoIT + totalGenerado;
   const ss = bruto * 6.50/100;
   const irpf = bruto * num("i-irpf")/100;
   const neto = bruto - ss - irpf;
@@ -1448,6 +1490,8 @@ document.getElementById("b-it").addEventListener("click",()=>{
   if (diasAutomaticos) h += linea("Días de baja", `${dias} días`, "", "calculados desde el inicio hasta hoy, no has puesto un número de días");
   h += linea("Base reguladora diaria", brd, "", estimada ? "estimada con las tablas del convenio" : "base de cotización / 30");
   tramos.forEach(t=> h += linea(`${t.d} día${t.d===1?"":"s"} al ${t.pct} %`, t.im, "", t.et));
+  pagasGeneradas.forEach(p=> h += linea(`Paga de ${p.nombre} ${p.anio}`, p.importe, "",
+    `ya generada antes de la baja (${p.totalDevengo-p.diasFuera} de ${p.totalDevengo} días de su periodo caen dentro), se cobra íntegra`));
   h += linea("Total bruto", bruto, "sum");
   h += linea("Cotización a la Seguridad Social (6,50 %)", -ss, "neg");
   h += linea(`Retención de IRPF (${num("i-irpf").toLocaleString("es-ES")} %)`, -irpf, "neg");
@@ -1468,11 +1512,22 @@ document.getElementById("b-it").addEventListener("click",()=>{
     más antigüedad y peligrosidad, sin que se te recorten las pagas extra. Incluye los accidentes en prácticas de tiro
     o gimnasio ordenados por la empresa.</div>`;
   }
-  h += `<div class="nota">Si las pagas extra no las tienes prorrateadas: este total <b>no incluye</b> la parte de una
-  paga extra que ya habías generado ANTES de que empezara la baja — esa parte se cobra íntegra, sin recorte (por
-  ejemplo, si tu baja empezó en 2026, lo generado en 2025 de tu paga de marzo no se ve afectado). Solo se recorta la
-  parte de la paga que se genera DURANTE los días de baja, y ese recorte se nota en la nómina del mes en que se cobra
-  esa paga, no en este cálculo.</div>`;
+  if (bajaIni){
+    if (pagasGeneradas.length){
+      h += `<div class="nota">He sumado arriba la parte de tus pagas extra que ya estaba generada <b>antes</b> de que
+      empezara la baja: esa parte se cobra íntegra, sin recorte (solo se reduce la parte generada durante los días de
+      baja, y eso se nota en la nómina del mes en que se cobra esa paga, no aquí). Es una estimación proporcional a
+      los días de su periodo de devengo, con la tabla salarial de ${yr()} aunque el devengo sea de otro año — y no
+      tiene en cuenta si ya tuviste otra baja el año anterior que afectara a esa misma paga por otro motivo.</div>`;
+    } else {
+      h += `<div class="nota">Con la fecha de inicio y los días que has puesto, no cae dentro de este periodo el mes
+      de cobro de ninguna paga extra. Si la baja se alarga más de lo calculado, vuelve a mirarlo.</div>`;
+    }
+  } else {
+    h += `<div class="nota">Si las pagas extra no las tienes prorrateadas: parte de lo que cobres durante la baja
+    puede incluir una paga extra generada antes de que empezara, que se cobra íntegra. Pon la fecha de inicio de la
+    baja arriba para que te la calcule y la sume al total.</div>`;
+  }
   h += botonCopiar("rec-it") + `</div>`;
   document.getElementById("r-it").innerHTML = h;
   document.getElementById("r-it").scrollIntoView({behavior:"smooth",block:"start"});
