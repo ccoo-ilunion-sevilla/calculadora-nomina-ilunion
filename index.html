@@ -1418,10 +1418,13 @@ function pagasAfectadas(bajaIni, bajaFin){
   const out = [];
   const anioIni = bajaIni.getFullYear(), anioFin = bajaFin.getFullYear();
   for (let y = anioIni; y <= anioFin + 1; y++){
+    // Los tres periodos están indexados por el AÑO EN QUE SE COBRA (y), no el de devengo,
+    // para que "paga de marzo 2026" signifique la que se cobra en marzo de 2026 (devengada en
+    // 2025), igual que "paga de julio 2026" es la que se cobra en julio de 2026.
     const periodos = [
-      ["julio",   new Date(y-1, 6, 1), new Date(y, 5, 30)],   // devengo 1 jul (y-1) a 30 jun (y)
-      ["Navidad", new Date(y, 0, 1),   new Date(y, 11, 31)],  // devengo natural del año y
-      ["marzo",   new Date(y, 0, 1),   new Date(y, 11, 31)],  // devengo natural del año y, se cobra en marzo (y+1)
+      ["julio",   new Date(y-1, 6, 1), new Date(y, 5, 30)],   // devengo 1 jul (y-1) a 30 jun (y), se cobra en julio (y)
+      ["Navidad", new Date(y, 0, 1),   new Date(y, 11, 31)],  // devengo natural del año y, se cobra en diciembre (y)
+      ["marzo",   new Date(y-1, 0, 1), new Date(y-1, 11, 31)],// devengo natural del año (y-1), se cobra en marzo (y)
     ];
     periodos.forEach(([nombre, ini, fin])=>{
       const dias = diasSolapados(bajaIni, bajaFin, ini, fin);
