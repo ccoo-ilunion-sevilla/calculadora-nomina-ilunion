@@ -236,9 +236,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
       <button type="button" id="btn-csv">Exportar a CSV</button>
       <label class="btn" for="file-jornada">📅 Importar registro de jornada…</label>
-      <input type="file" id="file-jornada" accept="application/pdf,.pdf">
+      <input type="file" id="file-jornada" accept="application/pdf,.pdf" multiple>
       <label class="btn" for="file-tc2">🧾 Importar cotizaciones (TC2)…</label>
-      <input type="file" id="file-tc2" accept="application/pdf,.pdf">
+      <input type="file" id="file-tc2" accept="application/pdf,.pdf" multiple>
     </div>
 
     <div class="estado-linea">
@@ -468,6 +468,13 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     if (!k) return;
     a.historial = a.historial || {};
     a.historial[k] = Object.assign(a.historial[k] || {}, datos);
+  }
+
+  // Al importar varios meses de golpe (en cualquier orden), los datos "actuales"
+  // de la fila solo los pisa el mes más reciente; los demás van solo al historial.
+  function esMesReciente(actual, nuevo){
+    const pa = periodoDeTexto(actual), pn = periodoDeTexto(nuevo);
+    return !pa || !pn || pn >= pa;
   }
 
   function textoMes(k){
@@ -1172,14 +1179,16 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           restaurar(target, `vuelve a aparecer en el registro de jornada de ${mesTexto}`);
           reincorporados++;
         }
-        const limpio = (target.notas || '').split(' · ').filter(seg => seg && !seg.includes('(REGJOR)'));
-        limpio.push(notaNueva);
-        target.notas = limpio.join(' · ');
-        target.jornadaEncontrada = true;
-        target.jornadaMes = mesTexto;
-        target.bajaIF = info.bajaIF || 0;
-        target.bajaIA = info.bajaIA || 0;
-        target.bajaMes = mesTexto;
+        if (esMesReciente(target.jornadaMes, mesTexto)) {
+          const limpio = (target.notas || '').split(' · ').filter(seg => seg && !seg.includes('(REGJOR)'));
+          limpio.push(notaNueva);
+          target.notas = limpio.join(' · ');
+          target.jornadaEncontrada = true;
+          target.jornadaMes = mesTexto;
+          target.bajaIF = info.bajaIF || 0;
+          target.bajaIA = info.bajaIA || 0;
+          target.bajaMes = mesTexto;
+        }
         anotarHistorial(target, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
       } else {
         const m = /^(.*?),\s*(.*)$/.exec(info.nombreCompleto);
@@ -1206,9 +1215,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     let marcadosFuera = 0;
     afiliados.forEach(a => {
       if (!encontrados.has(a.dni)) {
-        a.jornadaEncontrada = false;
-        a.jornadaMes = mesTexto;
-        a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+        if (esMesReciente(a.jornadaMes, mesTexto)) {
+          a.jornadaEncontrada = false;
+          a.jornadaMes = mesTexto;
+          a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+        }
         anotarHistorial(a, mesTexto, { jornada: false, horas: null, bajaIF: 0, bajaIA: 0 });
         if (!a.eliminado) marcadosFuera++;
       }
@@ -1313,8 +1324,10 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         encontrado = true;
         porCaf++;
       }
-      a.cotizacionEncontrada = encontrado;
-      a.cotizacionMes = mesTexto;
+      if (esMesReciente(a.cotizacionMes, mesTexto)) {
+        a.cotizacionEncontrada = encontrado;
+        a.cotizacionMes = mesTexto;
+      }
       anotarHistorial(a, mesTexto, { cotiza: encontrado });
       if (encontrado && a.eliminado) {
         restaurar(a, `vuelve a cotizar en el TC2 de ${mesTexto}`);
@@ -1392,16 +1405,23 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     manejadorArchivo = null;
     abrirArchivo(file);
   });
-  $('file-jornada').addEventListener('change', (ev) => {
-    const file = ev.target.files[0];
-    if (file) importarJornada(file);
+  // Varios PDF de golpe (todo el histórico), uno detrás de otro y en cualquier orden.
+  async function importarVarios(ev, importar, estado){
+    const files = Array.from(ev.target.files || []);
     ev.target.value = '';
-  });
-  $('file-tc2').addEventListener('change', (ev) => {
-    const file = ev.target.files[0];
-    if (file) importarTC2(file);
-    ev.target.value = '';
-  });
+    const resumen = [];
+    for (let i = 0; i < files.length; i++) {
+      if (files.length > 1) estado.textContent = `Archivo ${i + 1} de ${files.length}: ${files[i].name}…`;
+      await importar(files[i]);
+      if (files.length > 1) resumen.push(`${files[i].name}: ${estado.textContent}`);
+    }
+    if (files.length > 1) {
+      estado.style.whiteSpace = 'pre-line';
+      estado.textContent = `${files.length} archivos procesados.\n` + resumen.join('\n');
+    }
+  }
+  $('file-jornada').addEventListener('change', (ev) => importarVarios(ev, importarJornada, estadoJornada));
+  $('file-tc2').addEventListener('change', (ev) => importarVarios(ev, importarTC2, estadoTc2));
   $('btn-guardar').addEventListener('click', guardarCambios);
   $('btn-csv').addEventListener('click', exportarCsv);
   $('btn-filtro-bajas').addEventListener('click', () => {
