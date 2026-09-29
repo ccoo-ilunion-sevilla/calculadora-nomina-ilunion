@@ -1130,9 +1130,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       return;
     }
 
-    const porNumero = new Map(); // numEmpleado -> {nombreCompleto, total}
-    const leyendaCodigos = new Map(); // código -> {nombre, dias totales} para el resumen
-    let mesDetectado = '', anioDetectado = '';
+    // Un PDF puede traer varios meses (p. ej. un REGJOR «unificado»): se agrupa por el
+    // MES/AÑO de la cabecera de cada página y cada mes se aplica por separado.
+    const porMes = new Map(); // 'AAAA-MM' -> {mesDetectado, anioDetectado, porNumero, leyendaCodigos}
 
     for (let i = 1; i <= doc.numPages; i++) {
       if (i % 15 === 0 || i === doc.numPages) {
@@ -1151,7 +1151,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       if (!mHead) continue;
       const numEmpleado = mHead[1].replace(/\./g, '');
       const nombreCompleto = mHead[2].trim();
-      if (!mesDetectado) { mesDetectado = mHead[3]; anioDetectado = mHead[4]; }
+      const claveMes = periodoDeTexto(`${mHead[3]} ${mHead[4]}`) || `${mHead[4]}-${mHead[3]}`;
+      if (!porMes.has(claveMes)) {
+        porMes.set(claveMes, { mesDetectado: mHead[3], anioDetectado: mHead[4], porNumero: new Map(), leyendaCodigos: new Map() });
+      }
+      const { porNumero, leyendaCodigos } = porMes.get(claveMes);
       const mTotal = texto.match(/FEST\.\s+[\d.]+\s+TOTAL\s+([\d.]+)/);
       const total = mTotal ? mTotal[1] : null;
 
@@ -1187,11 +1191,25 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       }
     }
 
-    if (porNumero.size === 0) {
+    if (porMes.size === 0) {
       estadoJornada.textContent = 'No se ha encontrado ningún trabajador en ese PDF — ¿es un "Informe Cuadrante Gráfico por Empleado"?';
       return;
     }
 
+    const mensajes = [];
+    Array.from(porMes.keys()).sort().forEach(k => {
+      const m = porMes.get(k);
+      mensajes.push(aplicarMesJornada(m.porNumero, m.leyendaCodigos, m.mesDetectado, m.anioDetectado));
+    });
+    marcarSucio();
+    render();
+    estadoJornada.style.whiteSpace = 'pre-line';
+    estadoJornada.textContent = (porMes.size > 1 ? `Este PDF trae ${porMes.size} meses.\n` : '') +
+      mensajes.join('\n') + ' Recuerda pulsar «Guardar cambios».';
+  }
+
+  // Vuelca en la lista los datos de UN mes de un REGJOR; devuelve el texto de resumen.
+  function aplicarMesJornada(porNumero, leyendaCodigos, mesDetectado, anioDetectado){
     const mesTexto = mesDetectado
       ? `${mesDetectado.charAt(0)}${mesDetectado.slice(1).toLowerCase()} ${anioDetectado}`
       : 'este registro';
@@ -1272,8 +1290,6 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       (a.apellidos || '').localeCompare(b.apellidos || '', 'es') ||
       (a.nombre || '').localeCompare(b.nombre || '', 'es'));
 
-    marcarSucio();
-    render();
     let msgJ = `Registro de ${mesTexto} importado: ${conHoras} con horas, ${sinHoras} sin horas ese mes, ` +
       `${nuevos} trabajador(es) nuevo(s) añadidos, ${marcadosFuera} sin este registro (marcados en amarillo).`;
     if (reincorporados) {
@@ -1282,7 +1298,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     if (leyendaCodigos.size) {
       msgJ += ' Otros códigos de la leyenda: ' + Array.from(leyendaCodigos, ([c, v]) => `*${c} ${v.nombre} (${v.dias} días)`).join('; ') + '.';
     }
-    estadoJornada.textContent = msgJ + ' Recuerda pulsar «Guardar cambios».';
+    return msgJ;
   }
 
   /* El TC2 (Relación Nominal de Trabajadores) no imprime el nombre, pero sí un
