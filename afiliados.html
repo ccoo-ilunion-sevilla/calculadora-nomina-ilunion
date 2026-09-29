@@ -1214,9 +1214,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       }
     });
 
+    // Un REGJOR individual (1 trabajador) no permite decir que los demás faltan
+    const esRegistroCompleto = porNumero.size > 20;
     let marcadosFuera = 0;
     afiliados.forEach(a => {
-      if (!encontrados.has(a.dni)) {
+      if (esRegistroCompleto && !encontrados.has(a.dni)) {
         if (esMesReciente(a.jornadaMes, mesTexto)) {
           a.jornadaEncontrada = false;
           a.jornadaMes = mesTexto;
