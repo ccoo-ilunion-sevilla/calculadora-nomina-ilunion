@@ -500,6 +500,15 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       if (h.bajaIF > 0) partes.push(`${h.bajaIF} día(s) enfermedad común`);
       html += celda('Baja médica', partes.length ? partes.join(' y ') : 'Ninguna', partes.length ? 'mal' : 'ok');
     }
+    if (h.jornada === true) {
+      if (h.incid === undefined) {
+        html += celda('Vacaciones y permisos', 'Sin datos: vuelve a importar el PDF de este mes');
+      } else {
+        const lista = Object.keys(h.incid).filter(c => h.incid[c].dias > 0)
+          .map(c => `${h.incid[c].nombre} (*${c}): ${h.incid[c].dias} día(s)`);
+        html += celda('Vacaciones, permisos y otros', lista.length ? lista.join('<br>') : 'Ninguno');
+      }
+    }
     if (h.cotiza === undefined) html += celda('Cotización (TC2)', 'Sin importar este mes');
     else html += celda('Cotización (TC2)', h.cotiza ? 'Cotiza' : 'No cotiza', h.cotiza ? 'ok' : 'mal');
     cont.innerHTML = html;
@@ -1078,6 +1087,24 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     await descargar('﻿' + filas.join('\n'), 'text/csv;charset=utf-8', nombreArchivo.replace(/\.json$/i, '') + '.csv');
   }
 
+  /* Incidencias del cuadrante distintas de la baja médica (vacaciones, permisos...).
+     La leyenda del pie lista cada código como "*XX - Descripción"; los días son las
+     veces que el código aparece en la rejilla, descontando la propia leyenda. */
+  function contarIncidencias(texto){
+    const res = {};
+    const re = /\*([A-Z][A-Z0-9]{0,3})\s*-\s*([^*\n]{2,60})/g;
+    let m;
+    while ((m = re.exec(texto)) !== null) {
+      const cod = m[1];
+      if (cod === 'IF' || cod === 'IA' || res[cod]) continue;
+      const nombre = m[2].split(/\s{2,}/)[0].trim();
+      const enRejilla = (texto.match(new RegExp('\\*' + cod + '\\b', 'g')) || []).length;
+      const enLeyenda = (texto.match(new RegExp('\\*' + cod + '\\s*-\\s*', 'g')) || []).length;
+      res[cod] = { nombre, dias: Math.max(0, enRejilla - enLeyenda) };
+    }
+    return res;
+  }
+
   async function importarJornada(file){
     if (afiliados.length === 0) {
       avisar('Primero abre tu archivo de afiliados (o crea uno nuevo); luego importa el registro de jornada.');
@@ -1104,6 +1131,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     }
 
     const porNumero = new Map(); // numEmpleado -> {nombreCompleto, total}
+    const leyendaCodigos = new Map(); // código -> {nombre, dias totales} para el resumen
     let mesDetectado = '', anioDetectado = '';
 
     for (let i = 1; i <= doc.numPages; i++) {
@@ -1138,10 +1166,21 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       const bajaIF = diasDeCodigo('IF');  // enfermedad común / no laboral
       const bajaIA = diasDeCodigo('IA');  // accidente laboral
 
+      const incid = contarIncidencias(texto);
+      Object.keys(incid).forEach(c => {
+        if (!leyendaCodigos.has(c)) leyendaCodigos.set(c, { nombre: incid[c].nombre, dias: 0 });
+        leyendaCodigos.get(c).dias += incid[c].dias;
+      });
+
       const previo = porNumero.get(numEmpleado);
       if (!previo || (previo.total === null && total !== null)) {
-        porNumero.set(numEmpleado, { nombreCompleto, total, bajaIF, bajaIA });
+        porNumero.set(numEmpleado, { nombreCompleto, total, bajaIF, bajaIA, incid });
       } else if (previo) {
+        previo.incid = previo.incid || {};
+        Object.keys(incid).forEach(c => {
+          const prev = previo.incid[c];
+          previo.incid[c] = { nombre: incid[c].nombre, dias: Math.max(prev ? prev.dias : 0, incid[c].dias) };
+        });
         // varias páginas del mismo mes: nos quedamos con el mayor recuento
         previo.bajaIF = Math.max(previo.bajaIF || 0, bajaIF);
         previo.bajaIA = Math.max(previo.bajaIA || 0, bajaIA);
@@ -1191,7 +1230,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           target.bajaIA = info.bajaIA || 0;
           target.bajaMes = mesTexto;
         }
-        anotarHistorial(target, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
+        anotarHistorial(target, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, incid: info.incid || {} });
       } else {
         const m = /^(.*?),\s*(.*)$/.exec(info.nombreCompleto);
         const apellidosRaw = m ? m[1] : info.nombreCompleto;
@@ -1207,7 +1246,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           jornadaEncontrada: true, jornadaMes: mesTexto,
           bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, bajaMes: mesTexto,
         };
-        anotarHistorial(nuevo, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
+        anotarHistorial(nuevo, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, incid: info.incid || {} });
         afiliados.push(nuevo);
         encontrados.add(nuevo.dni);
         nuevos++;
@@ -1239,6 +1278,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       `${nuevos} trabajador(es) nuevo(s) añadidos, ${marcadosFuera} sin este registro (marcados en amarillo).`;
     if (reincorporados) {
       msgJ += ` ${reincorporados} estaban en la lista de eliminados y han vuelto a aparecer: los he restaurado.`;
+    }
+    if (leyendaCodigos.size) {
+      msgJ += ' Otros códigos de la leyenda: ' + Array.from(leyendaCodigos, ([c, v]) => `*${c} ${v.nombre} (${v.dias} días)`).join('; ') + '.';
     }
     estadoJornada.textContent = msgJ + ' Recuerda pulsar «Guardar cambios».';
   }
