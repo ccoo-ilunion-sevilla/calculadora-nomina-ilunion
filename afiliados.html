@@ -239,6 +239,8 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       <input type="file" id="file-jornada" accept="application/pdf,.pdf" multiple>
       <label class="btn" for="file-tc2">🧾 Importar cotizaciones (TC2)…</label>
       <input type="file" id="file-tc2" accept="application/pdf,.pdf" multiple>
+      <label class="btn" for="file-historico">🗂 Importar histórico (JSON)…</label>
+      <input type="file" id="file-historico" accept="application/json,.json" multiple>
     </div>
 
     <div class="estado-linea">
@@ -1352,11 +1354,86 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     estadoTc2.textContent = msg;
   }
 
+  /* Histórico ya consolidado ("regjor_consolidado"): meses -> trabajadores por nº de empleado.
+     Solo rellena el historial mensual de quien ya está en la lista; no crea afiliados. */
+  async function importarHistoricoJson(file){
+    if (afiliados.length === 0) {
+      avisar('Primero abre tu archivo de afiliados; luego importa el histórico.');
+      return;
+    }
+    estadoJornada.classList.remove('oculto');
+    let datos;
+    try {
+      datos = JSON.parse(await file.text());
+      if (datos.tipo !== 'regjor_consolidado' || !datos.meses || typeof datos.meses !== 'object') throw new Error('formato');
+    } catch (e) {
+      estadoJornada.textContent = 'Ese JSON no es un histórico REGJOR consolidado (falta «tipo: regjor_consolidado»).';
+      return;
+    }
+
+    const numIndex = new Map();
+    const nameIndex = new Map();
+    afiliados.forEach(a => {
+      if (a.numEmpleado) numIndex.set(String(a.numEmpleado), a);
+      nameIndex.set(claveNombre(`${a.apellidos}, ${a.nombre}`), a);
+    });
+
+    const claves = Object.keys(datos.meses).sort();
+    let meses = 0, anotaciones = 0;
+    const casados = new Set();
+    const sinCasar = new Set();
+    claves.forEach(k => {
+      const mes = datos.meses[k] || {};
+      const mesTexto = mes.etiqueta || textoMes(k);
+      const trabajadores = mes.trabajadores || {};
+      const vistos = new Set();
+      Object.keys(trabajadores).forEach(num => {
+        const t = trabajadores[num] || {};
+        const target = numIndex.get(String(num)) || nameIndex.get(claveNombre(t.nombre || ''));
+        if (!target) { sinCasar.add(num); return; }
+        vistos.add(target);
+        casados.add(target);
+        if (!target.numEmpleado) target.numEmpleado = String(num);
+        const bajaIF = t.bajaIF || 0, bajaIA = t.bajaIA || 0;
+        anotarHistorial(target, mesTexto, { jornada: true, horas: t.total != null ? t.total : null, bajaIF, bajaIA });
+        anotaciones++;
+        if (esMesReciente(target.jornadaMes, mesTexto)) {
+          target.jornadaEncontrada = true;
+          target.jornadaMes = mesTexto;
+          target.bajaIF = bajaIF; target.bajaIA = bajaIA; target.bajaMes = mesTexto;
+        }
+      });
+      // Solo un mes completo permite afirmar que quien falta no estaba en el registro
+      if (mes.completo === true) {
+        afiliados.forEach(a => {
+          if (vistos.has(a)) return;
+          anotarHistorial(a, mesTexto, { jornada: false, horas: null, bajaIF: 0, bajaIA: 0 });
+          if (esMesReciente(a.jornadaMes, mesTexto)) {
+            a.jornadaEncontrada = false; a.jornadaMes = mesTexto;
+            a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+          }
+        });
+      }
+      meses++;
+    });
+
+    marcarSucio();
+    render();
+    estadoJornada.textContent = `Histórico importado: ${meses} meses (${claves.map(textoMes).join(', ')}). ` +
+      `${casados.size} personas de tu lista con datos (${anotaciones} registros mensuales); ` +
+      `${sinCasar.size} nº de empleado del histórico no están en tu lista y se han ignorado. ` +
+      'Recuerda pulsar «Guardar cambios».';
+  }
+
   function abrirArchivo(file){
     const lector = new FileReader();
     lector.onload = () => {
       try {
         const datos = JSON.parse(lector.result);
+        if (datos && datos.tipo === 'regjor_consolidado') {
+          avisar('Ese es un histórico REGJOR, no tu base de afiliados. Abre primero tu archivo de afiliados y luego usa «Importar histórico (JSON)…».');
+          return;
+        }
         if (!Array.isArray(datos) || !datos.every(a => a && typeof a === 'object' && !Array.isArray(a))) throw new Error('formato');
         // migración: archivos antiguos guardaban un booleano "afiliado" (siempre CCOO) en vez de "sindicato"
         datos.forEach(a => {
@@ -1421,6 +1498,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     }
   }
   $('file-jornada').addEventListener('change', (ev) => importarVarios(ev, importarJornada, estadoJornada));
+  $('file-historico').addEventListener('change', (ev) => importarVarios(ev, importarHistoricoJson, estadoJornada));
   $('file-tc2').addEventListener('change', (ev) => importarVarios(ev, importarTC2, estadoTc2));
   $('btn-guardar').addEventListener('click', guardarCambios);
   $('btn-csv').addEventListener('click', exportarCsv);
