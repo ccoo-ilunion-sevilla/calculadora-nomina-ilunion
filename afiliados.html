@@ -903,7 +903,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
      descarga como siempre. Devuelve false solo si el usuario la cierra. */
   async function descargar(contenido, tipo, nombre){
     const blob = new Blob([contenido], { type: tipo });
-    if (navigator.canShare) {
+    // La hoja de compartir solo en iPhone/iPad. En el Mac (Safari) hace que se
+    // ignore la carpeta de descargas configurada, p. ej. iCloud Drive.
+    const esIos = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (esIos && navigator.canShare) {
       const archivo = new File([blob], nombre, { type: tipo });
       if (navigator.canShare({ files: [archivo] })) {
         try {
