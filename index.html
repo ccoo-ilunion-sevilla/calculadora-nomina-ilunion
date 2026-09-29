@@ -258,7 +258,7 @@ footer a{color:var(--rojo)}
 <nav class="tabs" role="tablist">
   <button role="tab" id="t-nom" aria-selected="true" aria-controls="p-nom">Nómina<span>del mes</span></button>
   <button role="tab" id="t-fin" aria-selected="false" aria-controls="p-fin">Finiquito<span>al salir</span></button>
-  <button role="tab" id="t-it" aria-selected="false" aria-controls="p-it">Baja<span>IT</span></button>
+  <button role="tab" id="t-it" aria-selected="false" aria-controls="p-it">Prestación<span>total de tu baja</span></button>
   <button role="tab" id="t-chk" aria-selected="false" aria-controls="p-chk">Revisa<span>tu nómina</span></button>
 </nav>
 
@@ -392,8 +392,8 @@ footer a{color:var(--rojo)}
 
   <div class="bloque">
     <h2>Pagas extraordinarias</h2>
-    <p class="ayuda" style="margin-bottom:12px">El convenio tiene <b>tres</b>: julio, Navidad y marzo (art. 45). Marca las que cobres prorrateadas mes a mes.</p>
-    <div class="sw"><input type="checkbox" id="n-pj"><label for="n-pj">Paga de julio prorrateada</label></div>
+    <p class="ayuda" style="margin-bottom:12px">El convenio tiene <b>tres</b>: verano, Navidad y marzo (art. 45). Marca las que cobres prorrateadas mes a mes.</p>
+    <div class="sw"><input type="checkbox" id="n-pj"><label for="n-pj">Paga de verano prorrateada</label></div>
     <div class="sw"><input type="checkbox" id="n-pn"><label for="n-pn">Paga de Navidad prorrateada</label></div>
     <div class="sw"><input type="checkbox" id="n-pm"><label for="n-pm">Paga de marzo prorrateada</label></div>
   </div>
@@ -508,7 +508,7 @@ footer a{color:var(--rojo)}
       <p class="ayuda">El convenio da 31 días naturales al año (art. 57). Se te debe la parte devengada y no disfrutada</p>
     </div>
     <p class="ayuda" style="margin:16px 0 10px"><b>Marca las pagas que ya cobras prorrateadas.</b> Las que no marques se calcularán como pendientes.</p>
-    <div class="sw"><input type="checkbox" id="f-pj"><label for="f-pj">Julio prorrateada <small>Devengo del 1 de julio al 30 de junio</small></label></div>
+    <div class="sw"><input type="checkbox" id="f-pj"><label for="f-pj">Verano prorrateada <small>Devengo del 1 de julio al 30 de junio, se paga en junio</small></label></div>
     <div class="sw"><input type="checkbox" id="f-pn"><label for="f-pn">Navidad prorrateada <small>Devengo del 1 de enero al 31 de diciembre</small></label></div>
     <div class="sw"><input type="checkbox" id="f-pm"><label for="f-pm">Marzo prorrateada <small>Devengo del 1 de enero al 31 de diciembre, se paga en marzo del año siguiente</small></label></div>
   </div>
@@ -536,6 +536,13 @@ footer a{color:var(--rojo)}
 
 <!-- =============== BAJA IT =============== -->
 <section id="p-it" role="tabpanel" aria-labelledby="t-it" class="oculto">
+
+  <p class="ayuda" style="margin:0 0 14px">Esto calcula el <b>total acumulado de la prestación</b> desde el primer
+  día de la baja hasta el número de días que le pongas — no es la nómina de un mes concreto. Si le pones, por
+  ejemplo, 60 días, ese total ya incluye lo que se cobró en el primer mes Y en el segundo: para comparar con nóminas
+  reales tendrías que sumar todas las de esos meses, no solo la última. Si quieres saber lo que vas a cobrar
+  <b>este mes en concreto</b> estando de baja (con tu salario de los días trabajados incluido), usa la sección de
+  baja dentro de la pestaña Nómina.</p>
 
   <div class="bloque">
     <h2>Tu puesto</h2>
@@ -576,8 +583,16 @@ footer a{color:var(--rojo)}
       </div>
     </div>
     <div class="campo">
+      <label for="i-inicio">Fecha en que empezó la baja (opcional)</label>
+      <input type="date" id="i-inicio">
+      <p class="ayuda">Si la pones y dejas en blanco los días de abajo, te calculo los días transcurridos desde esta
+      fecha hasta hoy.</p>
+    </div>
+    <div class="campo">
       <label for="i-dias">Días de baja</label>
-      <input type="number" id="i-dias" min="1" max="545" step="1" value="30" inputmode="numeric">
+      <input type="number" id="i-dias" min="1" max="545" step="1" placeholder="Pon aquí los días" inputmode="numeric">
+      <p class="ayuda">Si has puesto la fecha de inicio arriba, puedes dejar esto en blanco: se calculan los días
+      transcurridos desde esa fecha hasta hoy.</p>
     </div>
     <div class="campo">
       <label for="i-irpf">Retención de IRPF (%)</label>
@@ -585,7 +600,7 @@ footer a{color:var(--rojo)}
     </div>
   </div>
 
-  <button class="calc" id="b-it">Calcular baja</button>
+  <button class="calc" id="b-it">Calcular prestación total</button>
   <div id="r-it"></div>
 </section>
 
@@ -695,6 +710,13 @@ footer a{color:var(--rojo)}
         <input type="number" id="chk-otros" min="0" step="0.01" inputmode="decimal">
         <p class="ayuda" id="chk-otros-ay">Conceptos de tu nómina que no reconocemos como del convenio (pluses de
         centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.</p>
+      </div>
+      <div class="campo">
+        <label for="chk-otras-deducciones">Otros descuentos de tu nómina (€/mes)</label>
+        <input type="number" id="chk-otras-deducciones" min="0" step="0.01" inputmode="decimal">
+        <p class="ayuda" id="chk-otras-deducciones-ay">Descuentos que no son ni Seguridad Social ni IRPF: anticipos,
+        regularizaciones, cantidades ya cobradas antes… No los calcula el convenio, se restan tal cual del líquido
+        para que la comparación no los confunda con un impago.</p>
       </div>
     </div>
 
@@ -1280,10 +1302,10 @@ function calcularNomina(){
   }
   const noPag = 3 - nPagas;
   if (noPag>0){
-    h += `<div class="nota"><b>Te quedan ${noPag} paga${noPag===1?"":"s"} sin prorratear.</b> Se cobran aparte: julio entre
-    el 13 y el 15 de julio, Navidad entre el 13 y el 15 de diciembre y la de marzo entre el 13 y el 15 de marzo del
-    año siguiente. Cada una es una mensualidad de salario base, peligrosidad, actividad y antigüedad, sin transporte
-    ni vestuario (art. 45).</div>`;
+    h += `<div class="nota"><b>Te quedan ${noPag} paga${noPag===1?"":"s"} sin prorratear.</b> Se cobran aparte: la de
+    verano a finales de junio, la de Navidad a mediados de diciembre y la de marzo a principios de marzo del año
+    siguiente (fechas aproximadas, pueden variar). Cada una es una mensualidad de salario base, peligrosidad,
+    actividad y antigüedad, sin transporte ni vestuario (art. 45).</div>`;
   }
   h += `<div class="nota">La hora extraordinaria sale a <b>${eur(vhe)}</b>: es el mínimo del art. 53, sumando salario base,
   pagas, peligrosidad, actividad y antigüedad, dividido entre 1.782 horas anuales. Si además cae en noche, festivo o
@@ -1331,7 +1353,7 @@ document.getElementById("b-fin").addEventListener("click",()=>{
     const arr = new Date(Math.max(d1.getTime(), iniJ.getTime()));
     const dd = Math.max(0, Math.round((d2-arr)/dia)+1);
     const im = sp * Math.min(dd,365)/365;
-    impPagas += im; detPagas += linea("Paga de julio", im, "", `${Math.min(dd,365)} días devengados`);
+    impPagas += im; detPagas += linea("Paga de verano", im, "", `${Math.min(dd,365)} días devengados`);
   }
   // Navidad y marzo: devengo natural 1 enero - 31 diciembre
   [["Paga de Navidad","f-pn"],["Paga de marzo","f-pm"]].forEach(([nm,id])=>{
@@ -1384,13 +1406,65 @@ document.getElementById("b-fin").addEventListener("click",()=>{
   document.getElementById("r-fin").scrollIntoView({behavior:"smooth",block:"start"});
 });
 
+/* Días de solapamiento entre dos rangos de fechas (ambos extremos incluidos) */
+function diasSolapados(ini1, fin1, ini2, fin2){
+  const ini = ini1 > ini2 ? ini1 : ini2;
+  const fin = fin1 < fin2 ? fin1 : fin2;
+  if (fin < ini) return 0;
+  return Math.round((fin - ini) / 86400000) + 1;
+}
+/* Pagas extra cuyo MES DE COBRO cae dentro del rango [bajaIni, bajaFin] de la baja, y de las que
+   una parte de su periodo de devengo queda FUERA de la baja (por tanto esa parte se cobra íntegra,
+   sin recorte, y hay que sumarla al total porque entra en la cuenta durante estos días). */
+function pagasYaGeneradas(b, bajaIni, bajaFin){
+  const out = [];
+  const anioIni = bajaIni.getFullYear(), anioFin = bajaFin.getFullYear();
+  for (let y = anioIni; y <= anioFin + 1; y++){
+    const periodos = [
+      // [nombre, inicio devengo, fin devengo, inicio mes de cobro, fin mes de cobro]
+      // Paga de verano: devengo 1 jul (y-1) a 30 jun (y), se cobra en JUNIO (y) — confirmado con nómina real
+      // ("P. Extra Verano SE" en la nómina de junio, no de julio).
+      ["verano",  new Date(y-1,6,1),  new Date(y,5,30),   new Date(y,5,1),  new Date(y,5,30)],
+      ["Navidad", new Date(y,0,1),    new Date(y,11,31),  new Date(y,11,1), new Date(y,11,31)],
+      ["marzo",   new Date(y-1,0,1),  new Date(y-1,11,31),new Date(y,2,1),  new Date(y,2,31)],
+    ];
+    periodos.forEach(([nombre, devIni, devFin, pagoIni, pagoFin])=>{
+      if (diasSolapados(bajaIni, bajaFin, pagoIni, pagoFin) <= 0) return;
+      const totalDevengo = Math.round((devFin - devIni) / 86400000) + 1;
+      const diasDentro = diasSolapados(bajaIni, bajaFin, devIni, devFin);
+      const diasFuera = totalDevengo - diasDentro;
+      if (diasFuera > 0){
+        out.push({nombre, anio:y, importe: salPaga(b) * diasFuera / totalDevengo, diasFuera, totalDevengo});
+      }
+    });
+  }
+  return out;
+}
+
 /* ====== 3. BAJA IT ====== */
 document.getElementById("b-it").addEventListener("click",()=>{
   const cat = document.getElementById("i-cat").value;
   const b = base(cat, chk("i-arma"), num("i-quin"));
   const tipo = rad("i-tipo");
-  const dias = Math.max(1, Math.round(num("i-dias")));
   const orden = parseInt(rad("i-orden"));
+
+  const inicioTxt = document.getElementById("i-inicio").value;
+  let bajaIni = null;
+  if (inicioTxt){
+    const [yy,mm,dd] = inicioTxt.split("-").map(Number);
+    bajaIni = new Date(yy, mm-1, dd);
+  }
+  const diasPuestos = Math.round(num("i-dias"));
+  let dias, diasAutomaticos = false;
+  if (diasPuestos > 0){
+    dias = diasPuestos;
+  } else if (bajaIni){
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    dias = Math.max(1, Math.round((hoy - bajaIni) / 86400000) + 1);
+    diasAutomaticos = true;
+  } else {
+    dias = 1;
+  }
 
   // Base reguladora diaria
   let baseMes = num("i-base");
@@ -1399,15 +1473,25 @@ document.getElementById("b-it").addEventListener("click",()=>{
   const brd = baseMes/30;
 
   const tramos = tramosIT(dias, 0, tipo, orden, brd);
+  const brutoIT = tramos.reduce((s,t)=>s+t.im,0);
 
-  const bruto = tramos.reduce((s,t)=>s+t.im,0);
+  let pagasGeneradas = [];
+  if (bajaIni){
+    const bajaFin = new Date(bajaIni.getTime() + (dias-1)*86400000);
+    pagasGeneradas = pagasYaGeneradas(b, bajaIni, bajaFin);
+  }
+  const totalGenerado = pagasGeneradas.reduce((s,p)=>s+p.importe,0);
+  const bruto = brutoIT + totalGenerado;
   const ss = bruto * 6.50/100;
   const irpf = bruto * num("i-irpf")/100;
   const neto = bruto - ss - irpf;
 
   let h = `<div class="recibo" id="rec-it"><h3>Prestación por tramos · ${b.cat} · tablas ${yr()}</h3>`;
+  if (diasAutomaticos) h += linea("Días de baja", `${dias} días`, "", "calculados desde el inicio hasta hoy, no has puesto un número de días");
   h += linea("Base reguladora diaria", brd, "", estimada ? "estimada con las tablas del convenio" : "base de cotización / 30");
   tramos.forEach(t=> h += linea(`${t.d} día${t.d===1?"":"s"} al ${t.pct} %`, t.im, "", t.et));
+  pagasGeneradas.forEach(p=> h += linea(`Paga de ${p.nombre} ${p.anio}`, p.importe, "",
+    `ya generada antes de la baja (${p.totalDevengo-p.diasFuera} de ${p.totalDevengo} días de su periodo caen dentro), se cobra íntegra`));
   h += linea("Total bruto", bruto, "sum");
   h += linea("Cotización a la Seguridad Social (6,50 %)", -ss, "neg");
   h += linea(`Retención de IRPF (${num("i-irpf").toLocaleString("es-ES")} %)`, -irpf, "neg");
@@ -1428,8 +1512,22 @@ document.getElementById("b-it").addEventListener("click",()=>{
     más antigüedad y peligrosidad, sin que se te recorten las pagas extra. Incluye los accidentes en prácticas de tiro
     o gimnasio ordenados por la empresa.</div>`;
   }
-  h += `<div class="nota">Si las pagas extra no las tienes prorrateadas, la parte proporcional ya va dentro de la base
-  diaria: la empresa descontará esos días cuando llegue el mes de cobro de la paga.</div>`;
+  if (bajaIni){
+    if (pagasGeneradas.length){
+      h += `<div class="nota">He sumado arriba la parte de tus pagas extra que ya estaba generada <b>antes</b> de que
+      empezara la baja: esa parte se cobra íntegra, sin recorte (solo se reduce la parte generada durante los días de
+      baja, y eso se nota en la nómina del mes en que se cobra esa paga, no aquí). Es una estimación proporcional a
+      los días de su periodo de devengo, con la tabla salarial de ${yr()} aunque el devengo sea de otro año — y no
+      tiene en cuenta si ya tuviste otra baja el año anterior que afectara a esa misma paga por otro motivo.</div>`;
+    } else {
+      h += `<div class="nota">Con la fecha de inicio y los días que has puesto, no cae dentro de este periodo el mes
+      de cobro de ninguna paga extra. Si la baja se alarga más de lo calculado, vuelve a mirarlo.</div>`;
+    }
+  } else {
+    h += `<div class="nota">Si las pagas extra no las tienes prorrateadas: parte de lo que cobres durante la baja
+    puede incluir una paga extra generada antes de que empezara, que se cobra íntegra. Pon la fecha de inicio de la
+    baja arriba para que te la calcule y la sume al total.</div>`;
+  }
   h += botonCopiar("rec-it") + `</div>`;
   document.getElementById("r-it").innerHTML = h;
   document.getElementById("r-it").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1583,7 +1681,11 @@ function parsearNomina(txtCrudo){
     const desc = tokens.slice(0, corte).join(" ").trim();
     const nums = numTokens.map(numTxt).filter(n=>n!=null);
     if (!nums.length || !desc) return;
-    const esDeduccion = codigo.startsWith("/");
+    // Algunos descuentos (anticipos, adelantos de nómina tipo Payflow...) van con un código
+    // numérico normal, no con "/" como la SS o el IRPF. Si el texto los delata, se tratan
+    // igualmente como descuento aunque el código no lo indique.
+    const esDeduccion = codigo.startsWith("/") ||
+      /PAYFLOW|ANTICIPO|ADELANTO|PR[ÉE]STAMO|EMBARGO/.test(desc);
 
     if (/SALARIO BASE/.test(desc)) r.salarioBase = nums[nums.length-1];
     else if (/^ANTIG/.test(desc)) r.antigDevengado = nums[nums.length-1];
@@ -1598,9 +1700,27 @@ function parsearNomina(txtCrudo){
     }
     else if (esDeduccion && /SEG\.?\s*SOC|COTIZ/.test(desc)){ r.ssPct=nums[0]; r.ssImporte=nums[nums.length-1]; }
     else if (esDeduccion && /IRPF/.test(desc)){ r.irpfPct=nums[0]; r.irpfImporte=nums[nums.length-1]; }
+    else if (!esDeduccion && /^P\.?\s*EXTRA|PAGA EXTRA|EXTRA\s*(NAVIDAD|VERANO|JULIO|MARZO|BENEFICIOS)/.test(desc)){
+      // Paga extra cobrada íntegra este mes (no prorrateada): se identifica aparte para no
+      // confundirla con un plus de empresa cualquiera, aunque no se valide su importe exacto
+      // (para eso haría falta la tabla salarial del año de esta nómina, que puede no ser la actual).
+      const importe = nums[nums.length-1];
+      if (importe){ r.pagaExtra = {nombre:desc, importe}; otrosSuma += importe; r.otros.push({nombre:desc, importe}); }
+    }
     else if (!esDeduccion){
       const importe = nums[nums.length-1];
       if (importe){ r.otros.push({nombre:desc, importe}); otrosSuma += importe; }
+    }
+    else {
+      // Deducción que no es ni SS ni IRPF: anticipos, regularizaciones, embargos, cantidades ya
+      // cobradas antes... Nada de esto lo calcula el convenio, pero reduce el líquido real y hay
+      // que tenerlo en cuenta para no leer una diferencia como si fuera un impago.
+      const importe = nums[nums.length-1];
+      if (importe){
+        r.otrasDeducciones = (r.otrasDeducciones||[]);
+        r.otrasDeducciones.push({nombre:desc, importe});
+        r.otrasDeduccionesSuma = (r.otrasDeduccionesSuma||0) + importe;
+      }
     }
   });
   r.otrosSuma = Math.round(otrosSuma*100)/100;
@@ -1659,10 +1779,16 @@ function rellenarRevision(d){
   if (d.irpfPct!=null) document.getElementById("chk-irpf").value = d.irpfPct;
   document.getElementById("chk-otros").value = d.otrosSuma || 0;
   const ay = document.getElementById("chk-otros-ay");
-  ay.textContent = (d.otros && d.otros.length)
-    ? "Detectado en tu nómina: " + d.otros.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
-      ". No son del convenio estatal: se suman tal cual, sin comprobar si están bien calculados."
-    : "Conceptos de tu nómina que no reconocemos como del convenio (pluses de centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.";
+  if (d.pagaExtra){
+    ay.textContent = `Incluye tu paga extra cobrada este mes (${d.pagaExtra.nombre.toLowerCase()}, ${eur(d.pagaExtra.importe)})` +
+      (d.otros.length>1 ? " y otros pluses de tu nómina" : "") +
+      ". No comprobamos si el importe de la paga está bien calculado (haría falta la tabla salarial de ese año en concreto), solo se da por bueno y se suma.";
+  } else {
+    ay.textContent = (d.otros && d.otros.length)
+      ? "Detectado en tu nómina: " + d.otros.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
+        ". No son del convenio estatal: se suman tal cual, sin comprobar si están bien calculados."
+      : "Conceptos de tu nómina que no reconocemos como del convenio (pluses de centro, de servicio…). Se suman tal cual, sin comparar si están bien calculados.";
+  }
   if (d.totalDevengado!=null) document.getElementById("chk-real-bruto").value = d.totalDevengado;
   if (d.liquido!=null) document.getElementById("chk-real-neto").value = d.liquido;
 
@@ -1677,6 +1803,13 @@ function rellenarRevision(d){
   }
   document.getElementById("chk-it-real").value = d.itImporteReal || 0;
   document.getElementById("chk-base-cotiz").value = d.baseCotizReal || 0;
+
+  document.getElementById("chk-otras-deducciones").value = d.otrasDeduccionesSuma || 0;
+  const ayD = document.getElementById("chk-otras-deducciones-ay");
+  ayD.textContent = (d.otrasDeducciones && d.otrasDeducciones.length)
+    ? "Detectado en tu nómina: " + d.otrasDeducciones.map(o=>`${o.nombre.toLowerCase()} (${eur(o.importe)})`).join(", ") +
+      ". No lo calcula el convenio, se resta tal cual del líquido."
+    : "Descuentos que no son ni Seguridad Social ni IRPF: anticipos, regularizaciones, cantidades ya cobradas antes… No los calcula el convenio, se restan tal cual del líquido para que la comparación no los confunda con un impago.";
 }
 document.getElementById("chk-hubobaja").addEventListener("change", e=>{
   document.getElementById("chk-baja-box").classList.toggle("oculto", !e.target.checked);
@@ -1702,6 +1835,17 @@ document.getElementById("chk-file").addEventListener("change", async (e)=>{
     }
     const d = parsearNomina(texto);
     rellenarRevision(d);
+    if (d.anio && String(d.anio) !== yr()){
+      if (A.includes(String(d.anio))){
+        document.getElementById("anio").value = String(d.anio);
+        estado.innerHTML += `<div class="nota">Tu nómina es de ${d.anio}: he cambiado las "tablas del año" arriba a
+        ${d.anio} para comparar con los importes correctos de ese año.</div>`;
+      } else {
+        estado.innerHTML += `<div class="aviso"><b>Tu nómina es de ${d.anio}</b> y solo tenemos tablas del convenio
+        de 2026 a 2030. La comparación va a usar las de ${yr()}, así que puede salir una diferencia grande que no es
+        un error — es la subida salarial de un año a otro, no un fallo de tu nómina.</div>`;
+      }
+    }
     revision.classList.remove("oculto");
     revision.scrollIntoView({behavior:"smooth",block:"start"});
   } catch(err){
@@ -1755,7 +1899,10 @@ document.getElementById("b-chk").addEventListener("click", ()=>{
   const baseCotizFija = num("chk-base-cotiz");
   const usaBaseFija = hayBaja && baseCotizFija > 0;
   const ssConvenio = usaBaseFija ? baseCotizFija * num("n-ss")/100 : r.data.ss;
-  const netoConvenio = usaBaseFija ? r.data.bruto - ssConvenio - r.data.irpf - r.data.cuota : r.data.neto;
+  // Anticipos, regularizaciones y cosas por el estilo reducen el líquido real pero no los calcula
+  // el convenio: se restan también del líquido de referencia para no leerlos como un impago.
+  const otrasDeducciones = num("chk-otras-deducciones");
+  const netoConvenio = (usaBaseFija ? r.data.bruto - ssConvenio - r.data.irpf - r.data.cuota : r.data.neto) - otrasDeducciones;
 
   let h = `<div class="recibo" id="rec-chk"><h3>Mínimo de convenio con estos datos · ${r.data.cat}</h3>`;
   if (hayBaja){
@@ -1796,6 +1943,8 @@ document.getElementById("b-chk").addEventListener("click", ()=>{
   const difBruto = realBruto - r.data.bruto;
   h += linea("Diferencia", difBruto, difBruto < -0.5 ? "neg" : "");
   h += linea("Tu nómina (líquido a percibir)", realNeto);
+  if (otrasDeducciones) h += linea("Otros descuentos de tu nómina", -otrasDeducciones, "neg",
+    "anticipos, regularizaciones… ya restados abajo, sin comparar");
   h += linea("Líquido según convenio (con tu % de IRPF y SS)", netoConvenio, "",
     usaBaseFija ? `SS calculada sobre ${eur(baseCotizFija)}, la base fija de tu nómina` : "");
   const difNeto = realNeto - netoConvenio;
