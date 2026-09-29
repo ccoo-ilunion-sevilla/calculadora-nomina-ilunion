@@ -142,6 +142,12 @@ input[type=text],input[type=email],input[type=tel],input[type=date],select,texta
 select{font-family:'Inter',sans-serif}
 textarea{resize:vertical;min-height:64px;font-family:'Inter',sans-serif}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--rojo);outline-offset:1px;border-color:var(--rojo)}
+.mes-datos{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mes-datos > div{border:1px solid var(--linea);padding:9px 10px;background:var(--papel);font-size:13px}
+.mes-datos b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2);margin-bottom:3px}
+.mes-datos .ok{color:#1B7F3B;font-weight:700}
+.mes-datos .mal{color:var(--rojo);font-weight:700}
+.mes-datos .aviso{color:#B45309;font-weight:700}
 .sw{display:flex;align-items:center;gap:10px;padding:6px 0}
 .sw input{width:18px;height:18px;accent-color:var(--rojo)}
 .sw label{font-size:13px;font-weight:600;cursor:pointer}
@@ -339,6 +345,14 @@ footer a{color:var(--rojo)}
         </div>
       </div>
 
+      <div class="bloque oculto" id="bloque-meses">
+        <h3>Registros por mes</h3>
+        <div class="campo"><label for="c-mes">Mes</label>
+          <select id="c-mes"></select>
+          <p class="ayuda">Se rellena cada vez que importas un registro de jornada (REGJOR) o un TC2. Los meses anteriores a esta versión aparecerán al volver a importar sus PDF.</p></div>
+        <div class="mes-datos" id="mes-datos"></div>
+      </div>
+
       <div class="bloque">
         <h3>Notas</h3>
         <div class="campo"><textarea id="c-notas" placeholder="Observaciones, historial, conflictos abiertos…"></textarea></div>
@@ -401,6 +415,47 @@ footer a{color:var(--rojo)}
     const pJornada = periodoDeTexto(a.jornadaMes);
     const pCotiz = periodoDeTexto(a.cotizacionMes);
     return !!pJornada && !!pCotiz && pJornada > pCotiz;
+  }
+
+  // Historial mensual por afiliado: historial['2026-07'] = {jornada, horas, bajaIF, bajaIA, cotiza}
+  function anotarHistorial(a, mesTexto, datos){
+    const k = periodoDeTexto(mesTexto);
+    if (!k) return;
+    a.historial = a.historial || {};
+    a.historial[k] = Object.assign(a.historial[k] || {}, datos);
+  }
+
+  function textoMes(k){
+    const [anio, mes] = k.split('-');
+    const n = MESES_ES[parseInt(mes, 10) - 1];
+    return n.charAt(0) + n.slice(1).toLowerCase() + ' ' + anio;
+  }
+
+  function mostrarMes(a){
+    const cont = $('mes-datos');
+    const k = $('c-mes').value;
+    const h = (a && a.historial && a.historial[k]) || {};
+    const celda = (t, v, cls) => `<div><b>${t}</b><span class="${cls || ''}">${v}</span></div>`;
+    let html = '';
+    if (h.jornada === undefined) html += celda('Registro de jornada', 'Sin importar este mes');
+    else if (h.jornada === false) html += celda('Registro de jornada', 'No aparece en el registro', 'aviso');
+    else html += celda('Horas trabajadas (REGJOR)', h.horas != null ? h.horas : 'Sin horas de servicio', h.horas != null ? 'ok' : 'aviso');
+    if (h.jornada === true) {
+      const partes = [];
+      if (h.bajaIA > 0) partes.push(`${h.bajaIA} día(s) accidente laboral`);
+      if (h.bajaIF > 0) partes.push(`${h.bajaIF} día(s) enfermedad común`);
+      html += celda('Baja médica', partes.length ? partes.join(' y ') : 'Ninguna', partes.length ? 'mal' : 'ok');
+    }
+    if (h.cotiza === undefined) html += celda('Cotización (TC2)', 'Sin importar este mes');
+    else html += celda('Cotización (TC2)', h.cotiza ? 'Cotiza' : 'No cotiza', h.cotiza ? 'ok' : 'mal');
+    cont.innerHTML = html;
+  }
+
+  function cargarMeses(a){
+    const claves = Object.keys((a && a.historial) || {}).sort().reverse();
+    $('bloque-meses').classList.toggle('oculto', claves.length === 0);
+    $('c-mes').innerHTML = claves.map(k => `<option value="${k}">${textoMes(k)}</option>`).join('');
+    if (claves.length) mostrarMes(a);
   }
 
   // Está de baja médica según el último registro de jornada importado
@@ -692,6 +747,7 @@ footer a{color:var(--rojo)}
     $('aviso-jornada').classList.add('oculto');
     $('aviso-cotizacion').classList.add('oculto');
     $('aviso-baja').classList.add('oculto');
+    $('bloque-meses').classList.add('oculto');
   }
 
   function abrirFicha(a){
@@ -741,6 +797,7 @@ footer a{color:var(--rojo)}
         avisoC.textContent = `🔶 No cotiza en el último TC2 cargado${a.cotizacionMes ? ' (' + a.cotizacionMes + ')' : ''}: probablemente ya no está en la empresa. Confírmalo antes de darlo por baja.`;
       }
     }
+    cargarMeses(a);
     overlay.classList.remove('oculto');
     $('c-dni').focus();
   }
@@ -784,6 +841,7 @@ footer a{color:var(--rojo)}
       bajaIF: original ? original.bajaIF : undefined,
       bajaIA: original ? original.bajaIA : undefined,
       bajaMes: original ? original.bajaMes : undefined,
+      historial: original ? original.historial : undefined,
     };
 
     if (dniEditando) {
@@ -998,6 +1056,7 @@ footer a{color:var(--rojo)}
         target.bajaIF = info.bajaIF || 0;
         target.bajaIA = info.bajaIA || 0;
         target.bajaMes = mesTexto;
+        anotarHistorial(target, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
       } else {
         const m = /^(.*?),\s*(.*)$/.exec(info.nombreCompleto);
         const apellidosRaw = m ? m[1] : info.nombreCompleto;
@@ -1013,6 +1072,7 @@ footer a{color:var(--rojo)}
           jornadaEncontrada: true, jornadaMes: mesTexto,
           bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, bajaMes: mesTexto,
         };
+        anotarHistorial(nuevo, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
         afiliados.push(nuevo);
         encontrados.add(nuevo.dni);
         nuevos++;
@@ -1025,6 +1085,7 @@ footer a{color:var(--rojo)}
         a.jornadaEncontrada = false;
         a.jornadaMes = mesTexto;
         a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+        anotarHistorial(a, mesTexto, { jornada: false, horas: null, bajaIF: 0, bajaIA: 0 });
         if (!a.eliminado) marcadosFuera++;
       }
     });
@@ -1130,6 +1191,7 @@ footer a{color:var(--rojo)}
       }
       a.cotizacionEncontrada = encontrado;
       a.cotizacionMes = mesTexto;
+      anotarHistorial(a, mesTexto, { cotiza: encontrado });
       if (encontrado && a.eliminado) {
         restaurar(a, `vuelve a cotizar en el TC2 de ${mesTexto}`);
         reincorporados++;
@@ -1231,6 +1293,9 @@ footer a{color:var(--rojo)}
     render();
   });
   $('btn-nuevo').addEventListener('click', () => abrirFicha(null));
+  $('c-mes').addEventListener('change', () => {
+    mostrarMes(dniEditando ? afiliados.find(a => claveDni(a.dni) === dniEditando) : null);
+  });
   $('ficha-cerrar').addEventListener('click', cerrarFicha);
   $('btn-cancelar-ficha').addEventListener('click', cerrarFicha);
   $('btn-guardar-ficha').addEventListener('click', guardarFicha);
