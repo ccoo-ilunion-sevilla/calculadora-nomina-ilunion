@@ -169,6 +169,35 @@ footer{border-top:1px solid var(--linea);padding:18px 0 30px;font-size:12px;colo
 footer a{color:var(--rojo)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .oculto{display:none!important}
+
+/* Barra de vistas y filtros */
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.filtros input{flex:1 1 260px;margin:0}
+.filtros select{flex:0 1 200px;padding:11px;font-size:14px}
+.buscador{margin-bottom:0}
+.resumen{font-size:12px;color:var(--tinta-2);margin:0 0 10px}
+.resumen b{color:var(--tinta)}
+.tabla-caja tbody td a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--tinta-2)}
+.solo-movil{display:none;font-size:12px;color:var(--tinta-2);margin-top:2px}
+tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
+
+/* Botón de guardar siempre a mano cuando hay cambios */
+#btn-guardar-flotante{
+  position:fixed;right:14px;bottom:14px;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.3);
+  background:var(--rojo);color:#fff;border:0;border-radius:99px;padding:14px 20px;
+  font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;
+}
+#btn-guardar-flotante:hover{background:var(--rojo-osc)}
+
+@media(max-width:640px){
+  table{min-width:0}
+  .col-sec{display:none}
+  .solo-movil{display:block}
+  thead th,tbody td{padding:10px 7px}
+  .toolbar button,.toolbar label.btn{padding:12px 14px;min-height:44px}
+  .fila-borrar,.fila-restaurar{padding:10px 6px}
+  .filtros select{flex:1 1 100%}
+}
 </style>
 </head>
 <body>
@@ -200,9 +229,6 @@ footer a{color:var(--rojo)}
       <button type="button" class="primario" id="btn-guardar">💾 Guardar cambios</button>
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
       <button type="button" id="btn-csv">Exportar a CSV</button>
-      <button type="button" id="btn-filtro-bajas">🔶 Ver solo posibles bajas</button>
-      <button type="button" id="btn-bajas-medicas">🩺 Ver solo bajas médicas</button>
-      <button type="button" id="btn-eliminados">🗑 Ver eliminados</button>
       <label class="btn" for="file-jornada">📅 Importar registro de jornada…</label>
       <input type="file" id="file-jornada" accept="application/pdf,.pdf">
       <label class="btn" for="file-tc2">🧾 Importar cotizaciones (TC2)…</label>
@@ -216,18 +242,32 @@ footer a{color:var(--rojo)}
     <div class="estado-linea oculto" id="estado-jornada"></div>
     <div class="estado-linea oculto" id="estado-tc2"></div>
 
-    <div class="buscador">
-      <input type="text" id="buscar" placeholder="Buscar por cualquier dato de la ficha (nombre, DNI, centro, teléfono, notas…)">
+    <div class="filtros">
+      <input type="text" id="buscar" placeholder="Buscar (nombre, DNI, centro, teléfono, notas…) — sin acentos vale" autocomplete="off">
+      <select id="filtro-sindicato" aria-label="Filtrar por sindicato">
+        <option value="">Todos los sindicatos</option>
+        <option value="ccoo">CCOO (todos)</option>
+        <option value="ccoo-impago">CCOO con impago</option>
+        <option value="Simpatizante">Simpatizantes</option>
+        <option value="otros">Otros sindicatos</option>
+        <option value="ninguno">Sin afiliar</option>
+      </select>
     </div>
+    <div class="toolbar">
+      <button type="button" id="btn-filtro-bajas">🔶 Ver solo posibles bajas</button>
+      <button type="button" id="btn-bajas-medicas">🩺 Ver solo bajas médicas</button>
+      <button type="button" id="btn-eliminados">🗑 Ver eliminados</button>
+    </div>
+    <p class="resumen" id="resumen"></p>
 
     <div class="tabla-caja">
       <table>
         <thead>
           <tr>
             <th>Afiliado/a</th>
-            <th>Centro de trabajo</th>
-            <th>Categoría</th>
-            <th>Teléfono</th>
+            <th class="col-sec">Centro de trabajo</th>
+            <th class="col-sec">Categoría</th>
+            <th class="col-sec">Teléfono</th>
             <th>Estado</th>
             <th>Baja médica</th>
             <th></th>
@@ -352,6 +392,8 @@ footer a{color:var(--rojo)}
   </div>
 </div>
 
+<button type="button" id="btn-guardar-flotante" class="oculto">💾 Guardar cambios</button>
+
 <footer>
   <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla</div>
 </footer>
@@ -369,6 +411,7 @@ footer a{color:var(--rojo)}
   const puedeGuardarEncima = () => typeof window.showSaveFilePicker === 'function';
   const TIPO_JSON = [{ description: 'Base de afiliados', accept: { 'application/json': ['.json'] } }];
   let sucio = false;
+  let fichaOriginal = '';  // foto de los campos al abrir la ficha, para detectar cambios
   let dniEditando = null; // DNI original de la ficha abierta, para saber si es alta o edición
   let vista = 'activos';  // 'activos' | 'bajas' (solo naranjas) | 'eliminados' (papelera)
   let accionArchivo = '';  // última acción sobre el archivo, para mantener el contador al día
@@ -499,9 +542,16 @@ footer a{color:var(--rojo)}
       ` — ${accion} «${nombreArchivo}»`;
   }
 
+  const btnFlotante = $('btn-guardar-flotante');
   function marcarSucio(){
     sucio = true;
     pillDirty.classList.remove('oculto');
+    btnFlotante.classList.remove('oculto');
+  }
+  function marcarLimpio(){
+    sucio = false;
+    pillDirty.classList.add('oculto');
+    btnFlotante.classList.add('oculto');
   }
 
   function claveDni(v){
@@ -521,9 +571,25 @@ footer a{color:var(--rojo)}
     }).join(' ');
   }
 
+  const CAMPOS_BUSQUEDA = ['dni','numEmpleado','nombre','apellidos','numAfiliacion','direccion','cp','localidad',
+    'movil','fijo','email','centro','categoria','sindicato','estado','notas'];
+  const textoBusqueda = (a) => claveNombre(CAMPOS_BUSQUEDA.map(c => a[c] == null ? '' : a[c]).join(' '));
+
+  function pasaFiltroSindicato(a, f){
+    switch (f) {
+      case 'ccoo': return a.sindicato === 'CCOO';
+      case 'ccoo-impago': return a.sindicato === 'CCOO' && a.estado && a.estado !== 'Al corriente';
+      case 'Simpatizante': return a.sindicato === 'Simpatizante';
+      case 'otros': return ['UGT','CSIF','USO'].includes(a.sindicato);
+      case 'ninguno': return !a.sindicato;
+      default: return true;
+    }
+  }
+
   function render(){
     if (accionArchivo) estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
-    const filtro = buscar.value.trim().toLowerCase();
+    const filtro = claveNombre(buscar.value);
+    const filtroSind = $('filtro-sindicato').value;
     const activos = afiliados.filter(a => !a.eliminado);
     const eliminados = afiliados.filter(a => a.eliminado);
     const totalBajas = activos.filter(pareceBajaEnEmpresa).length;
@@ -553,12 +619,17 @@ footer a{color:var(--rojo)}
                : activos;
 
     const filas = base
-      .filter(a => {
-        if (!filtro) return true;
-        const texto = Object.values(a).map(v => v == null ? '' : String(v)).join(' ').toLowerCase();
-        return texto.includes(filtro);
-      })
-      .sort((a,b) => (a.apellidos||'').localeCompare(b.apellidos||'', 'es'));
+      .filter(a => pasaFiltroSindicato(a, filtroSind))
+      .filter(a => !filtro || textoBusqueda(a).includes(filtro))
+      .sort((a,b) => (a.apellidos||'').localeCompare(b.apellidos||'', 'es') ||
+                     (a.nombre||'').localeCompare(b.nombre||'', 'es'));
+
+    const ccoo = activos.filter(a => a.sindicato === 'CCOO');
+    const impagos = ccoo.filter(a => a.estado && a.estado !== 'Al corriente').length;
+    $('resumen').innerHTML = afiliados.length === 0 ? '' :
+      `Mostrando <b>${filas.length}</b> de ${base.length} · <b>${ccoo.length}</b> de CCOO` +
+      (impagos ? ` (<b>${impagos}</b> con impago/baja de cuota)` : '') +
+      ` · ${activos.filter(a => a.sindicato === 'Simpatizante').length} simpatizantes`;
 
     tbody.innerHTML = '';
     vacio.classList.toggle('oculto', filas.length > 0);
@@ -583,15 +654,31 @@ footer a{color:var(--rojo)}
       tdNombre.innerHTML = `<b></b><small></small>`;
       tdNombre.querySelector('b').textContent = `${a.apellidos || ''}, ${a.nombre || ''}`.replace(/^, /, '');
       tdNombre.querySelector('small').textContent = a.dni || '';
+      const extra = document.createElement('span');
+      extra.className = 'solo-movil';
+      extra.textContent = [a.centro, a.movil || a.fijo].filter(Boolean).join(' · ');
+      if (extra.textContent) tdNombre.appendChild(extra);
 
       const tdCentro = document.createElement('td');
+      tdCentro.className = 'col-sec';
       tdCentro.textContent = a.centro || '—';
 
       const tdCat = document.createElement('td');
+      tdCat.className = 'col-sec';
       tdCat.textContent = a.categoria || '—';
 
       const tdTel = document.createElement('td');
-      tdTel.textContent = a.movil || a.fijo || '—';
+      tdTel.className = 'col-sec';
+      const tel = a.movil || a.fijo;
+      if (tel) {
+        const enlace = document.createElement('a');
+        enlace.href = 'tel:' + tel.replace(/[^\d+]/g, '');
+        enlace.textContent = tel;
+        enlace.addEventListener('click', (ev) => ev.stopPropagation());
+        tdTel.appendChild(enlace);
+      } else {
+        tdTel.textContent = '—';
+      }
 
       const tdEstado = document.createElement('td');
       const pill = document.createElement('span');
@@ -661,7 +748,11 @@ footer a{color:var(--rojo)}
       tdBorrar.appendChild(btnBorrar);
 
       tr.append(tdNombre, tdCentro, tdCat, tdTel, tdEstado, tdBaja, tdBorrar);
+      tr.tabIndex = 0;
       tr.addEventListener('click', () => abrirFicha(a));
+      tr.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && ev.target === tr) abrirFicha(a);
+      });
       tbody.appendChild(tr);
     });
   }
@@ -741,6 +832,7 @@ footer a{color:var(--rojo)}
         avisoC.textContent = `🔶 No cotiza en el último TC2 cargado${a.cotizacionMes ? ' (' + a.cotizacionMes + ')' : ''}: probablemente ya no está en la empresa. Confírmalo antes de darlo por baja.`;
       }
     }
+    fichaOriginal = JSON.stringify(leerCampos());
     overlay.classList.remove('oculto');
     $('c-dni').focus();
   }
@@ -748,6 +840,30 @@ footer a{color:var(--rojo)}
   function cerrarFicha(){
     overlay.classList.add('oculto');
     dniEditando = null;
+  }
+
+  // Un toque fuera de la ficha (o Escape) no debe tirar a la basura lo escrito.
+  async function intentarCerrarFicha(){
+    if (overlay.classList.contains('oculto')) return;
+    if (JSON.stringify(leerCampos()) !== fichaOriginal) {
+      const ok = await confirmar('Hay cambios en esta ficha sin guardar en la lista. ¿Descartarlos?', 'Sí, descartar');
+      if (!ok) return;
+    }
+    cerrarFicha();
+  }
+
+  function leerCampos(){
+    return {
+      dni: $('c-dni').value.trim(), nombre: $('c-nom').value.trim(), apellidos: $('c-ape').value.trim(),
+      fechaNacimiento: $('c-nac').value, numAfiliacion: $('c-numafi').value.trim(),
+      numEmpleado: $('c-numempleado').value.trim(),
+      direccion: $('c-direccion').value.trim(), cp: $('c-cp').value.trim(),
+      localidad: $('c-loc').value.trim(), provincia: $('c-prov').value.trim(),
+      movil: $('c-movil').value.trim(), fijo: $('c-fijo').value.trim(), email: $('c-email').value.trim(),
+      centro: $('c-centro').value.trim(), categoria: $('c-cat').value,
+      sindicato: $('c-sindicato').value, fechaAlta: $('c-alta').value,
+      estado: $('c-estado').value, delegado: $('c-delegado').checked, notas: $('c-notas').value.trim(),
+    };
   }
 
   function guardarFicha(){
@@ -767,24 +883,9 @@ footer a{color:var(--rojo)}
     }
 
     const original = dniEditando ? afiliados.find(a => claveDni(a.dni) === dniEditando) : null;
-    const registro = {
-      dni, nombre: $('c-nom').value.trim(), apellidos: $('c-ape').value.trim(),
-      fechaNacimiento: $('c-nac').value, numAfiliacion: $('c-numafi').value.trim(),
-      numEmpleado: $('c-numempleado').value.trim(),
-      direccion: $('c-direccion').value.trim(), cp: $('c-cp').value.trim(),
-      localidad: $('c-loc').value.trim(), provincia: $('c-prov').value.trim(),
-      movil: $('c-movil').value.trim(), fijo: $('c-fijo').value.trim(), email: $('c-email').value.trim(),
-      centro: $('c-centro').value.trim(), categoria: $('c-cat').value,
-      sindicato: $('c-sindicato').value, fechaAlta: $('c-alta').value,
-      estado: $('c-estado').value, delegado: $('c-delegado').checked, notas: $('c-notas').value.trim(),
-      jornadaEncontrada: original ? original.jornadaEncontrada : undefined,
-      jornadaMes: original ? original.jornadaMes : undefined,
-      cotizacionEncontrada: original ? original.cotizacionEncontrada : undefined,
-      cotizacionMes: original ? original.cotizacionMes : undefined,
-      bajaIF: original ? original.bajaIF : undefined,
-      bajaIA: original ? original.bajaIA : undefined,
-      bajaMes: original ? original.bajaMes : undefined,
-    };
+    // Se parte de la ficha original: así no se pierden los datos que el formulario
+    // no muestra (jornada, cotización, baja médica, si estaba eliminado/a...).
+    const registro = Object.assign({}, original || {}, leerCampos());
 
     if (dniEditando) {
       afiliados = afiliados.map(a => claveDni(a.dni) === dniEditando ? registro : a);
@@ -822,7 +923,13 @@ footer a{color:var(--rojo)}
     return true;
   }
 
+  async function permitirReemplazo(){
+    if (!sucio) return true;
+    return confirmar('Tienes cambios sin guardar. Si abres otro archivo se pierden.\n\n¿Abrirlo igualmente?', 'Sí, abrir y perder cambios');
+  }
+
   async function abrirConSelector(){
+    if (!await permitirReemplazo()) return;
     try {
       const [h] = await window.showOpenFilePicker({ types: TIPO_JSON, multiple: false });
       manejadorArchivo = h;
@@ -852,8 +959,7 @@ footer a{color:var(--rojo)}
           await w.write(JSON.stringify(afiliados, null, 2));
           await w.close();
           nombreArchivo = manejadorArchivo.name;
-          sucio = false;
-          pillDirty.classList.add('oculto');
+          marcarLimpio();
           accionArchivo = 'guardado en';
           estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
           return;
@@ -866,14 +972,15 @@ footer a{color:var(--rojo)}
 
     const guardado = await descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
     if (!guardado) return;   // hoja de compartir cancelada: siguen sin guardar
-    sucio = false;
-    pillDirty.classList.add('oculto');
+    marcarLimpio();
     accionArchivo = 'guardado como';
     estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
   }
 
   function csvEscapar(v){
     v = (v == null ? '' : String(v));
+    // Excel ejecuta como fórmula lo que empieza por = @ (o + / - seguido de texto)
+    if (/^([=@\t\r]|[+\-][^\d\s])/.test(v)) v = "'" + v;
     return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   }
 
@@ -1123,8 +1230,8 @@ footer a{color:var(--rojo)}
 
     let cotizan = 0, noCotizan = 0, altasPosteriores = 0, porCaf = 0, reincorporados = 0;
     afiliados.forEach(a => {
-      let encontrado = dnisEnTc2.has((a.dni || '').toUpperCase());
-      if (!encontrado && (a.dni || '').startsWith('SINDNI') && cafsEnTc2.has(generarCaf(a.apellidos, a.nombre))) {
+      let encontrado = dnisEnTc2.has(claveDni(a.dni));
+      if (!encontrado && claveDni(a.dni).startsWith('SINDNI') && cafsEnTc2.has(generarCaf(a.apellidos, a.nombre))) {
         encontrado = true;
         porCaf++;
       }
@@ -1158,7 +1265,7 @@ footer a{color:var(--rojo)}
     lector.onload = () => {
       try {
         const datos = JSON.parse(lector.result);
-        if (!Array.isArray(datos)) throw new Error('formato');
+        if (!Array.isArray(datos) || !datos.every(a => a && typeof a === 'object' && !Array.isArray(a))) throw new Error('formato');
         // migración: archivos antiguos guardaban un booleano "afiliado" (siempre CCOO) en vez de "sindicato"
         datos.forEach(a => {
           if (a.sindicato === undefined) {
@@ -1184,8 +1291,7 @@ footer a{color:var(--rojo)}
         });
         afiliados = datos;
         nombreArchivo = file.name;
-        sucio = false;
-        pillDirty.classList.add('oculto');
+        marcarLimpio();
         accionArchivo = 'abierto de';
         estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
         render();
@@ -1200,11 +1306,12 @@ footer a{color:var(--rojo)}
     // En iPhone/Safari no se toca: la etiqueta abre el input como siempre.
     if (puedeGuardarEncima()) { ev.preventDefault(); abrirConSelector(); }
   });
-  $('file-abrir').addEventListener('change', (ev) => {
+  $('file-abrir').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
-    manejadorArchivo = null;
-    if (file) abrirArchivo(file);
     ev.target.value = '';
+    if (!file || !await permitirReemplazo()) return;
+    manejadorArchivo = null;
+    abrirArchivo(file);
   });
   $('file-jornada').addEventListener('change', (ev) => {
     const file = ev.target.files[0];
@@ -1231,12 +1338,18 @@ footer a{color:var(--rojo)}
     render();
   });
   $('btn-nuevo').addEventListener('click', () => abrirFicha(null));
-  $('ficha-cerrar').addEventListener('click', cerrarFicha);
-  $('btn-cancelar-ficha').addEventListener('click', cerrarFicha);
+  $('ficha-cerrar').addEventListener('click', intentarCerrarFicha);
+  $('btn-cancelar-ficha').addEventListener('click', intentarCerrarFicha);
   $('btn-guardar-ficha').addEventListener('click', guardarFicha);
   $('c-sindicato').addEventListener('change', actualizarBloqueAfiliacion);
-  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarFicha(); });
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) intentarCerrarFicha(); });
+  document.addEventListener('keydown', (ev) => {
+    // Con un diálogo abierto, Escape es del diálogo, no de la ficha.
+    if (ev.key === 'Escape' && $('dialogo').classList.contains('oculto')) intentarCerrarFicha();
+  });
   buscar.addEventListener('input', render);
+  $('filtro-sindicato').addEventListener('change', render);
+  btnFlotante.addEventListener('click', guardarCambios);
   window.addEventListener('beforeunload', (ev) => {
     if (sucio) { ev.preventDefault(); ev.returnValue = ''; }
   });
