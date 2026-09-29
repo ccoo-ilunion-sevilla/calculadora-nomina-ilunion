@@ -408,6 +408,8 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   // archivo. En iPhone y en Safari no existe esa API: allí se usa la hoja de
   // compartir / la descarga de siempre.
   let manejadorArchivo = null;
+  const esIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const puedeGuardarEncima = () => typeof window.showSaveFilePicker === 'function';
   const TIPO_JSON = [{ description: 'Base de afiliados', accept: { 'application/json': ['.json'] } }];
   let sucio = false;
@@ -903,7 +905,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
      descarga como siempre. Devuelve false solo si el usuario la cierra. */
   async function descargar(contenido, tipo, nombre){
     const blob = new Blob([contenido], { type: tipo });
-    if (navigator.canShare) {
+    // La hoja de compartir solo en iPhone/iPad. En el Mac (Safari) hace que se
+    // ignore la carpeta de descargas configurada, p. ej. iCloud Drive.
+    if (esIos() && navigator.canShare) {
       const archivo = new File([blob], nombre, { type: tipo });
       if (navigator.canShare({ files: [archivo] })) {
         try {
@@ -945,8 +949,15 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     return await h.requestPermission(opciones) === 'granted';
   }
 
+  let avisadoSinSobrescribir = false;
   async function guardarCambios(){
+    let motivoCopia = '';
     // Ordenador con Chrome/Brave/Edge: escribir encima del mismo archivo.
+    if (!puedeGuardarEncima()) {
+      motivoCopia = 'Este navegador no permite a la página escribir encima de un archivo. ' +
+        'Si es Brave: abre brave://flags/#file-system-access-api, ponlo en «Enabled» y reinicia. ' +
+        'Si es Safari: no se puede; usa Chrome, Edge o Brave.';
+    }
     if (puedeGuardarEncima()) {
       try {
         if (!manejadorArchivo) {
@@ -967,7 +978,10 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       } catch (e) {
         if (e.name === 'AbortError') return;
         manejadorArchivo = null;   // si falla, se sigue por la vía de siempre
+        motivoCopia = `No se ha podido escribir encima del archivo (${e.name || 'error'}${e.message ? ': ' + e.message : ''}). ` +
+          'Pulsa «Abrir archivo…» y elige de nuevo tu archivo; si el navegador pide permiso de edición, acéptalo.';
       }
+      if (!motivoCopia) motivoCopia = 'El navegador no ha concedido permiso para editar el archivo. Vuelve a pulsar «Guardar cambios» y acepta el permiso.';
     }
 
     const guardado = await descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
@@ -975,6 +989,10 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     marcarLimpio();
     accionArchivo = 'guardado como';
     estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+    if (motivoCopia && !avisadoSinSobrescribir && !esIos()) {
+      avisadoSinSobrescribir = true;
+      avisar('Se ha descargado una COPIA NUEVA; no se ha sobrescrito el archivo.\n\n' + motivoCopia);
+    }
   }
 
   function csvEscapar(v){
