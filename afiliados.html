@@ -142,6 +142,12 @@ input[type=text],input[type=email],input[type=tel],input[type=date],select,texta
 select{font-family:'Inter',sans-serif}
 textarea{resize:vertical;min-height:64px;font-family:'Inter',sans-serif}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--rojo);outline-offset:1px;border-color:var(--rojo)}
+.mes-datos{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mes-datos > div{border:1px solid var(--linea);padding:9px 10px;background:var(--papel);font-size:13px}
+.mes-datos b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2);margin-bottom:3px}
+.mes-datos .ok{color:#1B7F3B;font-weight:700}
+.mes-datos .mal{color:var(--rojo);font-weight:700}
+.mes-datos .aviso{color:#B45309;font-weight:700}
 .sw{display:flex;align-items:center;gap:10px;padding:6px 0}
 .sw input{width:18px;height:18px;accent-color:var(--rojo)}
 .sw label{font-size:13px;font-weight:600;cursor:pointer}
@@ -230,9 +236,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
       <button type="button" id="btn-csv">Exportar a CSV</button>
       <label class="btn" for="file-jornada">📅 Importar registro de jornada…</label>
-      <input type="file" id="file-jornada" accept="application/pdf,.pdf">
+      <input type="file" id="file-jornada" accept="application/pdf,.pdf" multiple>
       <label class="btn" for="file-tc2">🧾 Importar cotizaciones (TC2)…</label>
-      <input type="file" id="file-tc2" accept="application/pdf,.pdf">
+      <input type="file" id="file-tc2" accept="application/pdf,.pdf" multiple>
+      <label class="btn" for="file-historico">🗂 Importar histórico (JSON)…</label>
+      <input type="file" id="file-historico" accept="application/json,.json" multiple>
     </div>
 
     <div class="estado-linea">
@@ -379,6 +387,14 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         </div>
       </div>
 
+      <div class="bloque oculto" id="bloque-meses">
+        <h3>Registros por mes</h3>
+        <div class="campo"><label for="c-mes">Mes</label>
+          <select id="c-mes"></select>
+          <p class="ayuda">Se rellena cada vez que importas un registro de jornada (REGJOR) o un TC2. Los meses anteriores a esta versión aparecerán al volver a importar sus PDF.</p></div>
+        <div class="mes-datos" id="mes-datos"></div>
+      </div>
+
       <div class="bloque">
         <h3>Notas</h3>
         <div class="campo"><textarea id="c-notas" placeholder="Observaciones, historial, conflictos abiertos…"></textarea></div>
@@ -446,6 +462,54 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     const pJornada = periodoDeTexto(a.jornadaMes);
     const pCotiz = periodoDeTexto(a.cotizacionMes);
     return !!pJornada && !!pCotiz && pJornada > pCotiz;
+  }
+
+  // Historial mensual por afiliado: historial['2026-07'] = {jornada, horas, bajaIF, bajaIA, cotiza}
+  function anotarHistorial(a, mesTexto, datos){
+    const k = periodoDeTexto(mesTexto);
+    if (!k) return;
+    a.historial = a.historial || {};
+    a.historial[k] = Object.assign(a.historial[k] || {}, datos);
+  }
+
+  // Al importar varios meses de golpe (en cualquier orden), los datos "actuales"
+  // de la fila solo los pisa el mes más reciente; los demás van solo al historial.
+  function esMesReciente(actual, nuevo){
+    const pa = periodoDeTexto(actual), pn = periodoDeTexto(nuevo);
+    return !pa || !pn || pn >= pa;
+  }
+
+  function textoMes(k){
+    const [anio, mes] = k.split('-');
+    const n = MESES_ES[parseInt(mes, 10) - 1];
+    return n.charAt(0) + n.slice(1).toLowerCase() + ' ' + anio;
+  }
+
+  function mostrarMes(a){
+    const cont = $('mes-datos');
+    const k = $('c-mes').value;
+    const h = (a && a.historial && a.historial[k]) || {};
+    const celda = (t, v, cls) => `<div><b>${t}</b><span class="${cls || ''}">${v}</span></div>`;
+    let html = '';
+    if (h.jornada === undefined) html += celda('Registro de jornada', 'Sin importar este mes');
+    else if (h.jornada === false) html += celda('Registro de jornada', 'No aparece en el registro', 'aviso');
+    else html += celda('Horas trabajadas (REGJOR)', h.horas != null ? h.horas : 'Sin horas de servicio', h.horas != null ? 'ok' : 'aviso');
+    if (h.jornada === true) {
+      const partes = [];
+      if (h.bajaIA > 0) partes.push(`${h.bajaIA} día(s) accidente laboral`);
+      if (h.bajaIF > 0) partes.push(`${h.bajaIF} día(s) enfermedad común`);
+      html += celda('Baja médica', partes.length ? partes.join(' y ') : 'Ninguna', partes.length ? 'mal' : 'ok');
+    }
+    if (h.cotiza === undefined) html += celda('Cotización (TC2)', 'Sin importar este mes');
+    else html += celda('Cotización (TC2)', h.cotiza ? 'Cotiza' : 'No cotiza', h.cotiza ? 'ok' : 'mal');
+    cont.innerHTML = html;
+  }
+
+  function cargarMeses(a){
+    const claves = Object.keys((a && a.historial) || {}).sort().reverse();
+    $('bloque-meses').classList.toggle('oculto', claves.length === 0);
+    $('c-mes').innerHTML = claves.map(k => `<option value="${k}">${textoMes(k)}</option>`).join('');
+    if (claves.length) mostrarMes(a);
   }
 
   // Está de baja médica según el último registro de jornada importado
@@ -785,6 +849,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     $('aviso-jornada').classList.add('oculto');
     $('aviso-cotizacion').classList.add('oculto');
     $('aviso-baja').classList.add('oculto');
+    $('bloque-meses').classList.add('oculto');
   }
 
   function abrirFicha(a){
@@ -834,6 +899,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         avisoC.textContent = `🔶 No cotiza en el último TC2 cargado${a.cotizacionMes ? ' (' + a.cotizacionMes + ')' : ''}: probablemente ya no está en la empresa. Confírmalo antes de darlo por baja.`;
       }
     }
+    cargarMeses(a);
     fichaOriginal = JSON.stringify(leerCampos());
     overlay.classList.remove('oculto');
     $('c-dni').focus();
@@ -1115,14 +1181,17 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           restaurar(target, `vuelve a aparecer en el registro de jornada de ${mesTexto}`);
           reincorporados++;
         }
-        const limpio = (target.notas || '').split(' · ').filter(seg => seg && !seg.includes('(REGJOR)'));
-        limpio.push(notaNueva);
-        target.notas = limpio.join(' · ');
-        target.jornadaEncontrada = true;
-        target.jornadaMes = mesTexto;
-        target.bajaIF = info.bajaIF || 0;
-        target.bajaIA = info.bajaIA || 0;
-        target.bajaMes = mesTexto;
+        if (esMesReciente(target.jornadaMes, mesTexto)) {
+          const limpio = (target.notas || '').split(' · ').filter(seg => seg && !seg.includes('(REGJOR)'));
+          limpio.push(notaNueva);
+          target.notas = limpio.join(' · ');
+          target.jornadaEncontrada = true;
+          target.jornadaMes = mesTexto;
+          target.bajaIF = info.bajaIF || 0;
+          target.bajaIA = info.bajaIA || 0;
+          target.bajaMes = mesTexto;
+        }
+        anotarHistorial(target, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
       } else {
         const m = /^(.*?),\s*(.*)$/.exec(info.nombreCompleto);
         const apellidosRaw = m ? m[1] : info.nombreCompleto;
@@ -1138,18 +1207,24 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           jornadaEncontrada: true, jornadaMes: mesTexto,
           bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, bajaMes: mesTexto,
         };
+        anotarHistorial(nuevo, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
         afiliados.push(nuevo);
         encontrados.add(nuevo.dni);
         nuevos++;
       }
     });
 
+    // Un REGJOR individual (1 trabajador) no permite decir que los demás faltan
+    const esRegistroCompleto = porNumero.size > 20;
     let marcadosFuera = 0;
     afiliados.forEach(a => {
-      if (!encontrados.has(a.dni)) {
-        a.jornadaEncontrada = false;
-        a.jornadaMes = mesTexto;
-        a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+      if (esRegistroCompleto && !encontrados.has(a.dni)) {
+        if (esMesReciente(a.jornadaMes, mesTexto)) {
+          a.jornadaEncontrada = false;
+          a.jornadaMes = mesTexto;
+          a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+        }
+        anotarHistorial(a, mesTexto, { jornada: false, horas: null, bajaIF: 0, bajaIA: 0 });
         if (!a.eliminado) marcadosFuera++;
       }
     });
@@ -1253,8 +1328,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         encontrado = true;
         porCaf++;
       }
-      a.cotizacionEncontrada = encontrado;
-      a.cotizacionMes = mesTexto;
+      if (esMesReciente(a.cotizacionMes, mesTexto)) {
+        a.cotizacionEncontrada = encontrado;
+        a.cotizacionMes = mesTexto;
+      }
+      anotarHistorial(a, mesTexto, { cotiza: encontrado });
       if (encontrado && a.eliminado) {
         restaurar(a, `vuelve a cotizar en el TC2 de ${mesTexto}`);
         reincorporados++;
@@ -1278,11 +1356,86 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     estadoTc2.textContent = msg;
   }
 
+  /* Histórico ya consolidado ("regjor_consolidado"): meses -> trabajadores por nº de empleado.
+     Solo rellena el historial mensual de quien ya está en la lista; no crea afiliados. */
+  async function importarHistoricoJson(file){
+    if (afiliados.length === 0) {
+      avisar('Primero abre tu archivo de afiliados; luego importa el histórico.');
+      return;
+    }
+    estadoJornada.classList.remove('oculto');
+    let datos;
+    try {
+      datos = JSON.parse(await file.text());
+      if (datos.tipo !== 'regjor_consolidado' || !datos.meses || typeof datos.meses !== 'object') throw new Error('formato');
+    } catch (e) {
+      estadoJornada.textContent = 'Ese JSON no es un histórico REGJOR consolidado (falta «tipo: regjor_consolidado»).';
+      return;
+    }
+
+    const numIndex = new Map();
+    const nameIndex = new Map();
+    afiliados.forEach(a => {
+      if (a.numEmpleado) numIndex.set(String(a.numEmpleado), a);
+      nameIndex.set(claveNombre(`${a.apellidos}, ${a.nombre}`), a);
+    });
+
+    const claves = Object.keys(datos.meses).sort();
+    let meses = 0, anotaciones = 0;
+    const casados = new Set();
+    const sinCasar = new Set();
+    claves.forEach(k => {
+      const mes = datos.meses[k] || {};
+      const mesTexto = mes.etiqueta || textoMes(k);
+      const trabajadores = mes.trabajadores || {};
+      const vistos = new Set();
+      Object.keys(trabajadores).forEach(num => {
+        const t = trabajadores[num] || {};
+        const target = numIndex.get(String(num)) || nameIndex.get(claveNombre(t.nombre || ''));
+        if (!target) { sinCasar.add(num); return; }
+        vistos.add(target);
+        casados.add(target);
+        if (!target.numEmpleado) target.numEmpleado = String(num);
+        const bajaIF = t.bajaIF || 0, bajaIA = t.bajaIA || 0;
+        anotarHistorial(target, mesTexto, { jornada: true, horas: t.total != null ? t.total : null, bajaIF, bajaIA });
+        anotaciones++;
+        if (esMesReciente(target.jornadaMes, mesTexto)) {
+          target.jornadaEncontrada = true;
+          target.jornadaMes = mesTexto;
+          target.bajaIF = bajaIF; target.bajaIA = bajaIA; target.bajaMes = mesTexto;
+        }
+      });
+      // Solo un mes completo permite afirmar que quien falta no estaba en el registro
+      if (mes.completo === true) {
+        afiliados.forEach(a => {
+          if (vistos.has(a)) return;
+          anotarHistorial(a, mesTexto, { jornada: false, horas: null, bajaIF: 0, bajaIA: 0 });
+          if (esMesReciente(a.jornadaMes, mesTexto)) {
+            a.jornadaEncontrada = false; a.jornadaMes = mesTexto;
+            a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
+          }
+        });
+      }
+      meses++;
+    });
+
+    marcarSucio();
+    render();
+    estadoJornada.textContent = `Histórico importado: ${meses} meses (${claves.map(textoMes).join(', ')}). ` +
+      `${casados.size} personas de tu lista con datos (${anotaciones} registros mensuales); ` +
+      `${sinCasar.size} nº de empleado del histórico no están en tu lista y se han ignorado. ` +
+      'Recuerda pulsar «Guardar cambios».';
+  }
+
   function abrirArchivo(file){
     const lector = new FileReader();
     lector.onload = () => {
       try {
         const datos = JSON.parse(lector.result);
+        if (datos && datos.tipo === 'regjor_consolidado') {
+          avisar('Ese es un histórico REGJOR, no tu base de afiliados. Abre primero tu archivo de afiliados y luego usa «Importar histórico (JSON)…».');
+          return;
+        }
         if (!Array.isArray(datos) || !datos.every(a => a && typeof a === 'object' && !Array.isArray(a))) throw new Error('formato');
         // migración: archivos antiguos guardaban un booleano "afiliado" (siempre CCOO) en vez de "sindicato"
         datos.forEach(a => {
@@ -1331,16 +1484,24 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     manejadorArchivo = null;
     abrirArchivo(file);
   });
-  $('file-jornada').addEventListener('change', (ev) => {
-    const file = ev.target.files[0];
-    if (file) importarJornada(file);
+  // Varios PDF de golpe (todo el histórico), uno detrás de otro y en cualquier orden.
+  async function importarVarios(ev, importar, estado){
+    const files = Array.from(ev.target.files || []);
     ev.target.value = '';
-  });
-  $('file-tc2').addEventListener('change', (ev) => {
-    const file = ev.target.files[0];
-    if (file) importarTC2(file);
-    ev.target.value = '';
-  });
+    const resumen = [];
+    for (let i = 0; i < files.length; i++) {
+      if (files.length > 1) estado.textContent = `Archivo ${i + 1} de ${files.length}: ${files[i].name}…`;
+      await importar(files[i]);
+      if (files.length > 1) resumen.push(`${files[i].name}: ${estado.textContent}`);
+    }
+    if (files.length > 1) {
+      estado.style.whiteSpace = 'pre-line';
+      estado.textContent = `${files.length} archivos procesados.\n` + resumen.join('\n');
+    }
+  }
+  $('file-jornada').addEventListener('change', (ev) => importarVarios(ev, importarJornada, estadoJornada));
+  $('file-historico').addEventListener('change', (ev) => importarVarios(ev, importarHistoricoJson, estadoJornada));
+  $('file-tc2').addEventListener('change', (ev) => importarVarios(ev, importarTC2, estadoTc2));
   $('btn-guardar').addEventListener('click', guardarCambios);
   $('btn-csv').addEventListener('click', exportarCsv);
   $('btn-filtro-bajas').addEventListener('click', () => {
@@ -1356,6 +1517,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     render();
   });
   $('btn-nuevo').addEventListener('click', () => abrirFicha(null));
+  $('c-mes').addEventListener('change', () => {
+    mostrarMes(dniEditando ? afiliados.find(a => claveDni(a.dni) === dniEditando) : null);
+  });
   $('ficha-cerrar').addEventListener('click', intentarCerrarFicha);
   $('btn-cancelar-ficha').addEventListener('click', intentarCerrarFicha);
   $('btn-guardar-ficha').addEventListener('click', guardarFicha);
