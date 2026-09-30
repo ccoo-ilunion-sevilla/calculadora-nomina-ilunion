@@ -204,6 +204,21 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   .fila-borrar,.fila-restaurar{padding:10px 6px}
   .filtros select{flex:1 1 100%}
 }
+/* Detalle de jornada / cotización dentro de la ficha */
+#detalle-contenido .det-barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
+#detalle-contenido select{padding:6px 8px;width:auto}
+#detalle-contenido .det-resumen{font-size:.9rem;margin:0 0 8px;color:var(--tinta-2)}
+#detalle-contenido .det-aviso{background:#FFF4E5;border-left:4px solid #E08A00;padding:6px 10px;margin:6px 0;font-size:.85rem}
+#detalle-contenido .det-aviso.rojo{background:#FDECEC;border-left-color:var(--rojo)}
+.det-scroll{max-height:320px;overflow:auto;border:1px solid #D9DCE1;margin:0 0 10px}
+.det-tabla{width:100%;border-collapse:collapse;font-size:.82rem}
+.det-tabla th{position:sticky;top:0;background:var(--tinta);color:#fff;text-align:left;padding:4px 6px;font-weight:600}
+.det-tabla td{padding:3px 6px;border-top:1px solid #ECEEF1;vertical-align:top}
+.det-tabla tr.finde td{background:#F5F6F8}
+.det-tabla tr.incid td{background:#EAF3FF}
+.det-tabla td.num{text-align:right;white-space:nowrap}
+.cambio{border-bottom:1px solid var(--linea);padding:8px 0;font-size:13px;line-height:1.5}
+.cambio:last-child{border-bottom:0}
 </style>
 </head>
 <body>
@@ -235,12 +250,10 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       <button type="button" class="primario" id="btn-guardar">💾 Guardar cambios</button>
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
       <button type="button" id="btn-csv">Exportar a CSV</button>
-      <label class="btn" for="file-jornada">📅 Importar registro de jornada…</label>
-      <input type="file" id="file-jornada" accept="application/pdf,.pdf" multiple>
-      <label class="btn" for="file-tc2">🧾 Importar cotizaciones (TC2)…</label>
-      <input type="file" id="file-tc2" accept="application/pdf,.pdf" multiple>
-      <label class="btn" for="file-historico">🗂 Importar histórico (JSON)…</label>
-      <input type="file" id="file-historico" accept="application/json,.json" multiple>
+      <label class="btn" for="file-consolidados">📦 Importar consolidados y detalle…</label>
+      <input type="file" id="file-consolidados" accept=".json,application/json" multiple>
+      <label class="btn" for="file-suelto">📄 Importar documento suelto (PDF, Word)…</label>
+      <input type="file" id="file-suelto" accept="application/pdf,.pdf,.docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.json,application/json" multiple>
     </div>
 
     <div class="estado-linea">
@@ -391,8 +404,23 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         <h3>Registros por mes</h3>
         <div class="campo"><label for="c-mes">Mes</label>
           <select id="c-mes"></select>
-          <p class="ayuda">Se rellena cada vez que importas un registro de jornada (REGJOR) o un TC2. Los meses anteriores a esta versión aparecerán al volver a importar sus PDF.</p></div>
+          <p class="ayuda">Se rellena al importar los consolidados de jornada (REGJOR) y de cotización (TC2).</p></div>
         <div class="mes-datos" id="mes-datos"></div>
+      </div>
+
+      <div class="bloque oculto" id="bloque-contratos">
+        <h3>Contratos (copia básica)</h3>
+        <div id="contratos-lista"></div>
+      </div>
+
+      <div class="bloque oculto" id="bloque-cambios">
+        <h3>Cambios de jornada</h3>
+        <div id="cambios-lista"></div>
+      </div>
+
+      <div class="bloque oculto" id="bloque-detalle">
+        <h3>Jornada y cotización detalladas</h3>
+        <div id="detalle-contenido"></div>
       </div>
 
       <div class="bloque">
@@ -432,6 +460,8 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   let fichaOriginal = '';  // foto de los campos al abrir la ficha, para detectar cambios
   let dniEditando = null; // DNI original de la ficha abierta, para saber si es alta o edición
   let vista = 'activos';  // 'activos' | 'bajas' (solo naranjas) | 'eliminados' (papelera)
+  let detalleJornada = null, detalleTc2 = null; // detalle de jornada / TC2: se guarda dentro del archivo de afiliados
+  let cacheNombres = {}; // índice por nombre de cada mes; fuera de los datos para no guardarlo en el archivo
   let accionArchivo = '';  // última acción sobre el archivo, para mantener el contador al día
 
   const $ = (id) => document.getElementById(id);
@@ -465,11 +495,20 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   }
 
   // Historial mensual por afiliado: historial['2026-07'] = {jornada, horas, bajaIF, bajaIA, cotiza}
-  function anotarHistorial(a, mesTexto, datos){
+  // Con soloSumar no se pisa ningún dato ya guardado de ese mes: solo se añaden los que faltan.
+  // Devuelve cuántos datos ya guardados eran distintos (y se han respetado).
+  function anotarHistorial(a, mesTexto, datos, soloSumar){
     const k = periodoDeTexto(mesTexto);
-    if (!k) return;
+    if (!k) return 0;
     a.historial = a.historial || {};
-    a.historial[k] = Object.assign(a.historial[k] || {}, datos);
+    const actual = a.historial[k] || (a.historial[k] = {});
+    if (!soloSumar) { Object.assign(actual, datos); return 0; }
+    let distintos = 0;
+    Object.keys(datos).forEach(c => {
+      if (actual[c] === undefined) actual[c] = datos[c];
+      else if (JSON.stringify(actual[c]) !== JSON.stringify(datos[c])) distintos++;
+    });
+    return distintos;
   }
 
   // Al importar varios meses de golpe (en cualquier orden), los datos "actuales"
@@ -500,6 +539,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       if (h.bajaIF > 0) partes.push(`${h.bajaIF} día(s) enfermedad común`);
       html += celda('Baja médica', partes.length ? partes.join(' y ') : 'Ninguna', partes.length ? 'mal' : 'ok');
     }
+    if (h.jornada === true && h.incid) {
+      const lista = Object.keys(h.incid).filter(c => h.incid[c].dias > 0)
+        .map(c => `${esc(h.incid[c].nombre)} (*${esc(c)}): ${h.incid[c].dias} día(s)`);
+      html += celda('Vacaciones, permisos y otros', lista.length ? lista.join('<br>') : 'Ninguno');
+    }
     if (h.cotiza === undefined) html += celda('Cotización (TC2)', 'Sin importar este mes');
     else html += celda('Cotización (TC2)', h.cotiza ? 'Cotiza' : 'No cotiza', h.cotiza ? 'ok' : 'mal');
     cont.innerHTML = html;
@@ -518,51 +562,6 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   // Naranja = ha desaparecido de las cotizaciones (probable baja en la empresa)
   function pareceBajaEnEmpresa(a){
     return a.cotizacionEncontrada === false && !esAltaPosteriorAlTc2(a);
-  }
-
-  // Build clásico (no de módulos ES) de pdf.js: el worker de módulos falla en algunos
-  // navegadores móviles (Safari de iPhone entre ellos) al cargarse desde otro dominio.
-  let libPdfjs = null;
-  function cargarPdfjs(){
-    if (libPdfjs) return libPdfjs;
-    libPdfjs = new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      s.onload = () => {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        res(window.pdfjsLib);
-      };
-      s.onerror = () => rej(new Error('sin conexión'));
-      document.head.appendChild(s);
-    });
-    return libPdfjs;
-  }
-
-  // pdf.js devuelve los fragmentos de texto en el orden interno del PDF, no en
-  // orden de lectura. Los reordenamos por posición (arriba→abajo, izq→dcha).
-  function textoEnOrdenDeLectura(tc){
-    const items = tc.items
-      .filter(it => it.str && it.str.trim() !== '')
-      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }))
-      .sort((a, b) => b.y - a.y || a.x - b.x);
-    const lineas = [];
-    let actual = [];
-    let yPrev = null;
-    const TOL = 2;
-    items.forEach(it => {
-      if (yPrev !== null && Math.abs(it.y - yPrev) > TOL) {
-        lineas.push(actual);
-        actual = [];
-      }
-      actual.push(it);
-      yPrev = it.y;
-    });
-    if (actual.length) lineas.push(actual);
-    return lineas
-      .map(l => l.sort((a, b) => a.x - b.x).map(it => it.str).join(' '))
-      .join(' ')
-      .replace(/\s+/g, ' ');
   }
 
   /* Diálogos propios. No usamos alert()/confirm() nativos porque algunos
@@ -600,11 +599,24 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   const avisar = (texto) => abrirDialogo(texto, 'Entendido', false);
   const confirmar = (texto, textoOk) => abrirDialogo(texto, textoOk || 'Sí, continuar', true);
 
+  /* Sin detalle cargado el archivo es la lista de siempre (un array). Con detalle,
+     un objeto que la lleva dentro junto al detalle de jornada y de cotización, para
+     no tener que volver a subirlos cada vez. Abrir acepta las dos formas. */
+  function contenidoArchivo(){
+    const lista = JSON.stringify(afiliados, null, 2);
+    if (!detalleJornada && !detalleTc2) return lista;
+    return '{\n"tipo": "afiliados_ccoo",\n"version": 2,\n"afiliados": ' + lista +
+      ',\n"detalleJornada": ' + JSON.stringify(detalleJornada) +
+      ',\n"detalleTc2": ' + JSON.stringify(detalleTc2) + '\n}';
+  }
+
   function textoEstadoArchivo(accion){
     const activos = afiliados.filter(a => !a.eliminado).length;
     const enPapelera = afiliados.length - activos;
     return `${activos} afiliado(s)` +
       (enPapelera ? ` + ${enPapelera} en la lista de eliminados` : '') +
+      (detalleJornada ? ` + detalle de jornada (${Object.keys(detalleJornada.meses).length} meses)` : '') +
+      (detalleTc2 ? ` + detalle de cotización (${Object.keys(detalleTc2.periodos).length} TC2)` : '') +
       ` — ${accion} «${nombreArchivo}»`;
   }
 
@@ -627,14 +639,6 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   function claveNombre(s){
     return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .toUpperCase().replace(/\s+/g, ' ').trim();
-  }
-
-  const CONECTORES = new Set(['de','del','la','las','los','y']);
-  function tituloNombre(s){
-    return (s || '').trim().split(/\s+/).map((p, i) => {
-      const low = p.toLowerCase();
-      return (i > 0 && CONECTORES.has(low)) ? low : (low.charAt(0).toUpperCase() + low.slice(1));
-    }).join(' ');
   }
 
   const CAMPOS_BUSQUEDA = ['dni','numEmpleado','nombre','apellidos','numAfiliacion','direccion','cp','localidad',
@@ -801,7 +805,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           const ok = await confirmar(
             `¿Mandar a ${a.nombre} ${a.apellidos} a la lista de eliminados?\n\n` +
             `No se pierde nada: podrás verlo en «Ver eliminados» y restaurarlo cuando quieras. ` +
-            `Si la empresa lo vuelve a dar de alta, volverá solo al importar el registro de jornada o el TC2.`,
+            `Si la empresa lo vuelve a dar de alta, volverá solo al importar los consolidados.`,
             'Sí, eliminar');
           if (ok) {
             a.eliminado = true;
@@ -850,6 +854,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     $('aviso-cotizacion').classList.add('oculto');
     $('aviso-baja').classList.add('oculto');
     $('bloque-meses').classList.add('oculto');
+    $('bloque-detalle').classList.add('oculto');
+    $('bloque-cambios').classList.add('oculto');
+    $('bloque-contratos').classList.add('oculto');
   }
 
   function abrirFicha(a){
@@ -900,6 +907,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       }
     }
     cargarMeses(a);
+    pintarContratos(a);
+    pintarCambios(a);
+    pintarDetalle(a);
     fichaOriginal = JSON.stringify(leerCampos());
     overlay.classList.remove('oculto');
     $('c-dni').focus();
@@ -998,6 +1008,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     return confirmar('Tienes cambios sin guardar. Si abres otro archivo se pierden.\n\n¿Abrirlo igualmente?', 'Sí, abrir y perder cambios');
   }
 
+  let selectorRoto = false; // si el selector avanzado falla, el siguiente clic usa el clásico
   async function abrirConSelector(){
     if (!await permitirReemplazo()) return;
     try {
@@ -1005,7 +1016,9 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       manejadorArchivo = h;
       abrirArchivo(await h.getFile());
     } catch (e) {
-      if (e.name !== 'AbortError') avisar('No se ha podido abrir el archivo.');
+      if (e.name === 'AbortError') return;
+      selectorRoto = true;
+      avisar(`No se ha podido abrir el archivo con el selector avanzado (${e.name || 'error'}${e.message ? ': ' + e.message : ''}).\n\nVuelve a pulsar «Abrir archivo…»: ahora se usará el selector normal (en ese caso «Guardar» descargará una copia).`);
     }
   }
 
@@ -1033,7 +1046,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         }
         if (await permisoDeEscritura(manejadorArchivo)) {
           const w = await manejadorArchivo.createWritable();
-          await w.write(JSON.stringify(afiliados, null, 2));
+          await w.write(contenidoArchivo());
           await w.close();
           nombreArchivo = manejadorArchivo.name;
           marcarLimpio();
@@ -1050,7 +1063,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       if (!motivoCopia) motivoCopia = 'El navegador no ha concedido permiso para editar el archivo. Vuelve a pulsar «Guardar cambios» y acepta el permiso.';
     }
 
-    const guardado = await descargar(JSON.stringify(afiliados, null, 2), 'application/json', nombreArchivo);
+    const guardado = await descargar(contenidoArchivo(), 'application/json', nombreArchivo);
     if (!guardado) return;   // hoja de compartir cancelada: siguen sin guardar
     marcarLimpio();
     accionArchivo = 'guardado como';
@@ -1078,171 +1091,6 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     await descargar('﻿' + filas.join('\n'), 'text/csv;charset=utf-8', nombreArchivo.replace(/\.json$/i, '') + '.csv');
   }
 
-  async function importarJornada(file){
-    if (afiliados.length === 0) {
-      avisar('Primero abre tu archivo de afiliados (o crea uno nuevo); luego importa el registro de jornada.');
-      return;
-    }
-    estadoJornada.classList.remove('oculto');
-    estadoJornada.textContent = 'Cargando lector de PDF…';
-
-    let pdfjsLib;
-    try {
-      pdfjsLib = await cargarPdfjs();
-    } catch (e) {
-      estadoJornada.textContent = 'No se ha podido cargar el lector de PDF (¿sin conexión a internet?).';
-      return;
-    }
-
-    let doc;
-    try {
-      const buf = await file.arrayBuffer();
-      doc = await pdfjsLib.getDocument({ data: buf }).promise;
-    } catch (e) {
-      estadoJornada.textContent = 'Ese archivo no se ha podido leer como PDF.';
-      return;
-    }
-
-    const porNumero = new Map(); // numEmpleado -> {nombreCompleto, total}
-    let mesDetectado = '', anioDetectado = '';
-
-    for (let i = 1; i <= doc.numPages; i++) {
-      if (i % 15 === 0 || i === doc.numPages) {
-        estadoJornada.textContent = `Leyendo página ${i} de ${doc.numPages}…`;
-        await new Promise(r => setTimeout(r, 0));
-      }
-      let texto;
-      try {
-        const page = await doc.getPage(i);
-        const tc = await page.getTextContent();
-        texto = textoEnOrdenDeLectura(tc);
-      } catch (e) {
-        continue;
-      }
-      const mHead = texto.match(/EMPLEADO:\s*([\d.]+)\s*-\s*(.+?)\s+MES\s+(\S+)\s+A[ÑN]O\s+(\d{4})/);
-      if (!mHead) continue;
-      const numEmpleado = mHead[1].replace(/\./g, '');
-      const nombreCompleto = mHead[2].trim();
-      if (!mesDetectado) { mesDetectado = mHead[3]; anioDetectado = mHead[4]; }
-      const mTotal = texto.match(/FEST\.\s+[\d.]+\s+TOTAL\s+([\d.]+)/);
-      const total = mTotal ? mTotal[1] : null;
-
-      // Días de baja: cada día del cuadrante va marcado con su código y al pie
-      // de la página está la leyenda ("*IF - Enfermedad no laboral"), que hay
-      // que descontar para no contarla como un día más.
-      const diasDeCodigo = (cod) => {
-        const enRejilla = (texto.match(new RegExp('\\*' + cod + '\\b', 'g')) || []).length;
-        const enLeyenda = (texto.match(new RegExp('\\*' + cod + '\\s*-\\s*', 'g')) || []).length;
-        return Math.max(0, enRejilla - enLeyenda);
-      };
-      const bajaIF = diasDeCodigo('IF');  // enfermedad común / no laboral
-      const bajaIA = diasDeCodigo('IA');  // accidente laboral
-
-      const previo = porNumero.get(numEmpleado);
-      if (!previo || (previo.total === null && total !== null)) {
-        porNumero.set(numEmpleado, { nombreCompleto, total, bajaIF, bajaIA });
-      } else if (previo) {
-        // varias páginas del mismo mes: nos quedamos con el mayor recuento
-        previo.bajaIF = Math.max(previo.bajaIF || 0, bajaIF);
-        previo.bajaIA = Math.max(previo.bajaIA || 0, bajaIA);
-      }
-    }
-
-    if (porNumero.size === 0) {
-      estadoJornada.textContent = 'No se ha encontrado ningún trabajador en ese PDF — ¿es un "Informe Cuadrante Gráfico por Empleado"?';
-      return;
-    }
-
-    const mesTexto = mesDetectado
-      ? `${mesDetectado.charAt(0)}${mesDetectado.slice(1).toLowerCase()} ${anioDetectado}`
-      : 'este registro';
-
-    const numIndex = new Map();
-    const nameIndex = new Map();
-    afiliados.forEach(a => {
-      if (a.numEmpleado) numIndex.set(String(a.numEmpleado), a);
-      nameIndex.set(claveNombre(`${a.apellidos}, ${a.nombre}`), a);
-    });
-
-    const encontrados = new Set();
-    let nuevos = 0, conHoras = 0, sinHoras = 0, reincorporados = 0;
-
-    porNumero.forEach((info, numEmpleado) => {
-      const target = numIndex.get(numEmpleado) || nameIndex.get(claveNombre(info.nombreCompleto));
-      const notaNueva = info.total !== null
-        ? `Horas trabajadas en ${mesTexto} (REGJOR): ${info.total}`
-        : `${mesTexto} (REGJOR): sin horas de servicio registradas ese mes (posible baja/incidencia todo el mes)`;
-      if (info.total !== null) conHoras++; else sinHoras++;
-
-      if (target) {
-        encontrados.add(target.dni);
-        if (!target.numEmpleado) target.numEmpleado = numEmpleado;
-        if (target.eliminado) {
-          restaurar(target, `vuelve a aparecer en el registro de jornada de ${mesTexto}`);
-          reincorporados++;
-        }
-        if (esMesReciente(target.jornadaMes, mesTexto)) {
-          const limpio = (target.notas || '').split(' · ').filter(seg => seg && !seg.includes('(REGJOR)'));
-          limpio.push(notaNueva);
-          target.notas = limpio.join(' · ');
-          target.jornadaEncontrada = true;
-          target.jornadaMes = mesTexto;
-          target.bajaIF = info.bajaIF || 0;
-          target.bajaIA = info.bajaIA || 0;
-          target.bajaMes = mesTexto;
-        }
-        anotarHistorial(target, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
-      } else {
-        const m = /^(.*?),\s*(.*)$/.exec(info.nombreCompleto);
-        const apellidosRaw = m ? m[1] : info.nombreCompleto;
-        const nombreRaw = m ? m[2] : '';
-        const nuevo = {
-          dni: `SINDNI-${numEmpleado}`, numEmpleado, nombre: tituloNombre(nombreRaw), apellidos: tituloNombre(apellidosRaw),
-          fechaNacimiento: '', numAfiliacion: '',
-          direccion: '', cp: '', localidad: 'Sevilla', provincia: 'Sevilla',
-          movil: '', fijo: '', email: '',
-          centro: '', categoria: 'Vigilante de Seguridad',
-          sindicato: '', fechaAlta: '', estado: 'Al corriente', delegado: false,
-          notas: `${notaNueva} · FALTA DNI REAL - completar a mano · Nuevo, no estaba en la lista (detectado en registro de jornada de ${mesTexto}).`,
-          jornadaEncontrada: true, jornadaMes: mesTexto,
-          bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0, bajaMes: mesTexto,
-        };
-        anotarHistorial(nuevo, mesTexto, { jornada: true, horas: info.total, bajaIF: info.bajaIF || 0, bajaIA: info.bajaIA || 0 });
-        afiliados.push(nuevo);
-        encontrados.add(nuevo.dni);
-        nuevos++;
-      }
-    });
-
-    // Un REGJOR individual (1 trabajador) no permite decir que los demás faltan
-    const esRegistroCompleto = porNumero.size > 20;
-    let marcadosFuera = 0;
-    afiliados.forEach(a => {
-      if (esRegistroCompleto && !encontrados.has(a.dni)) {
-        if (esMesReciente(a.jornadaMes, mesTexto)) {
-          a.jornadaEncontrada = false;
-          a.jornadaMes = mesTexto;
-          a.bajaIF = 0; a.bajaIA = 0; a.bajaMes = mesTexto;
-        }
-        anotarHistorial(a, mesTexto, { jornada: false, horas: null, bajaIF: 0, bajaIA: 0 });
-        if (!a.eliminado) marcadosFuera++;
-      }
-    });
-
-    afiliados.sort((a, b) =>
-      (a.apellidos || '').localeCompare(b.apellidos || '', 'es') ||
-      (a.nombre || '').localeCompare(b.nombre || '', 'es'));
-
-    marcarSucio();
-    render();
-    let msgJ = `Registro de ${mesTexto} importado: ${conHoras} con horas, ${sinHoras} sin horas ese mes, ` +
-      `${nuevos} trabajador(es) nuevo(s) añadidos, ${marcadosFuera} sin este registro (marcados en amarillo).`;
-    if (reincorporados) {
-      msgJ += ` ${reincorporados} estaban en la lista de eliminados y han vuelto a aparecer: los he restaurado.`;
-    }
-    estadoJornada.textContent = msgJ + ' Recuerda pulsar «Guardar cambios».';
-  }
-
   /* El TC2 (Relación Nominal de Trabajadores) no imprime el nombre, pero sí un
      código de 5 letras: 2 del primer apellido + 2 del segundo + 1 del nombre.
      Sirve para reconocer a quien todavía no tiene su DNI real en la ficha. */
@@ -1254,73 +1102,12 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     return a1 + a2 + ((no[0] || 'X').charAt(0));
   }
 
-  async function importarTC2(file){
-    if (afiliados.length === 0) {
-      avisar('Primero abre tu archivo de afiliados; luego importa el TC2.');
-      return;
-    }
-    estadoTc2.classList.remove('oculto');
-    estadoTc2.textContent = 'Cargando lector de PDF…';
-
-    let pdfjsLib;
-    try {
-      pdfjsLib = await cargarPdfjs();
-    } catch (e) {
-      estadoTc2.textContent = 'No se ha podido cargar el lector de PDF (¿sin conexión a internet?).';
-      return;
-    }
-
-    let doc;
-    try {
-      const buf = await file.arrayBuffer();
-      doc = await pdfjsLib.getDocument({ data: buf }).promise;
-    } catch (e) {
-      estadoTc2.textContent = 'Ese archivo no se ha podido leer como PDF.';
-      return;
-    }
-
-    const dnisEnTc2 = new Set();
-    const cafsEnTc2 = new Set();
-    let periodoMes = '', periodoAnio = '';
-
-    for (let i = 1; i <= doc.numPages; i++) {
-      if (i % 5 === 0 || i === doc.numPages) {
-        estadoTc2.textContent = `Leyendo página ${i} de ${doc.numPages}…`;
-        await new Promise(r => setTimeout(r, 0));
-      }
-      let texto;
-      try {
-        const page = await doc.getPage(i);
-        const tc = await page.getTextContent();
-        texto = textoEnOrdenDeLectura(tc);
-      } catch (e) {
-        continue;
-      }
-      if (!periodoMes) {
-        // "06/2026-06/2026". Se busca por el patrón de fechas y no por la etiqueta
-        // porque pdf.js devuelve los acentos sueltos ("liquidaci ó n").
-        const mPer = /\b(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{4})\b/.exec(texto);
-        if (mPer) { periodoMes = mPer[3]; periodoAnio = mPer[4]; }
-      }
-      // NAF (12 dígitos) + I.P.F. (2 dígitos de tipo de documento + DNI/NIE) + código de nombre
-      const re = /\b\d{12}\s+\d{2}([0-9A-Z]{8}[A-Z])\s+([A-Z]{2,6})\b/g;
-      let m;
-      while ((m = re.exec(texto)) !== null) {
-        dnisEnTc2.add(m[1]);
-        cafsEnTc2.add(m[2]);
-      }
-    }
-
-    if (dnisEnTc2.size === 0) {
-      estadoTc2.textContent = 'No se ha encontrado ningún trabajador en ese PDF — ¿es un TC2 / "Relación Nominal de Trabajadores"?';
-      return;
-    }
-
-    const idxMes = parseInt(periodoMes, 10) - 1;
-    const mesTexto = (idxMes >= 0 && idxMes < 12)
-      ? `${MESES_ES[idxMes].charAt(0)}${MESES_ES[idxMes].slice(1).toLowerCase()} ${periodoAnio}`
-      : 'este TC2';
-
+  /* Aplica un TC2 ya leído (conjuntos de DNI y de códigos de nombre) a la lista.
+     Lo usan el PDF y el consolidado JSON. */
+  function aplicarTC2(dnisEnTc2, cafsEnTc2, mesTexto, soloSumar){
+    // Un TC2 suelto con muy pocas personas no permite afirmar que el resto no cotiza.
+    const ausenciasFiables = !soloSumar || dnisEnTc2.size > 20;
+    let distintos = 0;
     let cotizan = 0, noCotizan = 0, altasPosteriores = 0, porCaf = 0, reincorporados = 0;
     afiliados.forEach(a => {
       let encontrado = dnisEnTc2.has(claveDni(a.dni));
@@ -1328,12 +1115,15 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         encontrado = true;
         porCaf++;
       }
+      if (!encontrado && !ausenciasFiables) return;
+      distintos += anotarHistorial(a, mesTexto, { cotiza: encontrado }, soloSumar);
       if (esMesReciente(a.cotizacionMes, mesTexto)) {
-        a.cotizacionEncontrada = encontrado;
+        // lo que queda guardado para ese mes (con soloSumar puede ser un dato anterior que se respeta)
+        const guardado = a.historial && a.historial[periodoDeTexto(mesTexto)];
+        a.cotizacionEncontrada = (guardado && guardado.cotiza !== undefined) ? guardado.cotiza : encontrado;
         a.cotizacionMes = mesTexto;
       }
-      anotarHistorial(a, mesTexto, { cotiza: encontrado });
-      if (encontrado && a.eliminado) {
+      if (encontrado && a.eliminado && !soloSumar) {
         restaurar(a, `vuelve a cotizar en el TC2 de ${mesTexto}`);
         reincorporados++;
       }
@@ -1352,27 +1142,20 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     if (altasPosteriores) {
       msg += ` ${altasPosteriores} no cotizan en este TC2 pero sí tienen jornada en un mes posterior: son altas nuevas, no se marcan.`;
     }
+    if (soloSumar) {
+      msg += ' Solo se han sumado datos: no se ha borrado ni cambiado nada de lo ya guardado' +
+        (distintos ? ` (${distintos} dato(s) de este mes ya guardados eran distintos y se han respetado)` : '') + '.';
+      if (!ausenciasFiables) msg += ' Al ser un TC2 con muy pocas personas no se marca a nadie como «no cotiza».';
+    }
     msg += ' Recuerda pulsar «Guardar cambios».';
     estadoTc2.textContent = msg;
+    return msg;
   }
 
   /* Histórico ya consolidado ("regjor_consolidado"): meses -> trabajadores por nº de empleado.
      Solo rellena el historial mensual de quien ya está en la lista; no crea afiliados. */
-  async function importarHistoricoJson(file){
-    if (afiliados.length === 0) {
-      avisar('Primero abre tu archivo de afiliados; luego importa el histórico.');
-      return;
-    }
+  function aplicarHistoricoJson(datos){
     estadoJornada.classList.remove('oculto');
-    let datos;
-    try {
-      datos = JSON.parse(await file.text());
-      if (datos.tipo !== 'regjor_consolidado' || !datos.meses || typeof datos.meses !== 'object') throw new Error('formato');
-    } catch (e) {
-      estadoJornada.textContent = 'Ese JSON no es un histórico REGJOR consolidado (falta «tipo: regjor_consolidado»).';
-      return;
-    }
-
     const numIndex = new Map();
     const nameIndex = new Map();
     afiliados.forEach(a => {
@@ -1427,13 +1210,577 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       'Recuerda pulsar «Guardar cambios».';
   }
 
+  // Build clásico (no de módulos ES) de pdf.js: el worker de módulos falla en algunos
+  // navegadores móviles (Safari de iPhone entre ellos) al cargarse desde otro dominio.
+  let libPdfjs = null;
+  function cargarPdfjs(){
+    if (libPdfjs) return libPdfjs;
+    libPdfjs = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        res(window.pdfjsLib);
+      };
+      s.onerror = () => rej(new Error('sin conexión'));
+      document.head.appendChild(s);
+    });
+    return libPdfjs;
+  }
+
+  // Lector de Word (.docx): mammoth, cargado solo cuando hace falta.
+  let libMammoth = null;
+  function cargarMammoth(){
+    if (libMammoth) return libMammoth;
+    libMammoth = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+      s.onload = () => res(window.mammoth);
+      s.onerror = () => { libMammoth = null; rej(new Error('sin conexión')); };
+      document.head.appendChild(s);
+    });
+    return libMammoth;
+  }
+
+  // pdf.js devuelve los fragmentos de texto en el orden interno del PDF, no en
+  // orden de lectura. Los reordenamos por posición (arriba→abajo, izq→dcha).
+  function textoEnOrdenDeLectura(tc){
+    const items = tc.items
+      .filter(it => it.str && it.str.trim() !== '')
+      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }))
+      .sort((a, b) => b.y - a.y || a.x - b.x);
+    const lineas = [];
+    let actual = [];
+    let yPrev = null;
+    const TOL = 2;
+    items.forEach(it => {
+      if (yPrev !== null && Math.abs(it.y - yPrev) > TOL) {
+        lineas.push(actual);
+        actual = [];
+      }
+      actual.push(it);
+      yPrev = it.y;
+    });
+    if (actual.length) lineas.push(actual);
+    return lineas
+      .map(l => l.sort((a, b) => a.x - b.x).map(it => it.str).join(' '))
+      .join(' ')
+      .replace(/\s+/g, ' ');
+  }
+
+  /* Incidencias del cuadrante distintas de la baja médica (vacaciones, permisos...).
+     La leyenda del pie lista cada código como "*XX - Descripción"; los días son las
+     veces que el código aparece en la rejilla, descontando la propia leyenda. */
+  function contarIncidencias(texto){
+    const res = {};
+    const re = /\*([A-Z][A-Z0-9]{0,3})\s*-\s*([^*\n]{2,60})/g;
+    let m;
+    while ((m = re.exec(texto)) !== null) {
+      const cod = m[1];
+      if (cod === 'IF' || cod === 'IA' || res[cod]) continue;
+      const nombre = m[2].split(/\s{2,}/)[0].trim();
+      const enRejilla = (texto.match(new RegExp('\\*' + cod + '\\b', 'g')) || []).length;
+      const enLeyenda = (texto.match(new RegExp('\\*' + cod + '\\s*-\\s*', 'g')) || []).length;
+      res[cod] = { nombre, dias: Math.max(0, enRejilla - enLeyenda) };
+    }
+    return res;
+  }
+
+  /* ===== Documento suelto (PDF o JSON) =====
+     Para lo que llegue fuera de los consolidados: un REGJOR (uno o varios meses, uno o
+     varios trabajadores) o un TC2. Solo SUMA: rellena el historial mensual de quien ya
+     está en la lista, sin crear, borrar ni pisar nada de lo ya guardado. */
+  // Un nombre sin importar el orden («APELLIDOS, NOMBRE» o «NOMBRE APELLIDOS»).
+  const clavePersona = (t) => claveNombre(t || '').split(' ').filter(Boolean).sort().join(' ');
+  const fechaIso = (d, m, y) => `${y}-${m}-${d}`;
+  const fechaEs = (iso) => iso ? iso.split('-').reverse().join('/') : '';
+
+  // Los documentos de la empresa traen las mayúsculas acentuadas cambiadas (Ó→α, Í→╓, Ú→Θ, Á→╡).
+  const arreglarTexto = (t) => String(t).replace(/α/g, 'Ó').replace(/╓/g, 'Í').replace(/Θ/g, 'Ú').replace(/╡/g, 'Á');
+
+  // Los archivos llegan como «nºpersonal_DNI_fecha_Tipo_NOMBRE.ext»: sirve para identificar a la persona.
+  function leerNombreArchivo(nombre){
+    const m = /(\d+)_([0-9A-Z]{8,9})_(\d{4}-\d{2}-\d{2})_/.exec(nombre || '');
+    return m ? { num: m[1], dni: m[2] } : null;
+  }
+
+  // «CONTRATO DE TRABAJO – COPIA BÁSICA»: devuelve sus datos o null.
+  function leerCopiaBasica(texto){
+    if (!/CONTRATO DE TRABAJO/i.test(texto) || !/COPIA B[ÁA]SICA/i.test(texto)) return null;
+    const g = (re) => { const m = re.exec(texto); return m ? m[1].trim() : ''; };
+    const f = /FECHA DE INICIO DEL CONTRATO:\s*(\d{2})\/(\d{2})\/(\d{4})/i.exec(texto);
+    const nombre = g(/EL\/LA TRABAJADOR\/A\s+D\.\/D[ªa]\.?:\s*(.+?)\s+CATEGOR[ÍI]A PROFESIONAL:/i);
+    if (!f || !nombre) return null;
+    const dur = g(/DURACI[ÓO]N PREVISTA:\s*(.+?)\s+OBJETO DEL CONTRATO:/i);
+    const hasta = /hasta\s+(\d{2})\/(\d{2})\/(\d{4})/i.exec(dur);
+    return {
+      numEmpleado: '', dni: '', nombre,
+      contrato: {
+        inicio: fechaIso(f[1], f[2], f[3]), fin: hasta ? fechaIso(hasta[1], hasta[2], hasta[3]) : '',
+        tipo: g(/TIPO DE CONTRATO:\s*(.+?)\s+FECHA DE INICIO/i),
+        categoria: g(/CATEGOR[ÍI]A PROFESIONAL:\s*(.+?)\s+TIPO DE CONTRATO:/i),
+        objeto: g(/OBJETO DEL CONTRATO:\s*(.+?)\s+CENTRO DE TRABAJO:/i),
+        centro: g(/CENTRO DE TRABAJO:\s*(.+?)\s+VACACIONES:/i),
+        vacaciones: g(/VACACIONES:\s*(.+?)\s+JORNADA:/i),
+        horas: g(/\bJORNADA:\s*([\d.,]+)\s+Horas/i).replace(',', '.'),
+        distribucion: g(/DISTRIBUCI[ÓO]N JORNADA:\s*(.+?)\s+RETRIBUCI/i),
+        prueba: g(/PERIODO DE PRUEBA:\s*(.+?)\s+EL\/LA TRABAJADOR/i),
+      },
+    };
+  }
+
+  // Documento «CAMBIO DE JORNADA» (novación del contrato): devuelve sus datos o null.
+  function leerCambioJornada(texto){
+    if (!/CAMBIO DE JORNADA/i.test(texto)) return null;
+    const g = (re) => { const m = re.exec(texto); return m ? m[1].trim().replace(/α/g, 'Ó') : ''; };   // el PDF de la empresa cambia la Ó por «α»
+    const f = /a partir del d[ií]a\s+(\d{2})\/(\d{2})\/(\d{4})/i.exec(texto);
+    const h = g(/jornada de\s+([\d.,]+)\s+Horas mensuales/i);
+    if (!f || !h) return null;
+    const firma = /en\s+Sevilla\s*,?\s*a\s+(\d{2})\/(\d{2})\/(\d{4})/i.exec(texto);
+    const t = /De otra,\s*D\/D[ñn]a\.\s*(.+?)\s+con\s+(?:NIE\/D\.N\.I\.|D\.N\.I\.|NIE)\s*:?\s*(?:n[úu]mero\s*)?([0-9A-Z]{8,10})\s+como\s+trabajador/i.exec(texto);
+    return {
+      numEmpleado: g(/N[º°o]\s*Personal:\s*(\d+)/i),
+      nombre: t ? t[1].trim() : '', dni: t ? t[2].toUpperCase() : '',
+      cambio: {
+        fecha: fechaIso(f[1], f[2], f[3]), horas: h.replace(',', '.'),
+        categoria: g(/con la\s+categor[ií]a de\s+(.+?)\s+y con una jornada/i),
+        motivo: g(/se debe a\s+(.+?)\s+y esta novaci.n/i),
+        novacion: g(/esta novaci.n se acuerda\s+(.+?)\s+\.\s*2/i),
+        centros: g(/centro\/s de trabajo:\s*(.+?)\s+3\s*.\)/i),
+        firmado: firma ? fechaIso(firma[1], firma[2], firma[3]) : '',
+      },
+    };
+  }
+
+  // Analiza el texto de UNA hoja (un trabajador y un mes de REGJOR, un TC2 o un cambio de jornada) y lo acumula.
+  function procesarTexto(texto, ac){
+    texto = arreglarTexto(texto);
+    const cb = leerCopiaBasica(texto);
+    if (cb) { ac.contratos.push(cb); return; }
+    const cj = leerCambioJornada(texto);
+    if (cj) { ac.cambios.push(cj); return; }
+    const mHead = texto.match(/EMPLEADO:\s*([\d.]+)\s*-\s*(.+?)\s+MES\s+(\S+)\s+A[ÑN]O\s+(\d{4})/);
+    if (mHead) {
+      const k = periodoDeTexto(`${mHead[3]} ${mHead[4]}`);
+      if (!k) return;
+      if (!ac.porMes.has(k)) ac.porMes.set(k, { mesTexto: textoMes(k), trabajadores: new Map() });
+      const num = mHead[1].replace(/\./g, '');
+      const mTotal = texto.match(/FEST\.\s+[\d.]+\s+TOTAL\s+([\d.]+)/);
+      const total = mTotal ? mTotal[1] : null;
+      const dias = (cod) => Math.max(0,
+        (texto.match(new RegExp('\\*' + cod + '\\b', 'g')) || []).length -
+        (texto.match(new RegExp('\\*' + cod + '\\s*-\\s*', 'g')) || []).length);
+      const info = { nombre: mHead[2].trim(), total, bajaIF: dias('IF'), bajaIA: dias('IA'), incid: contarIncidencias(texto) };
+      const previo = ac.porMes.get(k).trabajadores.get(num);
+      if (!previo) ac.porMes.get(k).trabajadores.set(num, info);
+      else {   // varias hojas del mismo mes: el mayor recuento
+        if (previo.total === null) previo.total = total;
+        previo.bajaIF = Math.max(previo.bajaIF, info.bajaIF);
+        previo.bajaIA = Math.max(previo.bajaIA, info.bajaIA);
+        Object.keys(info.incid).forEach(c => {
+          const q = previo.incid[c];
+          previo.incid[c] = { nombre: info.incid[c].nombre, dias: Math.max(q ? q.dias : 0, info.incid[c].dias) };
+        });
+      }
+      return;
+    }
+    if (!ac.periodoMes) {
+      const mPer = /\b(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{4})\b/.exec(texto);
+      if (mPer) { ac.periodoMes = mPer[3]; ac.periodoAnio = mPer[4]; }
+    }
+    const re = /\b\d{12}\s+\d{2}([0-9A-Z]{8}[A-Z])\s+([A-Z]{2,6})\b/g;
+    let m;
+    while ((m = re.exec(texto)) !== null) { ac.dnis.add(m[1]); ac.cafs.add(m[2]); }
+  }
+
+  const acumuladorNuevo = () => ({ porMes: new Map(), dnis: new Set(), cafs: new Set(), cambios: [], contratos: [], periodoMes: '', periodoAnio: '' });
+
+  async function leerPdfSuelto(file){
+    const pdfjsLib = await cargarPdfjs();
+    const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const ac = acumuladorNuevo();
+    for (let i = 1; i <= doc.numPages; i++) {
+      if (i % 15 === 0 || i === doc.numPages) {
+        estadoJornada.textContent = `Leyendo página ${i} de ${doc.numPages} de «${file.name}»…`;
+        await new Promise(r => setTimeout(r, 0));
+      }
+      let texto;
+      try { texto = textoEnOrdenDeLectura(await (await doc.getPage(i)).getTextContent()); }
+      catch (e) { continue; }
+      procesarTexto(texto, ac);
+    }
+    return ac;
+  }
+
+  // Word (.docx): se saca el texto y se parte en una hoja por cada «EMPLEADO:» o cada cambio de jornada (no hay páginas).
+  async function leerWordSuelto(file){
+    const mammoth = await cargarMammoth();
+    const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    const texto = value.replace(/\s+/g, ' ');
+    const ac = acumuladorNuevo();
+    texto.split(/(?=EMPLEADO:)|(?=N[º°o]\s*Personal:\s*\d+\s+CAMBIO DE JORNADA)|(?=CONTRATO DE TRABAJO\s+COPIA B)/i).forEach(h => procesarTexto(h, ac));
+    return ac;
+  }
+
+  // Añade a la ficha de cada persona (por nº de empleado, DNI o nombre) los cambios de jornada o contratos.
+  // campo = 'cambiosJornada' | 'contratos'. Nunca pisa ni borra nada.
+  function sumarDocumentosPersona(items, campo, clave, nombreCorto){
+    const porNum = new Map(), porDni = new Map(), porNombre = new Map();
+    afiliados.forEach(a => {
+      if (a.numEmpleado) porNum.set(String(a.numEmpleado), a);
+      porDni.set(claveDni(a.dni), a);
+      porNombre.set(clavePersona(`${a.nombre} ${a.apellidos}`), a);
+    });
+    let anadidos = 0, repetidos = 0;
+    const sinCasar = [];
+    items.forEach(c => {
+      const a = porNum.get(c.numEmpleado) || (c.dni && porDni.get(claveDni(c.dni))) || porNombre.get(clavePersona(c.nombre));
+      if (!a) { sinCasar.push(c.numEmpleado || c.nombre || '?'); return; }
+      if (!a.numEmpleado && c.numEmpleado) a.numEmpleado = c.numEmpleado;
+      a[campo] = a[campo] || [];
+      const nuevo = c[clave];
+      if (a[campo].some(x => (x.fecha || x.inicio) === (nuevo.fecha || nuevo.inicio) && (x.horas === nuevo.horas) && (x.tipo || '') === (nuevo.tipo || ''))) { repetidos++; return; }
+      a[campo].push(nuevo);
+      anadidos++;
+    });
+    return `${anadidos} ${nombreCorto} añadido(s) a las fichas` +
+      (repetidos ? `; ${repetidos} ya estaban guardados` : '') +
+      (sinCasar.length ? `; ${sinCasar.length} persona(s) del documento no están en tu lista y se han ignorado (no se crean fichas)` : '') +
+      '. Solo se han sumado datos: no se ha borrado ni cambiado nada de lo ya guardado.';
+  }
+
+  // Bloque «Contratos (copia básica)» de la ficha
+  function pintarContratos(a){
+    const lista = ((a && a.contratos) || []).slice().sort((x, y) => (y.inicio || '').localeCompare(x.inicio || ''));
+    $('bloque-contratos').classList.toggle('oculto', lista.length === 0);
+    $('contratos-lista').innerHTML = lista.map(c =>
+      `<div class="cambio"><b>${esc(fechaEs(c.inicio))}${c.fin ? ' a ' + esc(fechaEs(c.fin)) : ''}</b>` +
+      (c.tipo ? ` · ${esc(c.tipo)}` : '') + (c.categoria ? ` · ${esc(c.categoria)}` : '') +
+      (c.horas ? `<br>Jornada: ${esc(String(c.horas).replace('.', ','))} h/mes${c.distribucion ? ' (' + esc(c.distribucion) + ')' : ''}` : '') +
+      (c.centro ? `<br>Centro: ${esc(c.centro)}` : '') +
+      (c.objeto ? `<br>Objeto: ${esc(c.objeto)}` : '') +
+      (c.vacaciones ? `<br>Vacaciones: ${esc(c.vacaciones)}` : '') +
+      (c.prueba ? `<br>Periodo de prueba: ${esc(c.prueba)}` : '') + '</div>').join('');
+  }
+
+  // Bloque «Cambios de jornada» de la ficha
+  function pintarCambios(a){
+    const lista = ((a && a.cambiosJornada) || []).slice().sort((x, y) => (y.fecha || '').localeCompare(x.fecha || ''));
+    $('bloque-cambios').classList.toggle('oculto', lista.length === 0);
+    $('cambios-lista').innerHTML = lista.map(c =>
+      `<div class="cambio"><b>${esc(fechaEs(c.fecha))} · ${esc(String(c.horas).replace('.', ','))} h/mes</b>` +
+      (c.categoria ? ` · ${esc(c.categoria)}` : '') +
+      (c.motivo ? `<br>Motivo: ${esc(c.motivo)}` : '') +
+      (c.novacion ? `<br>${esc(c.novacion)}` : '') +
+      (c.centros ? `<br>Centro: ${esc(c.centros)}` : '') +
+      (c.firmado ? `<br><small>Firmado el ${esc(fechaEs(c.firmado))}</small>` : '') + '</div>').join('');
+  }
+
+  function sumarRegjorSuelto(porMes){
+    const numIndex = new Map(), nameIndex = new Map();
+    afiliados.forEach(a => {
+      if (a.numEmpleado) numIndex.set(String(a.numEmpleado), a);
+      nameIndex.set(claveNombre(`${a.apellidos}, ${a.nombre}`), a);
+    });
+    const casados = new Set(), sinCasar = new Set();
+    let registros = 0, distintos = 0;
+    Array.from(porMes.keys()).sort().forEach(k => {
+      const { mesTexto, trabajadores } = porMes.get(k);
+      trabajadores.forEach((t, num) => {
+        const a = numIndex.get(num) || nameIndex.get(claveNombre(t.nombre));
+        if (!a) { sinCasar.add(num); return; }
+        casados.add(a); registros++;
+        if (!a.numEmpleado) a.numEmpleado = num;
+        distintos += anotarHistorial(a, mesTexto,
+          { jornada: true, horas: t.total, bajaIF: t.bajaIF, bajaIA: t.bajaIA, incid: t.incid }, true);
+        if (esMesReciente(a.jornadaMes, mesTexto)) {
+          const h = a.historial[periodoDeTexto(mesTexto)];   // lo guardado para ese mes, que puede ser anterior y se respeta
+          a.jornadaEncontrada = h.jornada !== false; a.jornadaMes = mesTexto;
+          a.bajaIF = h.bajaIF || 0; a.bajaIA = h.bajaIA || 0; a.bajaMes = mesTexto;
+        }
+      });
+    });
+    const meses = Array.from(porMes.keys()).sort().map(textoMes);
+    return `REGJOR suelto: ${meses.join(', ')}. ${registros} registros mensuales sumados a ${casados.size} persona(s) de tu lista` +
+      (sinCasar.size ? `; ${sinCasar.size} nº de empleado del documento no están en tu lista y se han ignorado (no se crean fichas)` : '') +
+      '. Solo se han sumado datos: no se ha borrado ni cambiado nada de lo ya guardado' +
+      (distintos ? ` (${distintos} dato(s) ya guardados eran distintos y se han respetado)` : '') + '.';
+  }
+
+  async function importarDocumentoSuelto(files){
+    if (afiliados.length === 0) {
+      avisar('Primero abre tu archivo de afiliados; luego importa el documento.');
+      return;
+    }
+    const esJson = f => /\.json$/i.test(f.name);
+    const esWord = f => /\.docx$/i.test(f.name);
+    const jsons = files.filter(esJson);
+    const docs = files.filter(f => !esJson(f));
+    if (jsons.length) await importarConsolidados(jsons);
+    if (docs.length === 0) return;
+    estadoJornada.classList.remove('oculto');
+    estadoJornada.textContent = 'Cargando lector de documentos…';
+    try {
+      if (docs.some(f => !esWord(f))) await cargarPdfjs();
+      if (docs.some(esWord)) await cargarMammoth();
+    } catch (e) { estadoJornada.textContent = 'No se ha podido cargar el lector de documentos (¿sin conexión a internet?).'; return; }
+    const msgs = [];
+    for (const f of docs) {
+      if (/\.doc$/i.test(f.name)) { msgs.push(`«${f.name}»: es un Word antiguo (.doc). Guárdalo como .docx desde Word y vuelve a importarlo.`); continue; }
+      try {
+        const r = esWord(f) ? await leerWordSuelto(f) : await leerPdfSuelto(f);
+        const partes = [];
+        if (r.porMes.size) partes.push(sumarRegjorSuelto(r.porMes));
+        // Si el documento no trae nº de empleado ni DNI, se usan los del nombre del archivo (nº_DNI_fecha_…)
+        const meta = leerNombreArchivo(f.name), unicos = r.cambios.length + r.contratos.length;
+        [...r.cambios, ...r.contratos].forEach(c => {
+          if (meta && unicos === 1) { c.numEmpleado = c.numEmpleado || meta.num; c.dni = c.dni || meta.dni; }
+        });
+        if (r.cambios.length) partes.push(sumarDocumentosPersona(r.cambios, 'cambiosJornada', 'cambio', 'cambio(s) de jornada'));
+        if (r.contratos.length) partes.push(sumarDocumentosPersona(r.contratos, 'contratos', 'contrato', 'contrato(s) (copia básica)'));
+        if (r.dnis.size) {
+          const idx = parseInt(r.periodoMes, 10) - 1;
+          const mesTexto = (idx >= 0 && idx < 12) ? `${MESES_ES[idx].charAt(0)}${MESES_ES[idx].slice(1).toLowerCase()} ${r.periodoAnio}` : '';
+          partes.push(periodoDeTexto(mesTexto)
+            ? aplicarTC2(r.dnis, r.cafs, mesTexto, true)
+            : 'parece un TC2 pero no se ha podido leer su periodo; no se ha importado.');
+        }
+        msgs.push(`«${f.name}»: ` + (partes.length ? partes.join(' ')
+          : 'no se ha reconocido ni como REGJOR («Cuadrante Gráfico por Empleado»), ni como TC2, ni como cambio de jornada, ni como copia básica de contrato; no se ha cambiado nada. Si es un escaneo o una imagen, no se puede leer.'));
+      } catch (e) {
+        msgs.push(`«${f.name}»: no se ha podido leer como ${esWord(f) ? 'Word (.docx)' : 'PDF'}.`);
+      }
+    }
+    marcarSucio(); render();
+    estadoJornada.style.whiteSpace = 'pre-line';
+    estadoJornada.textContent = msgs.join('\n');
+  }
+
+  /* ===== Consolidados y detalle (botón «Importar consolidados y detalle…») =====
+     Acepta a la vez varios .json según su campo «tipo»:
+       regjor_consolidado -> historial mensual de jornada y bajas (aplicarHistoricoJson)
+       tc2_consolidado    -> historial mensual de cotización + situación actual (aplicarTC2)
+       tc1_consolidado    -> solo informativo
+       regjor_detalle / tc2_detalle -> solo en memoria, para la ficha; nunca se guardan en el archivo. */
+  const NOMBRE_MES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function mesCorto(k){ const [a, m] = k.split('-'); return `${NOMBRE_MES_CORTO[parseInt(m, 10) - 1]} ${a.slice(2)}`; }
+
+  function aplicarConsolidadoTc2(d){
+    const claves = Object.keys(d.periodos || {}).sort();
+    const fiables = claves.filter(k => d.periodos[k].fiable !== false);
+    if (fiables.length === 0) return 'TC2: el consolidado no trae ningún periodo fiable.';
+    const ultimo = fiables[fiables.length - 1];
+
+    // Historial: en qué periodos fiables cotiza cada persona (se guarda por mes en su ficha)
+    fiables.forEach(k => {
+      const dnis = new Set((d.periodos[k].dnis || []).map(claveDni)), cafs = new Set(d.periodos[k].cafs || []);
+      afiliados.forEach(a => {
+        const dni = claveDni(a.dni);
+        const cotiza = dnis.has(dni) || (dni.startsWith('SINDNI') && cafs.has(generarCaf(a.apellidos, a.nombre)));
+        anotarHistorial(a, textoMes(k), { cotiza });
+      });
+    });
+
+    // Situación actual = último periodo fiable (mismo criterio que un TC2 en PDF)
+    const u = d.periodos[ultimo];
+    aplicarTC2(new Set((u.dnis || []).map(claveDni)), new Set(u.cafs || []), textoMes(ultimo));
+    const noFiables = claves.filter(k => d.periodos[k].fiable === false).map(k => d.periodos[k].etiqueta || textoMes(k));
+    return `TC2 consolidado: ${fiables.length} periodos usados (${mesCorto(fiables[0])} a ${mesCorto(ultimo)}). Situación actual = ${textoMes(ultimo)}.` +
+      (noFiables.length ? ` Ignorados por lectura incompleta (OCR): ${noFiables.join(', ')}.` : '');
+  }
+
+  async function importarConsolidados(files){
+    const leidos = [];
+    for (const f of files) {
+      try { leidos.push(JSON.parse(await f.text())); }
+      catch (e) { avisar(`«${f.name}» no se ha podido leer como .json.`); return; }
+    }
+    const esDetalle = d => d && (d.tipo === 'regjor_detalle' || d.tipo === 'tc2_detalle');
+    leidos.filter(esDetalle).forEach(cargarDetalle);
+    const resto = leidos.filter(d => !esDetalle(d));
+    if (resto.length === 0) return;
+    if (afiliados.length === 0) {
+      avisar('Primero abre tu archivo de afiliados; luego importa los consolidados.');
+      return;
+    }
+    // Primero la jornada y después el TC2: el aviso de "alta nueva" necesita el mes de jornada ya puesto.
+    const orden = { regjor_consolidado: 0, tc2_consolidado: 1, tc1_consolidado: 2 };
+    resto.sort((x, y) => ((x && orden[x.tipo]) ?? 9) - ((y && orden[y.tipo]) ?? 9));
+    const msgs = [];
+    resto.forEach(d => {
+      if (d && d.tipo === 'regjor_consolidado' && d.meses && typeof d.meses === 'object') aplicarHistoricoJson(d);
+      else if (d && d.tipo === 'tc2_consolidado' && d.periodos) {
+        estadoTc2.classList.remove('oculto');
+        estadoTc2.textContent = aplicarConsolidadoTc2(d) + ' Recuerda pulsar «Guardar cambios».';
+      } else if (d && d.tipo === 'tc1_consolidado' && d.periodos) {
+        const ks = Object.keys(d.periodos).sort();
+        msgs.push(`TC1: ${ks.length} liquidaciones (${ks.length ? mesCorto(ks[0]) + ' a ' + mesCorto(ks[ks.length - 1]) : '—'}); solo informativo, no cambia las fichas.`);
+      } else msgs.push('Un archivo no es un consolidado reconocido y se ha ignorado.');
+    });
+    if (msgs.length) { estadoTc2.classList.remove('oculto'); estadoTc2.textContent = (estadoTc2.textContent ? estadoTc2.textContent + ' ' : '') + msgs.join(' '); }
+  }
+
+  /* ===== Detalle de jornada (REGJOR_detalle.json) y de cotización (TC2_detalle.json) =====
+     Se cargan en memoria para consultar fichas; NO se guardan en el archivo de afiliados (pesan ~14 MB). */
+  // (detalleJornada, detalleTc2 y cacheNombres se declaran al principio, junto al resto del estado)
+  const mesesDetalle = () => detalleJornada ? Object.keys(detalleJornada.meses).sort() : [];
+  const hmin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };
+  const fmtH = (n) => (n === null || n === undefined) ? '' : String(Math.round(n * 100) / 100).replace('.', ',');
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const corto = (txt, n) => { const t = (txt || '').replace(/^\S+,\s*/, ''); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+
+  function cargarDetalle(d){
+    if (d.tipo === 'regjor_detalle') {
+      // Se fusiona con lo que ya hay: los meses del archivo nuevo sustituyen a los del mismo mes y el resto se conserva.
+      detalleJornada = detalleJornada
+        ? Object.assign({}, detalleJornada, d, { codigos: Object.assign({}, detalleJornada.codigos, d.codigos), meses: Object.assign({}, detalleJornada.meses, d.meses) })
+        : d;
+      cacheNombres = {};
+      const ks = mesesDetalle(), fichas = ks.reduce((n, k) => n + detalleJornada.meses[k].control.fichas, 0);
+      const mal = ks.reduce((n, k) => n + detalleJornada.meses[k].control.incoherentes, 0);
+      estadoJornada.classList.remove('oculto');
+      estadoJornada.textContent = `Detalle de jornada cargado: ${ks.length} meses (${mesCorto(ks[0])} a ${mesCorto(ks[ks.length - 1])}), ${fichas} fichas trabajador-mes` +
+        (mal ? `, ${mal} con descuadre interno (marcadas en la ficha)` : '') + '. Ábrelo desde la ficha de cada persona. Se guardará dentro del archivo de afiliados al pulsar «Guardar cambios».';
+    } else {
+      detalleTc2 = detalleTc2
+        ? Object.assign({}, detalleTc2, d, { periodos: Object.assign({}, detalleTc2.periodos, d.periodos) })
+        : d;
+      const ks = Object.keys(detalleTc2.periodos).sort();
+      estadoTc2.classList.remove('oculto');
+      estadoTc2.textContent = `Detalle de cotización cargado: ${ks.length} TC2 (${mesCorto(ks[0])} a ${mesCorto(ks[ks.length - 1])}). Se guardará dentro del archivo de afiliados al pulsar «Guardar cambios».`;
+    }
+    marcarSucio();
+    if (afiliados.length && accionArchivo) estadoArchivo.textContent = textoEstadoArchivo(accionArchivo);
+  }
+
+  function buscarPersonaJornada(a, k){
+    const m = detalleJornada.meses[k]; if (!m) return null;
+    if (a.numEmpleado && m.trabajadores[String(a.numEmpleado)]) return m.trabajadores[String(a.numEmpleado)];
+    const clave = claveNombre(`${a.apellidos}, ${a.nombre}`);
+    if (!cacheNombres[k]) { cacheNombres[k] = new Map(); Object.entries(m.trabajadores).forEach(([e, f]) => cacheNombres[k].set(claveNombre(f.n), f)); }
+    return cacheNombres[k].get(clave) || null;
+  }
+
+  // Descansos entre jornadas y rachas de días seguidos, calculados solo con los horarios del registro.
+  function analizarDescansos(f, k){
+    const [anio, mes] = k.split('-').map(Number);
+    const iv = [];
+    (f.s || []).forEach(s => {
+      if (String(s.c).startsWith('999999')) return;
+      Object.entries(s.t || {}).forEach(([dia, pares]) => pares.forEach(p => {
+        if (!p[1]) return;
+        const ini = (dia - 1) * 1440 + hmin(p[0]); let fin = (dia - 1) * 1440 + hmin(p[1]); if (fin <= ini) fin += 1440;
+        iv.push({ dia: +dia, ini, fin });
+      }));
+    });
+    iv.sort((x, y) => x.ini - y.ini);
+    const cortos = [];
+    for (let i = 1; i < iv.length; i++) {
+      if (iv[i].dia === iv[i - 1].dia) continue;               // turno partido del mismo día: no es un descanso entre jornadas
+      const gap = (iv[i].ini - iv[i - 1].fin) / 60;
+      if (gap < 12) cortos.push({ d1: iv[i - 1].dia, d2: iv[i].dia, h: Math.round(gap * 10) / 10 });
+    }
+    const dias = [...new Set(iv.map(x => x.dia))].sort((x, y) => x - y);
+    let racha = 0, maxRacha = 0, prev = -9;
+    dias.forEach(d => { racha = (d === prev + 1) ? racha + 1 : 1; prev = d; if (racha > maxRacha) maxRacha = racha; });
+    return { cortos, maxRacha, diasTrabajados: dias.length };
+  }
+
+  function tablaJornada(a, f, k){
+    const cod = detalleJornada.codigos || {};
+    const n = (f.h || []).length || 31;
+    const sem = f.sem || '';
+    let h = '<div class="det-scroll"><table class="det-tabla"><thead><tr><th>Día</th><th>Horas</th><th>Horario · cliente / servicio</th><th>Incidencia</th></tr></thead><tbody>';
+    for (let d = 1; d <= n; d++) {
+      const hs = f.h ? f.h[d - 1] : 0;
+      const turnos = [];
+      (f.s || []).forEach(s => { const p = (s.t || {})[d]; if (p && !String(s.c).startsWith('999999')) turnos.push(p.map(x => `${x[0]}–${x[1] || '?'}`).join(' y ') + ' · ' + corto(s.c, 26) + ' / ' + corto(s.sv, 34)); });
+      const inc = (f.i || {})[d];
+      const finde = sem[d - 1] === 'S' || sem[d - 1] === 'D';
+      h += `<tr class="${inc ? 'incid' : (finde ? 'finde' : '')}"><td class="num">${d}${sem[d - 1] ? ' ' + sem[d - 1] : ''}</td><td class="num">${hs ? fmtH(hs) : ''}</td>` +
+        `<td>${turnos.map(t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('<br>')}</td>` +
+        `<td>${inc ? esc(inc) + ' · ' + esc(cod[inc] || '') : ''}</td></tr>`;
+    }
+    return h + '</tbody></table></div>';
+  }
+
+  function pintarDetalle(a){
+    const cont = $('detalle-contenido'), bloque = $('bloque-detalle');
+    cont.innerHTML = '';
+    if (!a || (!detalleJornada && !detalleTc2)) { bloque.classList.add('oculto'); return; }
+    let hayAlgo = false;
+
+    if (detalleJornada) {
+      const ks = mesesDetalle().filter(k => buscarPersonaJornada(a, k));
+      if (ks.length) {
+        hayAlgo = true;
+        const barra = document.createElement('div'); barra.className = 'det-barra';
+        const lbl = document.createElement('b'); lbl.textContent = 'Jornada del mes:';
+        const sel = document.createElement('select');
+        ks.slice().reverse().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = detalleJornada.meses[k].etiqueta; sel.appendChild(o); });
+        barra.appendChild(lbl); barra.appendChild(sel); cont.appendChild(barra);
+        const zona = document.createElement('div'); cont.appendChild(zona);
+        const pinta = () => {
+          const k = sel.value, f = buscarPersonaJornada(a, k), r = f.res || {};
+          const an = analizarDescansos(f, k);
+          let html = `<p class="det-resumen"><b>${fmtH(f.t)} h</b> en el mes` +
+            (f.res ? ` · laborables diurnas ${fmtH(r.labDiur)} · nocturnas ${fmtH(r.labNoct)} · festivas ${fmtH(r.fest)}` : '') +
+            ` · ${an.diasTrabajados} días con servicio · racha máxima ${an.maxRacha} días seguidos` +
+            (f.r ? ` · Responsable: ${f.r.replace(/</g, '&lt;')}` : '') + '</p>';
+          if (!f.ck) html += '<div class="det-aviso rojo">⚠ Esta ficha no cuadra internamente (horas por día, resumen y bloques difieren). Compruébala en el PDF original.</div>';
+          if (an.cortos.length) html += `<div class="det-aviso">Descanso menor de 12 h entre jornadas (orientativo, art. 34.3 ET; el convenio puede regularlo distinto): ` +
+            an.cortos.map(c => `día ${c.d1}→${c.d2}: ${fmtH(c.h)} h`).join('; ') + '.</div>';
+          zona.innerHTML = html + tablaJornada(a, f, k);
+        };
+        sel.addEventListener('change', pinta); pinta();
+      }
+    }
+
+    if (detalleTc2) {
+      const ks = Object.keys(detalleTc2.periodos).sort();
+      const sinDni = String(a.dni || '').toUpperCase().startsWith('SINDNI');
+      const caf = sinDni ? generarCaf(a.apellidos, a.nombre) : null;
+      const filas = ks.map(k => {
+        const per = detalleTc2.periodos[k].personas;
+        let p = per[String(a.dni || '').toUpperCase()];
+        if (!p && sinDni) p = Object.values(per).find(x => x.caf === caf);
+        return { k, p };
+      });
+      if (filas.some(x => x.p)) {
+        hayAlgo = true;
+        const primero = filas.findIndex(x => x.p);
+        const faltan = filas.filter((x, i) => !x.p && i > primero).map(x => mesCorto(x.k));
+        let html = '<h4 style="margin:10px 0 4px">Cotización (TC2)</h4>';
+        if (faltan.length) html += `<div class="det-aviso">No aparece en el TC2 de: ${faltan.join(', ')}.</div>`;
+        html += '<div class="det-scroll"><table class="det-tabla"><thead><tr><th>Mes</th><th>Tramo</th><th>Días</th><th>Horas</th><th>Base CC</th><th>Base AT</th><th>H. extra</th><th>Comp. IT</th></tr></thead><tbody>';
+        filas.slice().reverse().forEach(({ k, p }) => {
+          if (!p) return;
+          p.tr.forEach(t => {
+            html += `<tr><td>${mesCorto(k)}</td><td>${t.d ? t.d + ' a ' + t.h : '—'}</td><td class="num">${t.dias ?? ''}</td><td class="num">${t.hor ?? ''}</td>` +
+              `<td class="num">${fmtH(t.cc)}</td><td class="num">${fmtH(t.at)}</td><td class="num">${fmtH(t.he)}</td><td class="num">${fmtH((t.itec || 0) + (t.itat || 0)) === '0' ? '' : fmtH((t.itec || 0) + (t.itat || 0))}</td></tr>`;
+          });
+        });
+        cont.insertAdjacentHTML('beforeend', html + '</tbody></table></div>');
+      }
+    }
+    bloque.classList.toggle('oculto', !hayAlgo);
+  }
+
+
   function abrirArchivo(file){
     const lector = new FileReader();
     lector.onload = () => {
       try {
-        const datos = JSON.parse(lector.result);
+        let datos = JSON.parse(lector.result);
+        let detJ = null, detT = null;
+        if (datos && !Array.isArray(datos) && datos.tipo === 'afiliados_ccoo' && Array.isArray(datos.afiliados)) {
+          detJ = datos.detalleJornada && datos.detalleJornada.meses ? datos.detalleJornada : null;
+          detT = datos.detalleTc2 && datos.detalleTc2.periodos ? datos.detalleTc2 : null;
+          datos = datos.afiliados;
+        }
         if (datos && datos.tipo === 'regjor_consolidado') {
-          avisar('Ese es un histórico REGJOR, no tu base de afiliados. Abre primero tu archivo de afiliados y luego usa «Importar histórico (JSON)…».');
+          avisar('Ese es un histórico REGJOR, no tu base de afiliados. Abre primero tu archivo de afiliados y luego usa «Importar consolidados y detalle…».');
           return;
         }
         if (!Array.isArray(datos) || !datos.every(a => a && typeof a === 'object' && !Array.isArray(a))) throw new Error('formato');
@@ -1461,6 +1808,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
           }
         });
         afiliados = datos;
+        detalleJornada = detJ; detalleTc2 = detT; cacheNombres = {};
         nombreArchivo = file.name;
         marcarLimpio();
         accionArchivo = 'abierto de';
@@ -1475,7 +1823,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
 
   $('label-abrir').addEventListener('click', (ev) => {
     // En iPhone/Safari no se toca: la etiqueta abre el input como siempre.
-    if (puedeGuardarEncima()) { ev.preventDefault(); abrirConSelector(); }
+    if (puedeGuardarEncima() && !selectorRoto) { ev.preventDefault(); abrirConSelector(); }
   });
   $('file-abrir').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
@@ -1484,24 +1832,16 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     manejadorArchivo = null;
     abrirArchivo(file);
   });
-  // Varios PDF de golpe (todo el histórico), uno detrás de otro y en cualquier orden.
-  async function importarVarios(ev, importar, estado){
-    const files = Array.from(ev.target.files || []);
+  $('file-suelto').addEventListener('change', (ev) => {
+    const fs = Array.from(ev.target.files || []);
     ev.target.value = '';
-    const resumen = [];
-    for (let i = 0; i < files.length; i++) {
-      if (files.length > 1) estado.textContent = `Archivo ${i + 1} de ${files.length}: ${files[i].name}…`;
-      await importar(files[i]);
-      if (files.length > 1) resumen.push(`${files[i].name}: ${estado.textContent}`);
-    }
-    if (files.length > 1) {
-      estado.style.whiteSpace = 'pre-line';
-      estado.textContent = `${files.length} archivos procesados.\n` + resumen.join('\n');
-    }
-  }
-  $('file-jornada').addEventListener('change', (ev) => importarVarios(ev, importarJornada, estadoJornada));
-  $('file-historico').addEventListener('change', (ev) => importarVarios(ev, importarHistoricoJson, estadoJornada));
-  $('file-tc2').addEventListener('change', (ev) => importarVarios(ev, importarTC2, estadoTc2));
+    if (fs.length) importarDocumentoSuelto(fs);
+  });
+  $('file-consolidados').addEventListener('change', (ev) => {
+    const fs = Array.from(ev.target.files || []);
+    ev.target.value = '';
+    if (fs.length) importarConsolidados(fs);
+  });
   $('btn-guardar').addEventListener('click', guardarCambios);
   $('btn-csv').addEventListener('click', exportarCsv);
   $('btn-filtro-bajas').addEventListener('click', () => {
