@@ -219,6 +219,55 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
 .det-tabla td.num{text-align:right;white-space:nowrap}
 .cambio{border-bottom:1px solid var(--linea);padding:8px 0;font-size:13px;line-height:1.5}
 .cambio:last-child{border-bottom:0}
+
+/* Diálogo de impresión */
+#dlg-imprimir{align-items:center;z-index:60}
+.imp-caja{max-width:520px}
+.imp-caja h3{font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase;margin-bottom:6px}
+.imp-grupo{border:1px solid var(--linea);padding:10px 12px;margin:12px 0;background:var(--papel)}
+.imp-grupo > b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.imp-grupo label{display:flex;gap:8px;align-items:center;font-size:14px;padding:5px 0}
+.imp-grupo input[type=checkbox]{width:18px;height:18px;accent-color:var(--rojo);flex:0 0 auto}
+.imp-grupo label.off{color:var(--tinta-2);opacity:.6}
+#imp-meses{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;max-height:34vh;overflow:auto;margin-top:6px}
+.imp-rapido{display:flex;gap:6px;flex-wrap:wrap}
+.imp-rapido button{padding:6px 10px;font-size:12px}
+#dlg-previa{z-index:61}
+.previa-caja{background:#fff;border-top:6px solid var(--rojo);border-radius:6px;max-width:880px;width:100%;margin:0 auto 30px}
+.previa-barra{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--linea);padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.previa-barra button{flex:0 0 auto;padding:10px 14px;font-size:13px}
+#previa-paginas{background:#8A9099;padding:14px 10px;display:flex;flex-direction:column;gap:14px;align-items:center;min-height:200px}
+#previa-paginas canvas{width:100%;max-width:794px;height:auto;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+#previa-paginas p{color:#fff;font-size:14px}
+#zona-impresion{display:none}
+@media print{
+  @page{size:A4;margin:14mm 12mm 16mm}
+  body.imprimiendo > *:not(#zona-impresion){display:none!important}
+  body.imprimiendo{background:#fff!important}
+  body.imprimiendo #zona-impresion{display:block;color:#000;font:11px/1.45 'Inter',system-ui,sans-serif}
+  #zona-impresion .imp-cab{display:flex;justify-content:space-between;gap:10px;border-bottom:3px solid #CC0000;padding-bottom:6px;margin-bottom:10px;font-size:10px}
+  #zona-impresion h1{font-size:18px;margin:0 0 2px}
+  #zona-impresion .imp-sub{margin:0 0 10px;color:#333}
+  #zona-impresion h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;border-left:4px solid #CC0000;padding-left:6px;margin:14px 0 6px;break-after:avoid}
+  #zona-impresion .imp-sec{break-inside:auto}
+  #zona-impresion table{width:100%;border-collapse:collapse}
+  #zona-impresion .imp-datos th{width:30%;text-align:left;font-weight:600;color:#333;padding:2px 6px 2px 0;vertical-align:top}
+  #zona-impresion .imp-datos td{padding:2px 0}
+  #zona-impresion .imp-tabla th,#zona-impresion .imp-tabla td{border:1px solid #bbb;padding:3px 5px;text-align:left;vertical-align:top}
+  #zona-impresion .imp-tabla th{background:#eee}
+  #zona-impresion thead{display:table-header-group}
+  #zona-impresion tr{break-inside:avoid}
+  #zona-impresion .det-scroll{max-height:none!important;overflow:visible!important;border:0}
+  #zona-impresion .det-tabla{font-size:10px}
+  #zona-impresion .det-tabla th{position:static;background:#eee;color:#000;border:1px solid #bbb}
+  #zona-impresion .det-tabla td{border:1px solid #ddd}
+  #zona-impresion .det-aviso{border-left:3px solid #E08A00;padding:3px 6px;margin:4px 0;font-size:10px}
+  #zona-impresion .imp-mes{break-before:page}
+  #zona-impresion .imp-mes:first-of-type{break-before:auto}
+  #zona-impresion .imp-notas{white-space:pre-wrap;border:1px solid #bbb;padding:6px}
+  #zona-impresion .cambio{border-bottom:1px solid #ddd;padding:4px 0;break-inside:avoid}
+  #zona-impresion .imp-pie{position:fixed;bottom:0;left:0;right:0;font-size:9px;color:#555;border-top:1px solid #bbb;padding-top:3px}
+}
 </style>
 </head>
 <body>
@@ -311,6 +360,50 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       <button type="button" id="dialogo-cancelar" class="secundario">Cancelar</button>
       <button type="button" id="dialogo-ok" class="calc">Aceptar</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay oculto" id="dlg-imprimir">
+  <div class="dialogo-caja imp-caja">
+    <h3>Ficha en PDF · elegir contenido</h3>
+    <p class="ayuda" style="margin-bottom:0">Siempre se incluyen los datos personales, de contacto, laborales y sindicales y la afiliación.</p>
+    <div class="imp-grupo">
+      <b>Añadir</b>
+      <label><input type="checkbox" id="imp-notas" checked> Notas</label>
+      <label><input type="checkbox" id="imp-resumen" checked> Resumen por mes (horas, bajas, vacaciones y permisos, cotización)</label>
+      <label id="imp-l-jornada"><input type="checkbox" id="imp-jornada"> Jornada detallada, día a día</label>
+      <label id="imp-l-tc2"><input type="checkbox" id="imp-tc2"> Cotización TC2 detallada</label>
+      <label id="imp-l-cambios"><input type="checkbox" id="imp-cambios"> Cambios de jornada</label>
+      <label id="imp-l-contratos"><input type="checkbox" id="imp-contratos"> Contratos (copia básica)</label>
+    </div>
+    <div class="imp-grupo">
+      <b>Meses (para el resumen, la jornada y el TC2)</b>
+      <div class="imp-rapido">
+        <button type="button" class="secundario" data-imp="todos">Todos</button>
+        <button type="button" class="secundario" data-imp="ninguno">Ninguno</button>
+        <button type="button" class="secundario" data-imp="3">Últimos 3</button>
+        <button type="button" class="secundario" data-imp="6">Últimos 6</button>
+        <button type="button" class="secundario" data-imp="12">Últimos 12</button>
+      </div>
+      <div id="imp-meses"></div>
+    </div>
+    <div class="dialogo-botones">
+      <button type="button" id="imp-cancelar" class="secundario">Cancelar</button>
+      <button type="button" id="imp-ok" class="calc">👁 Ver vista previa</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay oculto" id="dlg-previa">
+  <div class="previa-caja">
+    <div class="previa-barra">
+      <button type="button" id="previa-guardar" class="calc">💾 Guardar PDF</button>
+      <button type="button" id="previa-imprimir" class="secundario">🖨 Imprimir…</button>
+      <button type="button" id="previa-volver" class="secundario">← Cambiar opciones</button>
+      <button type="button" id="previa-cerrar" class="secundario">Cerrar</button>
+      <span id="previa-info" class="ayuda"></span>
+    </div>
+    <div id="previa-paginas"></div>
   </div>
 </div>
 
@@ -432,6 +525,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     <div class="ficha-footer">
       <button type="button" class="calc" id="btn-guardar-ficha">Guardar en la lista</button>
       <button type="button" class="secundario" id="btn-cancelar-ficha">Cancelar</button>
+      <button type="button" class="secundario" id="btn-imprimir-ficha">📄 PDF / Imprimir…</button>
     </div>
   </div>
 </div>
@@ -441,6 +535,8 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
 <footer>
   <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla</div>
 </footer>
+
+<div id="zona-impresion" aria-hidden="true"></div>
 
 <script>
 (function(){
@@ -1454,7 +1550,10 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   function pintarContratos(a){
     const lista = ((a && a.contratos) || []).slice().sort((x, y) => (y.inicio || '').localeCompare(x.inicio || ''));
     $('bloque-contratos').classList.toggle('oculto', lista.length === 0);
-    $('contratos-lista').innerHTML = lista.map(c =>
+    $('contratos-lista').innerHTML = htmlContratos(lista);
+  }
+  function htmlContratos(lista){
+    return lista.map(c =>
       `<div class="cambio"><b>${esc(fechaEs(c.inicio))}${c.fin ? ' a ' + esc(fechaEs(c.fin)) : ''}</b>` +
       (c.tipo ? ` · ${esc(c.tipo)}` : '') + (c.categoria ? ` · ${esc(c.categoria)}` : '') +
       (c.horas ? `<br>Jornada: ${esc(String(c.horas).replace('.', ','))} h/mes${c.distribucion ? ' (' + esc(c.distribucion) + ')' : ''}` : '') +
@@ -1468,7 +1567,10 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   function pintarCambios(a){
     const lista = ((a && a.cambiosJornada) || []).slice().sort((x, y) => (y.fecha || '').localeCompare(x.fecha || ''));
     $('bloque-cambios').classList.toggle('oculto', lista.length === 0);
-    $('cambios-lista').innerHTML = lista.map(c =>
+    $('cambios-lista').innerHTML = htmlCambios(lista);
+  }
+  function htmlCambios(lista){
+    return lista.map(c =>
       `<div class="cambio"><b>${esc(fechaEs(c.fecha))} · ${esc(String(c.horas).replace('.', ','))} h/mes</b>` +
       (c.categoria ? ` · ${esc(c.categoria)}` : '') +
       (c.motivo ? `<br>Motivo: ${esc(c.motivo)}` : '') +
@@ -1705,6 +1807,20 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     return h + '</tbody></table></div>';
   }
 
+  // Resumen + tabla día a día de la jornada de una persona en un mes (pantalla e impresión).
+  function htmlJornadaMes(a, k){
+    const f = buscarPersonaJornada(a, k), r = f.res || {};
+    const an = analizarDescansos(f, k);
+    let html = `<p class="det-resumen"><b>${fmtH(f.t)} h</b> en el mes` +
+      (f.res ? ` · laborables diurnas ${fmtH(r.labDiur)} · nocturnas ${fmtH(r.labNoct)} · festivas ${fmtH(r.fest)}` : '') +
+      ` · ${an.diasTrabajados} días con servicio · racha máxima ${an.maxRacha} días seguidos` +
+      (f.r ? ` · Responsable: ${f.r.replace(/</g, '&lt;')}` : '') + '</p>';
+    if (!f.ck) html += '<div class="det-aviso rojo">⚠ Esta ficha no cuadra internamente (horas por día, resumen y bloques difieren). Compruébala en el PDF original.</div>';
+    if (an.cortos.length) html += `<div class="det-aviso">Descanso menor de 12 h entre jornadas (orientativo, art. 34.3 ET; el convenio puede regularlo distinto): ` +
+      an.cortos.map(c => `día ${c.d1}→${c.d2}: ${fmtH(c.h)} h`).join('; ') + '.</div>';
+    return html + tablaJornada(a, f, k);
+  }
+
   function pintarDetalle(a){
     const cont = $('detalle-contenido'), bloque = $('bloque-detalle');
     cont.innerHTML = '';
@@ -1721,18 +1837,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
         ks.slice().reverse().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = detalleJornada.meses[k].etiqueta; sel.appendChild(o); });
         barra.appendChild(lbl); barra.appendChild(sel); cont.appendChild(barra);
         const zona = document.createElement('div'); cont.appendChild(zona);
-        const pinta = () => {
-          const k = sel.value, f = buscarPersonaJornada(a, k), r = f.res || {};
-          const an = analizarDescansos(f, k);
-          let html = `<p class="det-resumen"><b>${fmtH(f.t)} h</b> en el mes` +
-            (f.res ? ` · laborables diurnas ${fmtH(r.labDiur)} · nocturnas ${fmtH(r.labNoct)} · festivas ${fmtH(r.fest)}` : '') +
-            ` · ${an.diasTrabajados} días con servicio · racha máxima ${an.maxRacha} días seguidos` +
-            (f.r ? ` · Responsable: ${f.r.replace(/</g, '&lt;')}` : '') + '</p>';
-          if (!f.ck) html += '<div class="det-aviso rojo">⚠ Esta ficha no cuadra internamente (horas por día, resumen y bloques difieren). Compruébala en el PDF original.</div>';
-          if (an.cortos.length) html += `<div class="det-aviso">Descanso menor de 12 h entre jornadas (orientativo, art. 34.3 ET; el convenio puede regularlo distinto): ` +
-            an.cortos.map(c => `día ${c.d1}→${c.d2}: ${fmtH(c.h)} h`).join('; ') + '.</div>';
-          zona.innerHTML = html + tablaJornada(a, f, k);
-        };
+        const pinta = () => { zona.innerHTML = htmlJornadaMes(a, sel.value); };
         sel.addEventListener('change', pinta); pinta();
       }
     }
@@ -1767,6 +1872,298 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     bloque.classList.toggle('oculto', !hayAlgo);
   }
 
+
+  /* ===== Imprimir la ficha / guardar como PDF =====
+     Se monta la ficha en #zona-impresion (oculta en pantalla) y se llama a window.print():
+     el navegador ofrece «Guardar como PDF». Solo se imprime lo marcado en el diálogo. */
+  function buscarPersonaTc2(a, k){
+    const per = detalleTc2.periodos[k] && detalleTc2.periodos[k].personas; if (!per) return null;
+    const dni = String(a.dni || '').toUpperCase(), sinDni = dni.startsWith('SINDNI');
+    return per[dni] || (sinDni ? Object.values(per).find(x => x.caf === generarCaf(a.apellidos, a.nombre)) : null) || null;
+  }
+
+  const afiliadoAbierto = () => dniEditando ? afiliados.find(a => claveDni(a.dni) === dniEditando) : null;
+
+  function mesesImprimibles(a){
+    const ks = new Set(Object.keys((a && a.historial) || {}));
+    if (a && detalleJornada) Object.keys(detalleJornada.meses).forEach(k => { if (buscarPersonaJornada(a, k)) ks.add(k); });
+    if (a && detalleTc2) Object.keys(detalleTc2.periodos).forEach(k => { if (buscarPersonaTc2(a, k)) ks.add(k); });
+    return Array.from(ks).sort().reverse();
+  }
+
+  function abrirImprimir(){
+    const a = afiliadoAbierto();
+    const ks = mesesImprimibles(a);
+    $('imp-meses').innerHTML = ks.length
+      ? ks.map((k, i) => `<label><input type="checkbox" value="${k}"${i < 3 ? ' checked' : ''}> ${textoMes(k)}</label>`).join('')
+      : '<p class="ayuda" style="grid-column:1/-1">Esta persona todavía no tiene datos por mes.</p>';
+    const hay = {
+      jornada: !!(a && detalleJornada && Object.keys(detalleJornada.meses).some(k => buscarPersonaJornada(a, k))),
+      tc2: !!(a && detalleTc2 && Object.keys(detalleTc2.periodos).some(k => buscarPersonaTc2(a, k))),
+      cambios: !!(a && (a.cambiosJornada || []).length),
+      contratos: !!(a && (a.contratos || []).length),
+      resumen: !!(a && Object.keys(a.historial || {}).length),
+    };
+    [['jornada', 'imp-jornada', 'imp-l-jornada'], ['tc2', 'imp-tc2', 'imp-l-tc2'], ['cambios', 'imp-cambios', 'imp-l-cambios'],
+     ['contratos', 'imp-contratos', 'imp-l-contratos']].forEach(([c, idIn, idLab]) => {
+      $(idIn).disabled = !hay[c]; if (!hay[c]) $(idIn).checked = false;
+      $(idLab).classList.toggle('off', !hay[c]);
+    });
+    $('imp-resumen').disabled = !hay.resumen;
+    $('imp-resumen').checked = hay.resumen;
+    $('dlg-imprimir').classList.remove('oculto');
+  }
+
+  const cerrarImprimir = () => $('dlg-imprimir').classList.add('oculto');
+
+  function htmlImpresion(a, f, opc){
+    const fila = (t, v) => (v === '' || v == null) ? '' : `<tr><th>${t}</th><td>${esc(v)}</td></tr>`;
+    const seccion = (titulo, filas) => filas ? `<section class="imp-sec"><h2>${titulo}</h2><table class="imp-datos">${filas}</table></section>` : '';
+    const ahora = new Date();
+    const fecha = `${String(ahora.getDate()).padStart(2, '0')}/${String(ahora.getMonth() + 1).padStart(2, '0')}/${ahora.getFullYear()} ` +
+      `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+    let h = `<div class="imp-cab"><div><b>Sección Sindical CCOO · Ilunion Seguridad Sevilla</b><br>Ficha de afiliado</div><div>Generado el ${fecha}</div></div>` +
+      `<h1>${esc(f.apellidos)}${f.apellidos && f.nombre ? ', ' : ''}${esc(f.nombre)}</h1>` +
+      `<p class="imp-sub">DNI/NIE: ${esc(f.dni)}${f.numEmpleado ? ' · Nº de empleado: ' + esc(f.numEmpleado) : ''}</p>`;
+    h += seccion('Datos personales',
+      fila('DNI o NIE', f.dni) + fila('Nº de empleado', f.numEmpleado) + fila('Nombre', f.nombre) + fila('Apellidos', f.apellidos) +
+      fila('Fecha de nacimiento', fechaEs(f.fechaNacimiento)) + fila('Dirección', f.direccion) +
+      fila('Código postal', f.cp) + fila('Localidad', f.localidad) + fila('Provincia', f.provincia));
+    h += seccion('Contacto', fila('Teléfono móvil', f.movil) + fila('Teléfono fijo', f.fijo) + fila('Correo electrónico', f.email));
+    h += seccion('Datos laborales y sindicales',
+      fila('Centro de trabajo', f.centro) + fila('Categoría profesional', f.categoria) +
+      fila('Delegado/a de personal, prevención o LOLS', f.delegado ? 'Sí' : 'No'));
+    h += seccion('Afiliación',
+      fila('Sindicato', f.sindicato || 'Ninguno / sin datos') +
+      (f.sindicato === 'CCOO' ? fila('Fecha de alta en CCOO', fechaEs(f.fechaAlta)) + fila('Nº de afiliación', f.numAfiliacion) + fila('Estado de la cuota', f.estado) : ''));
+
+    const meses = opc.meses;   // 'AAAA-MM' en orden descendente
+    if (opc.resumen && meses.length) {
+      const hist = (a && a.historial) || {};
+      const filas = meses.filter(k => hist[k]).map(k => {
+        const m = hist[k];
+        const horas = m.jornada === false ? 'No aparece en el registro' : (m.jornada === true ? (m.horas != null ? m.horas : 'Sin horas') : '');
+        const inc = m.incid ? Object.keys(m.incid).filter(c => m.incid[c].dias > 0).map(c => `${esc(m.incid[c].nombre)}: ${m.incid[c].dias}`).join('<br>') : '';
+        return `<tr><td>${textoMes(k)}</td><td>${esc(horas)}</td><td>${m.jornada === true ? m.bajaIF || 0 : ''}</td><td>${m.jornada === true ? m.bajaIA || 0 : ''}</td>` +
+          `<td>${inc}</td><td>${m.cotiza === undefined ? '' : (m.cotiza ? 'Sí' : 'No')}</td></tr>`;
+      }).join('');
+      if (filas) h += `<section class="imp-sec"><h2>Resumen por mes</h2><table class="imp-tabla"><thead><tr><th>Mes</th><th>Horas</th><th>Baja enf. común (días)</th><th>Baja acc. laboral (días)</th><th>Vacaciones, permisos y otros (días)</th><th>Cotiza (TC2)</th></tr></thead><tbody>${filas}</tbody></table></section>`;
+    }
+    if (opc.cambios && a && (a.cambiosJornada || []).length) {
+      h += `<section class="imp-sec"><h2>Cambios de jornada</h2>${htmlCambios(a.cambiosJornada.slice().sort((x, y) => (y.fecha || '').localeCompare(x.fecha || '')))}</section>`;
+    }
+    if (opc.contratos && a && (a.contratos || []).length) {
+      h += `<section class="imp-sec"><h2>Contratos (copia básica)</h2>${htmlContratos(a.contratos.slice().sort((x, y) => (y.inicio || '').localeCompare(x.inicio || '')))}</section>`;
+    }
+    if (opc.jornada && a && detalleJornada) {
+      meses.filter(k => buscarPersonaJornada(a, k)).forEach(k => {
+        h += `<section class="imp-sec imp-mes"><h2>Jornada de ${esc(detalleJornada.meses[k].etiqueta || textoMes(k))}</h2>${htmlJornadaMes(a, k)}</section>`;
+      });
+    }
+    if (opc.tc2 && a && detalleTc2) {
+      let filas = '';
+      meses.forEach(k => {
+        const p = buscarPersonaTc2(a, k); if (!p) return;
+        (p.tr || []).forEach(t => {
+          const it = fmtH((t.itec || 0) + (t.itat || 0));
+          filas += `<tr><td>${mesCorto(k)}</td><td>${t.d ? esc(t.d) + ' a ' + esc(t.h) : '—'}</td><td>${t.dias ?? ''}</td><td>${t.hor ?? ''}</td>` +
+            `<td>${fmtH(t.cc)}</td><td>${fmtH(t.at)}</td><td>${fmtH(t.he)}</td><td>${it === '0' ? '' : it}</td></tr>`;
+        });
+      });
+      if (filas) h += `<section class="imp-sec"><h2>Cotización (TC2) detallada</h2><table class="imp-tabla"><thead><tr><th>Mes</th><th>Tramo</th><th>Días</th><th>Horas</th><th>Base CC</th><th>Base AT</th><th>H. extra</th><th>Comp. IT</th></tr></thead><tbody>${filas}</tbody></table></section>`;
+    }
+    if (opc.notas && f.notas) {
+      h += `<section class="imp-sec"><h2>Notas</h2><div class="imp-notas">${esc(f.notas.split(' · ').join('\n'))}</div></section>`;
+    }
+    return h + '<div class="imp-pie">Documento confidencial con datos personales de uso interno de la Sección Sindical CCOO. No difundir.</div>';
+  }
+
+  // jsPDF + autoTable: PDF con texto real (se puede buscar y copiar), generado en el propio navegador.
+  let libJsPdf = null;
+  function cargarJsPdf(){
+    if (libJsPdf) return libJsPdf;
+    const script = (src) => new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = () => rej(new Error('sin conexión'));
+      document.head.appendChild(s);
+    });
+    libJsPdf = script('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+      .then(() => script('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'))
+      .then(() => window.jspdf.jsPDF)
+      .catch(e => { libJsPdf = null; throw e; });
+    return libJsPdf;
+  }
+
+  // Las fuentes estándar del PDF solo llevan caracteres latinos: lo demás se sustituye.
+  const limpiarPdf = (t) => String(t == null ? '' : t).replace(/→/g, '->').replace(/⚠/g, '(!)').replace(/[≥≤]/g, m => m === '≥' ? '>=' : '<=')
+    .replace(/[^\x09\x0A\x20-\x7E\xA0-\xFF\u2013\u2014\u2018\u2019\u201C\u201D\u2026\u2022\u20AC]/g, '?');
+
+  // Recorre la ficha ya montada en #zona-impresion y la pasa a un PDF (mismo contenido que al imprimir).
+  function pdfDesdeZona(JsPDF, zona, titulo){
+    const doc = new JsPDF({ unit: 'mm', format: 'a4' });
+    const MI = 12, MD = 12, MS = 14, MB = 18, ANCHO = 210 - MI - MD, ALTO = 297;
+    let y = MS;
+    const hueco = (h) => { if (y + h > ALTO - MB) { doc.addPage(); y = MS; } };
+    const texto = (t, { size = 9.5, bold = false, gris = 0, x = MI, ancho = ANCHO } = {}) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(gris);
+      const lh = size * 0.3528 * 1.35;
+      doc.splitTextToSize(limpiarPdf(t), ancho).forEach(l => { hueco(lh); doc.text(l, x, y + size * 0.3528); y += lh; });
+    };
+    const tabla = (t, plano) => {
+      doc.autoTable({
+        html: t, startY: y, margin: { left: MI, right: MD, top: MS, bottom: MB },
+        theme: plano ? 'plain' : 'grid',
+        styles: { fontSize: plano ? 9 : 8, cellPadding: plano ? { top: 0.8, bottom: 0.8, left: 0, right: 2 } : 1.4, lineColor: [190, 190, 190], lineWidth: plano ? 0 : 0.1, textColor: 0 },
+        headStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: 'bold' },
+        columnStyles: plano ? { 0: { fontStyle: 'bold', cellWidth: 62, textColor: [51, 51, 51] } } : {},
+        didParseCell: (d) => { d.cell.text = d.cell.text.map(limpiarPdf); },
+      });
+      y = doc.lastAutoTable.finalY + 3;
+    };
+    const recorrer = (el) => {
+      Array.from(el.children).forEach(n => {
+        if (n.classList.contains('imp-pie')) return;
+        if (n.classList.contains('imp-cab')) {
+          doc.setDrawColor(204, 0, 0); doc.setLineWidth(0.8);
+          texto(n.children[0].innerText, { size: 8.5, bold: true });
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(0);
+          doc.text(limpiarPdf(n.children[1].innerText), 210 - MD, MS + 3, { align: 'right' });
+          doc.line(MI, y + 1, 210 - MD, y + 1); y += 5;
+        } else if (n.tagName === 'H1') { hueco(10); texto(n.innerText, { size: 16, bold: true }); }
+        else if (n.classList.contains('imp-sub')) { texto(n.innerText, { size: 9.5, gris: 60 }); y += 2; }
+        else if (n.tagName === 'SECTION') {
+          if (n.classList.contains('imp-mes') && y > MS + 1) { doc.addPage(); y = MS; }
+          recorrer(n);
+        }
+        else if (n.tagName === 'H2') {
+          hueco(14); y += 3;
+          doc.setFillColor(204, 0, 0); doc.rect(MI, y, 1.2, 4.2, 'F');
+          texto(n.innerText.toUpperCase(), { size: 10, bold: true, x: MI + 3, ancho: ANCHO - 3 }); y += 1;
+        }
+        else if (n.tagName === 'TABLE') tabla(n, n.classList.contains('imp-datos'));
+        else if (n.classList.contains('det-scroll')) recorrer(n);
+        else if (n.classList.contains('imp-notas')) { texto(n.textContent, { size: 9.5 }); y += 2; }   // textContent: conserva los saltos de línea
+        else if (n.classList.contains('cambio')) { texto(n.innerText, { size: 9 }); y += 1.5; }
+        else if (n.classList.contains('det-aviso')) { texto(n.innerText, { size: 8.5, gris: 60 }); y += 1; }
+        else if (n.classList.contains('det-resumen')) { texto(n.innerText, { size: 9 }); y += 1; }
+        else if (n.innerText && n.innerText.trim()) texto(n.innerText, { size: 9 });
+      });
+    };
+    recorrer(zona);
+    const pie = limpiarPdf(zona.querySelector('.imp-pie') ? zona.querySelector('.imp-pie').innerText : '');
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(90);
+      doc.setDrawColor(190); doc.setLineWidth(0.1); doc.line(MI, ALTO - 12, 210 - MD, ALTO - 12);
+      doc.text(doc.splitTextToSize(pie, ANCHO - 25), MI, ALTO - 9);
+      doc.text(`Pág. ${i} de ${total}`, 210 - MD, ALTO - 9, { align: 'right' });
+    }
+    doc.setProperties({ title: titulo, subject: 'Ficha de afiliado', creator: 'Sección Sindical CCOO Ilunion Seguridad Sevilla' });
+    return doc;
+  }
+
+  function leerOpcionesImpresion(){
+    return {
+      notas: $('imp-notas').checked, resumen: $('imp-resumen').checked, jornada: $('imp-jornada').checked,
+      tc2: $('imp-tc2').checked, cambios: $('imp-cambios').checked, contratos: $('imp-contratos').checked,
+      meses: Array.from($('imp-meses').querySelectorAll('input:checked')).map(i => i.value),
+    };
+  }
+
+  // Genera el PDF de la ficha con las opciones marcadas: {blob, nombre}
+  async function generarPdfFicha(){
+    const a = afiliadoAbierto();
+    const f = Object.assign({}, a || {}, leerCampos());
+    const opc = leerOpcionesImpresion();
+    // La ficha se monta fuera de pantalla para leerla; en pantalla sigue oculta
+    const zona = document.createElement('div');
+    zona.style.cssText = 'position:absolute;left:-9999px;top:0;width:700px';
+    zona.innerHTML = htmlImpresion(a, f, opc);
+    document.body.appendChild(zona);
+    try {
+      const JsPDF = await cargarJsPdf();
+      const nombre = `Ficha_${(f.apellidos || '').trim()}_${(f.nombre || '').trim()}`.replace(/[^\wÁÉÍÓÚÜÑáéíóúüñ-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Ficha';
+      const doc = pdfDesdeZona(JsPDF, zona, nombre.replace(/_/g, ' '));
+      return { blob: doc.output('blob'), nombre: nombre + '.pdf' };
+    } finally {
+      zona.remove();
+    }
+  }
+
+  // ----- Vista previa: se muestra el PDF ya generado, página a página, antes de guardarlo o imprimirlo -----
+  let previa = null;   // {blob, nombre}
+  const cerrarPrevia = () => {
+    $('dlg-previa').classList.add('oculto');
+    $('previa-paginas').innerHTML = '';
+    previa = null;
+  };
+
+  async function verPrevia(){
+    const boton = $('imp-ok'), textoBoton = boton.textContent;
+    boton.disabled = true; boton.textContent = 'Generando…';
+    try {
+      previa = await generarPdfFicha();
+    } catch (e) {
+      previa = null;
+      avisar('No se ha podido generar el PDF' + (e && e.message === 'sin conexión' ? ' (¿sin conexión a internet? hace falta para cargar el generador de PDF)' : ` (${e && e.message ? e.message : 'error'})`) +
+        '.\n\nPuedes probar con «Imprimir…» desde el diálogo anterior.');
+      return;
+    } finally {
+      boton.disabled = false; boton.textContent = textoBoton;
+    }
+    cerrarImprimir();
+    const cont = $('previa-paginas');
+    cont.innerHTML = '<p>Preparando la vista previa…</p>';
+    $('previa-info').textContent = '';
+    $('dlg-previa').classList.remove('oculto');
+    $('dlg-previa').scrollTop = 0;
+    try {
+      const pdfjsLib = await cargarPdfjs();
+      const doc = await pdfjsLib.getDocument({ data: await previa.blob.arrayBuffer() }).promise;
+      cont.innerHTML = '';
+      const ancho = Math.min(794, Math.max(300, cont.clientWidth - 20)) * Math.min(2, window.devicePixelRatio || 1);
+      for (let i = 1; i <= doc.numPages; i++) {
+        const pagina = await doc.getPage(i);
+        const base = pagina.getViewport({ scale: 1 });
+        const vp = pagina.getViewport({ scale: ancho / base.width });
+        const lienzo = document.createElement('canvas');
+        lienzo.width = vp.width; lienzo.height = vp.height;
+        cont.appendChild(lienzo);
+        await pagina.render({ canvasContext: lienzo.getContext('2d'), viewport: vp }).promise;
+      }
+      $('previa-info').textContent = `${doc.numPages} página(s) · ${previa.nombre}`;
+    } catch (e) {
+      cont.innerHTML = '<p>No se ha podido mostrar la vista previa (¿sin conexión?), pero el PDF está listo: puedes guardarlo.</p>';
+    }
+  }
+
+  async function guardarDesdePrevia(){
+    if (!previa) return;
+    const boton = $('previa-guardar');
+    boton.disabled = true;
+    try {
+      const ok = await descargar(previa.blob, 'application/pdf', previa.nombre);
+      if (ok) cerrarPrevia();
+    } finally { boton.disabled = false; }
+  }
+
+  let tituloOriginal = null;
+  function imprimirFicha(){
+    const a = afiliadoAbierto();
+    const f = Object.assign({}, a || {}, leerCampos());
+    const opc = leerOpcionesImpresion();
+    cerrarImprimir();
+    $('zona-impresion').innerHTML = htmlImpresion(a, f, opc);
+    if (tituloOriginal === null) tituloOriginal = document.title;
+    document.title = `Ficha ${f.apellidos || ''} ${f.nombre || ''}`.trim().replace(/\s+/g, '_');   // nombre sugerido del PDF
+    document.body.classList.add('imprimiendo');
+    window.print();
+  }
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('imprimiendo');
+    if (tituloOriginal !== null) { document.title = tituloOriginal; tituloOriginal = null; }
+    $('zona-impresion').innerHTML = '';
+  });
 
   function abrirArchivo(file){
     const lector = new FileReader();
@@ -1865,9 +2262,25 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   $('btn-guardar-ficha').addEventListener('click', guardarFicha);
   $('c-sindicato').addEventListener('change', actualizarBloqueAfiliacion);
   overlay.addEventListener('click', (ev) => { if (ev.target === overlay) intentarCerrarFicha(); });
+  $('btn-imprimir-ficha').addEventListener('click', abrirImprimir);
+  $('imp-cancelar').addEventListener('click', cerrarImprimir);
+  $('imp-ok').addEventListener('click', verPrevia);
+  $('previa-guardar').addEventListener('click', guardarDesdePrevia);
+  $('previa-imprimir').addEventListener('click', () => { cerrarPrevia(); imprimirFicha(); });
+  $('previa-volver').addEventListener('click', () => { cerrarPrevia(); $('dlg-imprimir').classList.remove('oculto'); });
+  $('previa-cerrar').addEventListener('click', cerrarPrevia);
+  $('dlg-imprimir').addEventListener('click', (ev) => { if (ev.target === $('dlg-imprimir')) cerrarImprimir(); });
+  document.querySelectorAll('[data-imp]').forEach(b => b.addEventListener('click', () => {
+    const cajas = Array.from($('imp-meses').querySelectorAll('input[type=checkbox]'));
+    const n = b.dataset.imp;
+    cajas.forEach((c, i) => { c.checked = n === 'todos' ? true : n === 'ninguno' ? false : i < parseInt(n, 10); });
+  }));
   document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
     // Con un diálogo abierto, Escape es del diálogo, no de la ficha.
-    if (ev.key === 'Escape' && $('dialogo').classList.contains('oculto')) intentarCerrarFicha();
+    if (!$('dlg-previa').classList.contains('oculto')) cerrarPrevia();
+    else if (!$('dlg-imprimir').classList.contains('oculto')) cerrarImprimir();
+    else if ($('dialogo').classList.contains('oculto')) intentarCerrarFicha();
   });
   buscar.addEventListener('input', render);
   $('filtro-sindicato').addEventListener('change', render);
