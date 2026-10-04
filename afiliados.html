@@ -268,6 +268,8 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   #zona-impresion .cambio{border-bottom:1px solid #ddd;padding:4px 0;break-inside:avoid}
   #zona-impresion .imp-pie{position:fixed;bottom:0;left:0;right:0;font-size:9px;color:#555;border-top:1px solid #bbb;padding-top:3px}
 }
+#aviso-version{position:fixed;top:0;left:0;right:0;z-index:70;background:#14161A;color:#fff;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+#aviso-version button{padding:8px 12px;font-size:13px;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -533,7 +535,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
 <button type="button" id="btn-guardar-flotante" class="oculto">💾 Guardar cambios</button>
 
 <footer>
-  <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla</div>
+  <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla · <span id="version">versión 2026-10-04 c</span></div>
 </footer>
 
 <div id="zona-impresion" aria-hidden="true"></div>
@@ -2253,6 +2255,41 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     vista = (vista === 'eliminados') ? 'activos' : 'eliminados';
     render();
   });
+  /* ===== Versión y aviso de actualización =====
+     GitHub Pages deja la página guardada unos minutos en el móvil. Al abrirla y al volver a ella se pregunta
+     al servidor sin usar la copia guardada; si hay una versión más nueva se avisa, sin recargar solo
+     (podría haber cambios sin guardar). Hay que subir APP_VERSION en cada publicación. */
+  const APP_VERSION = '2026-10-04 c';
+  $('version').textContent = 'versión ' + APP_VERSION;
+  let ultimaComprobacion = 0;
+
+  function mostrarAvisoActualizacion(nueva){
+    if ($('aviso-version')) return;
+    const caja = document.createElement('div');
+    caja.id = 'aviso-version';
+    caja.innerHTML = `<span>🔄 Hay una versión nueva de la página (${esc(nueva)}).</span><span><button type="button" class="calc" id="version-actualizar">Actualizar</button> <button type="button" class="secundario" id="version-luego">Más tarde</button></span>`;
+    document.body.appendChild(caja);
+    $('version-luego').addEventListener('click', () => caja.remove());
+    $('version-actualizar').addEventListener('click', async () => {
+      if (sucio && !await confirmar('Tienes cambios sin guardar. Si actualizas ahora se pierden.\n\n¿Actualizar igualmente?', 'Sí, actualizar y perder cambios')) return;
+      window.removeEventListener('beforeunload', avisoSalida);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(nueva));
+    });
+  }
+
+  async function comprobarActualizacion(){
+    if (!/^https?:$/.test(location.protocol) || Date.now() - ultimaComprobacion < 60000) return;
+    ultimaComprobacion = Date.now();
+    try {
+      const r = await fetch(location.pathname + '?comprobar=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const m = /const APP_VERSION = '([^']+)'/.exec(await r.text());
+      if (m && m[1] !== APP_VERSION) mostrarAvisoActualizacion(m[1]);
+    } catch (e) { /* sin conexión: no pasa nada */ }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') comprobarActualizacion(); });
+  window.addEventListener('pageshow', comprobarActualizacion);
+
   $('btn-nuevo').addEventListener('click', () => abrirFicha(null));
   $('c-mes').addEventListener('change', () => {
     mostrarMes(dniEditando ? afiliados.find(a => claveDni(a.dni) === dniEditando) : null);
@@ -2290,9 +2327,8 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   buscar.addEventListener('input', render);
   $('filtro-sindicato').addEventListener('change', render);
   btnFlotante.addEventListener('click', guardarCambios);
-  window.addEventListener('beforeunload', (ev) => {
-    if (sucio) { ev.preventDefault(); ev.returnValue = ''; }
-  });
+  const avisoSalida = (ev) => { if (sucio) { ev.preventDefault(); ev.returnValue = ''; } };
+  window.addEventListener('beforeunload', avisoSalida);
 
   // El botón dice lo que va a hacer de verdad en ESTE navegador, para que no
   // haya sorpresas: en Safari acaba descargando una copia.
