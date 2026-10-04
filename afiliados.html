@@ -2264,6 +2264,11 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   overlay.addEventListener('click', (ev) => { if (ev.target === overlay) intentarCerrarFicha(); });
   $('btn-imprimir-ficha').addEventListener('click', abrirImprimir);
   $('imp-cancelar').addEventListener('click', cerrarImprimir);
+  // En iPhone/iPad la página no puede abrir la impresión: se guarda por la hoja de compartir, que ya trae «Imprimir».
+  if (esIos()) {
+    $('previa-imprimir').classList.add('oculto');
+    $('previa-guardar').textContent = '💾 Guardar / imprimir PDF';
+  }
   $('imp-ok').addEventListener('click', verPrevia);
   $('previa-guardar').addEventListener('click', guardarDesdePrevia);
   $('previa-imprimir').addEventListener('click', imprimirFicha);   // la vista previa se queda abierta: se puede imprimir y guardar
