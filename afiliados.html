@@ -2143,7 +2143,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     boton.disabled = true;
     try {
       const ok = await descargar(previa.blob, 'application/pdf', previa.nombre);
-      if (ok) cerrarPrevia();
+      if (ok) $('previa-info').textContent = `✓ Guardado · ${previa.nombre}`;   // la vista previa sigue abierta
     } finally { boton.disabled = false; }
   }
 
@@ -2266,7 +2266,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
   $('imp-cancelar').addEventListener('click', cerrarImprimir);
   $('imp-ok').addEventListener('click', verPrevia);
   $('previa-guardar').addEventListener('click', guardarDesdePrevia);
-  $('previa-imprimir').addEventListener('click', () => { cerrarPrevia(); imprimirFicha(); });
+  $('previa-imprimir').addEventListener('click', imprimirFicha);   // la vista previa se queda abierta: se puede imprimir y guardar
   $('previa-volver').addEventListener('click', () => { cerrarPrevia(); $('dlg-imprimir').classList.remove('oculto'); });
   $('previa-cerrar').addEventListener('click', cerrarPrevia);
   $('dlg-imprimir').addEventListener('click', (ev) => { if (ev.target === $('dlg-imprimir')) cerrarImprimir(); });
