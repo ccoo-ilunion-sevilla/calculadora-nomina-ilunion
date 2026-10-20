@@ -301,6 +301,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
       <button type="button" class="primario" id="btn-guardar">💾 Guardar cambios</button>
       <button type="button" id="btn-nuevo">+ Nuevo afiliado</button>
       <button type="button" id="btn-csv">Exportar a CSV</button>
+      <button type="button" id="btn-carpeta" class="oculto" title="Lee los consolidados directamente de la carpeta ILUNION_Documentacion">🔄 Actualizar desde la carpeta</button>
       <label class="btn" for="file-consolidados">📦 Importar consolidados y detalle…</label>
       <input type="file" id="file-consolidados" accept=".json,application/json" multiple>
       <label class="btn" for="file-suelto">📄 Importar documento suelto (PDF, Word)…</label>
@@ -313,6 +314,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     </div>
     <div class="estado-linea oculto" id="estado-jornada"></div>
     <div class="estado-linea oculto" id="estado-tc2"></div>
+    <div class="estado-linea oculto" id="estado-carpeta"></div>
 
     <div class="filtros">
       <input type="text" id="buscar" placeholder="Buscar (nombre, DNI, centro, teléfono, notas…) — sin acentos vale" autocomplete="off">
@@ -535,7 +537,7 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
 <button type="button" id="btn-guardar-flotante" class="oculto">💾 Guardar cambios</button>
 
 <footer>
-  <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla · <span id="version">versión 2026-10-04 c</span></div>
+  <div class="wrap">Uso interno · Sección Sindical CCOO Ilunion Seguridad Sevilla · <span id="version">versión 2026-10-20 a</span></div>
 </footer>
 
 <div id="zona-impresion" aria-hidden="true"></div>
@@ -2255,11 +2257,74 @@ tbody tr:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
     vista = (vista === 'eliminados') ? 'activos' : 'eliminados';
     render();
   });
+  /* ===== Actualizar desde la carpeta (Chrome, Edge o Brave en el Mac) =====
+     Lee los consolidados directamente de ILUNION_Documentacion, sin elegirlos a mano cada vez.
+     La carpeta se recuerda; al volver, el navegador solo pide permiso de lectura. No funciona en
+     Safari ni en el iPhone (no tienen esta función): ahí se sigue con «Importar consolidados». */
+  const ARCHIVOS_CARPETA = [
+    ['02_Registro_Jornada_REGJOR', 'REGJOR_consolidado.json'],
+    ['02_Registro_Jornada_REGJOR', 'REGJOR_detalle.json'],
+    ['01_TC1_TC2_Seguridad_Social', 'TC2_consolidado.json'],
+    ['01_TC1_TC2_Seguridad_Social', 'TC2_detalle.json'],
+    ['01_TC1_TC2_Seguridad_Social', 'TC1_consolidado.json'],
+  ];
+  const abrirBd = () => new Promise((res, rej) => {
+    const r = indexedDB.open('afiliados-app', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('ajustes');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  const bdLeer = async (k) => { const d = await abrirBd(); return new Promise(res => { const t = d.transaction('ajustes').objectStore('ajustes').get(k); t.onsuccess = () => res(t.result); t.onerror = () => res(undefined); }); };
+  const bdGuardar = async (k, v) => { const d = await abrirBd(); return new Promise((res, rej) => { const t = d.transaction('ajustes', 'readwrite'); t.objectStore('ajustes').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); };
+  const bdBorrar = async (k) => { const d = await abrirBd(); return new Promise(res => { const t = d.transaction('ajustes', 'readwrite'); t.objectStore('ajustes').delete(k); t.oncomplete = res; t.onerror = res; }); };
+
+  async function actualizarDesdeCarpeta(){
+    if (afiliados.length === 0) { avisar('Primero abre tu archivo de afiliados; luego actualiza desde la carpeta.'); return; }
+    let raiz = null;
+    try { raiz = await bdLeer('carpetaDocumentacion'); } catch (e) { raiz = null; }
+    try {
+      if (raiz) {
+        let permiso = await raiz.queryPermission({ mode: 'read' });
+        if (permiso !== 'granted') permiso = await raiz.requestPermission({ mode: 'read' });
+        if (permiso !== 'granted') raiz = null;
+      }
+      if (!raiz) {
+        raiz = await window.showDirectoryPicker({ id: 'ilunion-documentacion', mode: 'read' });
+        try { await bdGuardar('carpetaDocumentacion', raiz); } catch (e) { /* sin recordar la carpeta: se pedirá la próxima vez */ }
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') avisar(`No se ha podido abrir la carpeta (${e.name || 'error'}${e.message ? ': ' + e.message : ''}).`);
+      return;
+    }
+    const files = [], faltan = [];
+    for (const [carpeta, nombre] of ARCHIVOS_CARPETA) {
+      try {
+        const dir = await raiz.getDirectoryHandle(carpeta);
+        files.push(await (await dir.getFileHandle(nombre)).getFile());
+      } catch (e) { faltan.push(`${carpeta}/${nombre}`); }
+    }
+    if (files.length === 0) {
+      await bdBorrar('carpetaDocumentacion').catch(() => {});
+      avisar('No he encontrado los consolidados en esa carpeta.\n\nElige la carpeta ILUNION_Documentacion (la que contiene 01_TC1_TC2_Seguridad_Social y 02_Registro_Jornada_REGJOR). Pulsa de nuevo el botón para elegirla.');
+      return;
+    }
+    await importarConsolidados(files);
+    const fecha = (ms) => { const d = new Date(ms); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    const caja = $('estado-carpeta');
+    caja.classList.remove('oculto');
+    caja.textContent = 'Leído de la carpeta: ' + files.map(f => `${f.name} (generado el ${fecha(f.lastModified)})`).join('; ') + '.' +
+      (faltan.length ? ` No encontrados: ${faltan.map(x => x.split('/')[1]).join(', ')}.` : '');
+  }
+
+  if (typeof window.showDirectoryPicker === 'function') {
+    $('btn-carpeta').classList.remove('oculto');
+    $('btn-carpeta').addEventListener('click', actualizarDesdeCarpeta);
+  }
+
   /* ===== Versión y aviso de actualización =====
      GitHub Pages deja la página guardada unos minutos en el móvil. Al abrirla y al volver a ella se pregunta
      al servidor sin usar la copia guardada; si hay una versión más nueva se avisa, sin recargar solo
      (podría haber cambios sin guardar). Hay que subir APP_VERSION en cada publicación. */
-  const APP_VERSION = '2026-10-04 c';
+  const APP_VERSION = '2026-10-20 a';
   $('version').textContent = 'versión ' + APP_VERSION;
   let ultimaComprobacion = 0;
 
