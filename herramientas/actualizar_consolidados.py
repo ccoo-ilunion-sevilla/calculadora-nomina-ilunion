@@ -38,8 +38,15 @@ AHORA = datetime.datetime.now().isoformat(timespec='seconds')
 DEADLINE = time.time() + float(os.environ.get('BUDGET', '10000'))
 CACHE_OCR = os.environ.get('OCR_CACHE', os.path.join(tempfile.gettempdir(), 'ocr_cache_ilunion'))
 class SinTiempo(Exception): pass
+class FaltaOCR(Exception): pass
 PENDIENTE = []
 NOVEDADES = []   # lo nuevo de esta ejecución, para la notificación
+def aviso_ocr(f, h, e):
+    print(f'  !! {f}: es un escaneado y falta el OCR ({e}). Se omite; el resto sigue. Instalación opcional: brew install tesseract; python3 -m pip install --user pypdf')
+    marca = os.path.join(AQUI, f'.aviso_ocr_{h[:8]}')
+    if not os.path.exists(marca):
+        open(marca, 'w').close(); NOVEDADES.append(f'{f[:40]}: escaneado sin OCR instalado (se omite)')
+
 def comprobar_tiempo():
     if time.time() > DEADLINE: raise SinTiempo()
 
@@ -77,6 +84,10 @@ def paginas_texto(pdf):
 
 def ocr_paginas(pdf, psm):
     """OCR página a página con caché (reanudable si se agota el tiempo)."""
+    faltan = [p for p in ('pdftoppm', 'tesseract') if not shutil.which(p)]
+    try: __import__('pypdf')
+    except ImportError: faltan.append('pypdf')
+    if faltan: raise FaltaOCR(', '.join(faltan))      # sin OCR no se puede leer un escaneado: se avisa y se sigue con lo demás
     h = sha1(pdf); cd = os.path.join(CACHE_OCR, f'{h}_{psm}'); os.makedirs(cd, exist_ok=True)
     n = len(__import__('pypdf').PdfReader(pdf).pages)
     res = []
@@ -207,7 +218,8 @@ def actualizar_tc2():
             fp = os.path.join(D01, f); h = sha1(fp)
             if h in vistos: continue
             comprobar_tiempo(); print('TC2 leyendo', f, flush=True)
-            r = procesar_tc2(fp)
+            try: r = procesar_tc2(fp)
+            except FaltaOCR as e: aviso_ocr(f, h, e); continue
             if not r:
                 print('  !! no se ha podido leer (¿no es un TC2?):', f); d['fuentes'].append({'archivo': f, 'sha1': h, 'error': True}); NOVEDADES.append(f'TC2 no legible: {f}'); continue
             k = r['clave']; ant = d['periodos'].get(k)
@@ -257,7 +269,8 @@ def actualizar_tc1():
             fp = os.path.join(D01, f); h = sha1(fp)
             if h in vistos: continue
             comprobar_tiempo(); print('TC1 leyendo', f, flush=True)
-            r = procesar_tc1(fp)
+            try: r = procesar_tc1(fp)
+            except FaltaOCR as e: aviso_ocr(f, h, e); continue
             if not r: print('  !! sin periodo legible:', f); d['fuentes'].append({'archivo': f, 'sha1': h, 'error': True}); continue
             k = r.pop('clave'); r.update({'etiqueta': etiqueta(k), 'archivo': f, 'sha1': h}); d['periodos'][k] = r
             d['fuentes'].append({'archivo': f, 'sha1': h, 'periodo': k, 'procesado': AHORA}); print('  ->', k, r['trabajadores_confirmados'], r['liquido_totales']); NOVEDADES.append(f'TC1 {etiqueta(k)}')
@@ -578,11 +591,17 @@ def principal():
     try:
         if AUTO or '--barrer' in sys.argv: barrer()
         solo = [a for a in sys.argv[1:] if not a.startswith('--')]
-        if not solo or 'tc2' in solo: actualizar_tc2()
-        if not solo or 'tc1' in solo: actualizar_tc1()
-        if not solo or 'regjor' in solo: actualizar_regjor()
-        if not solo or 'detalle' in solo: actualizar_regjor_detalle()
-        if not solo or 'tc2detalle' in solo: actualizar_tc2_detalle()
+        def etapa(nombre, fn):
+            """Un fallo en una parte no impide las demás (se anota y se avisa)."""
+            try: fn()
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                NOVEDADES.append(f'ERROR en {nombre}: {str(e)[:80]} (mira actualizacion.log)')
+        if not solo or 'tc2' in solo: etapa('TC2', actualizar_tc2)
+        if not solo or 'tc1' in solo: etapa('TC1', actualizar_tc1)
+        if not solo or 'regjor' in solo: etapa('REGJOR', actualizar_regjor)
+        if not solo or 'detalle' in solo: etapa('detalle REGJOR', actualizar_regjor_detalle)
+        if not solo or 'tc2detalle' in solo: etapa('detalle TC2', actualizar_tc2_detalle)
     except Exception as e:
         print('ERROR:', repr(e)); 
         if AUTO: notificar('Error al actualizar los consolidados: ' + str(e)[:120] + '. Mira actualizacion.log en _herramientas.')
