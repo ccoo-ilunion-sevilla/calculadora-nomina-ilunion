@@ -535,7 +535,8 @@ def instalar_tarea():
     py = sys.executable or shutil.which('python3')
     datos = {
         'Label': ETIQUETA_LAUNCHD,
-        'ProgramArguments': ['/bin/bash', '-c', f'cd "{AQUI}" && exec "{py}" actualizar_consolidados.py --auto'],
+        # Sin «exec»: bash sigue siendo el proceso principal y Python su hijo, así que el permiso de «Acceso total al disco» dado a /bin/bash le sirve a Python.
+        'ProgramArguments': ['/bin/bash', '-c', f'cd "{AQUI}" && "{py}" actualizar_consolidados.py --auto'],
         'EnvironmentVariables': {'PATH': '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin'},
         'WatchPaths': [DESCARGAS],
         'StartCalendarInterval': {'Hour': 9, 'Minute': 30},
@@ -558,6 +559,7 @@ def instalar_tarea():
     if r.returncode:
         print('No se ha podido cargar la tarea:', (r.stderr or r.stdout).strip()); return
     print('Instalado. Se ejecuta al iniciar sesión, cada día a las 9:30 y cuando cambia Descargas.')
+    print('Para que macOS le deje leer Descargas, /bin/bash necesita «Acceso total al disco» (Ajustes del Sistema › Privacidad y seguridad).')
     print('Registro:', os.path.join(AQUI, 'actualizacion.log'))
     print('Probar ahora:  launchctl kickstart -k gui/%s/%s   y luego:  tail -20 "%s"' % (uid, ETIQUETA_LAUNCHD, os.path.join(AQUI, 'actualizacion.log')))
 
