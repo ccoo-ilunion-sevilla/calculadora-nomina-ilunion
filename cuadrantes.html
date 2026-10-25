@@ -73,6 +73,29 @@ tr.sev-info td:first-child{border-left:4px solid var(--azul)}
 .heat td{text-align:center;font-family:'IBM Plex Mono',monospace;padding:4px 6px}
 .h-ok{background:#E3F5EA}.h-bad{background:#FFD9D9;font-weight:700}.h-warn{background:#FFEBC8}
 td input[type=number]{width:62px;padding:3px 5px;font-size:12px}
+.lnk{background:none;border:0;color:var(--azul);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;padding:0;text-align:left}
+.overlay{position:fixed;inset:0;background:rgba(20,22,26,.6);display:flex;align-items:flex-start;justify-content:center;padding:16px;z-index:90;overflow-y:auto}
+.modal{background:#fff;border-radius:8px;max-width:1100px;width:100%;padding:18px;margin:auto 0}
+.modal h3{font-family:'Archivo Black',sans-serif;font-size:16px;text-transform:uppercase;margin-bottom:4px}
+.cal{border-collapse:collapse;font-size:11px;margin:10px 0}
+.cal th{background:none;font-size:10px;color:var(--tinta-2);padding:2px 0;position:static;text-align:center;min-width:26px}
+.cal td{border:1px solid #fff;padding:3px 0;text-align:center;min-width:26px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;cursor:default}
+.cal td.mes{background:none;font-weight:700;text-align:left;padding-right:8px;min-width:34px;border:0}
+.cal td.nd{background:#fff;border:0}
+.c-t{background:#DCEBFA}.c-n{background:#C9C6EE}.c-l{background:#EDEFF1;color:#8A9098}.c-v{background:#CDEFD8}.c-b{background:#FDE9B8}.c-x{background:#FFB3B3;font-weight:700}.c-e{background:#fff;outline:1px dashed #bbb}
+.cal td.fin{box-shadow:inset 0 -3px 0 #8A9098}
+.cal td.inc{outline:2px solid var(--rojo);outline-offset:-2px;font-weight:700}
+.cal td.sel{outline:3px solid #000;outline-offset:-3px;background:#FFF176}
+.leyc{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;margin:4px 0}
+.leyc span::before{content:'';display:inline-block;width:12px;height:12px;margin-right:4px;vertical-align:-2px;border:1px solid #ccc}
+.leyc .a::before{background:#DCEBFA}.leyc .b::before{background:#C9C6EE}.leyc .c::before{background:#EDEFF1}.leyc .d::before{background:#CDEFD8}.leyc .e::before{background:#FDE9B8}.leyc .f::before{background:#FFB3B3}
+tr.rev-desc td{opacity:.45}
+tr.rev-conf td:first-child{box-shadow:inset 8px 0 0 var(--verde)}
+td select.est{padding:3px 4px;font-size:12px}
+.inc-item{border:1px solid var(--linea);border-radius:5px;padding:8px 10px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13px}
+.inc-item textarea{grid-column:1/-1;font-family:inherit;font-size:12.5px;padding:5px 8px}
+.inc-item.sel{border-color:#000;background:#FFFBE0}
+#esc-txt{min-height:360px;font-size:12.5px}
 .oculto{display:none!important}
 footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px 30px}
 @media (max-width:640px){body{font-size:14px}.card{padding:12px}}
@@ -145,15 +168,36 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
   <div class="fila">
     <div class="campo"><label for="f-sev">Gravedad</label><select id="f-sev"><option value="">Todas</option><option value="error">Solo errores</option><option value="aviso">Avisos</option><option value="info">Informativas</option></select></div>
     <div class="campo"><label for="f-busca">Trabajador</label><input type="text" id="f-busca" placeholder="Buscar nombre"></div>
-    <button class="btn" id="b-csv">Exportar incidencias (CSV)</button>
+    <div class="campo"><label for="f-est">Estado</label><select id="f-est"><option value="">Todos</option><option value="pend">Pendientes</option><option value="conf">Confirmadas</option><option value="desc">Descartadas</option></select></div>
+    <button class="btn" id="b-confv">Confirmar visibles</button>
+    <button class="btn" id="b-descv">Descartar visibles</button>
+    <button class="btn" id="b-csv">Exportar revisión (CSV)</button>
   </div>
+  <p class="nota">Pulsa <b>Ver</b> para abrir el calendario del trabajador con la incidencia marcada. Marca cada caso como confirmado o descartado: se recuerda en este dispositivo y solo lo confirmado pasa al escrito.</p>
   <div class="chips" id="chips"></div>
   <div class="tabla-caja" style="max-height:560px"><table id="t-inc"></table></div>
   <p class="nota" id="inc-mas" style="margin-top:6px"></p>
+  <h2 style="margin-top:22px">Escrito con lo confirmado</h2>
+  <div class="fila">
+    <div class="campo"><label for="e-dest">Destinatario</label><select id="e-dest"><option value="rrhh">RRHH de Ilunion</option><option value="itss">Inspección de Trabajo</option></select></div>
+    <div class="campo"><label for="e-centro">Centro</label><input type="text" id="e-centro" value="Metro de Sevilla" size="22"></div>
+    <div class="campo"><label for="e-nom">Trabajadores</label><select id="e-nom"><option value="num">Solo nº de empleado</option><option value="nom">Nombre y nº</option></select></div>
+    <button class="btn pri" id="b-esc">Generar escrito</button>
+    <button class="btn" id="b-esc-cp">Copiar</button>
+  </div>
+  <textarea id="esc-txt" placeholder="Aquí aparece el escrito con las incidencias confirmadas. Lo que va entre [EDITABLE …] hay que completarlo."></textarea>
   <details style="margin-top:14px"><summary>Qué se comprueba y de dónde sale</summary><div class="tabla-caja"><table id="t-reglas"></table></div></details>
 </section>
 
 </div></main>
+<div class="overlay oculto" id="modal"><div class="modal">
+  <div class="fila" style="justify-content:space-between;margin-bottom:0"><h3 id="m-tit"></h3><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
+  <div id="m-res" class="nota"></div>
+  <div class="leyc"><span class="a">Trabajo</span><span class="b">Noche / tarde-noche</span><span class="c">Libre</span><span class="d">Vacaciones</span><span class="e">Baja / permiso</span><span class="f">Código sin definir</span><span style="border-bottom:3px solid #8A9098;padding-bottom:1px">Sáb / dom</span><span style="outline:2px solid #c00">Con incidencia</span></div>
+  <div class="tabla-caja" style="overflow-x:auto"><div id="m-cal"></div></div>
+  <h3 style="margin-top:14px;font-size:13px">Incidencias de este trabajador</h3>
+  <div id="m-inc"></div>
+</div></div>
 <footer>Herramienta de apoyo sindical. Una incidencia es un indicio que hay que contrastar con el cuadrante original antes de reclamar.</footer>
 
 <script id="motor">
@@ -567,13 +611,70 @@ const Motor=(function(){
     return{trabajadores:tr,N,anio,columnas:N,esperado:N,est,bloqueante,cabecera:true,vaciaLibre:true,leyenda,empresa:true};
   }
 
+  const PIDE={
+    DESC:'Que se rectifiquen los turnos afectados para garantizar el descanso mínimo entre jornadas (12 h legales y 13 h según el Acuerdo de empresa).',
+    SEM:'Que se rectifique el cuadrante para garantizar el descanso semanal de día y medio ininterrumpido (ET 37.1).',
+    ANUAL:'Que se ajuste el cuadrante a la jornada anual de 1.782 h; las horas programadas por encima tienen la consideración de extraordinarias y se abonarán o compensarán como tales.',
+    PREFIJ:'Que se prefije en el cuadrante, como mínimo, el 75 % de la jornada anual.',
+    MES:'Que se ajuste la distribución mensual a la horquilla pactada (144–176 h; febrero 134–162 h) o se justifique y compense.',
+    FS:'Que se garantice la libranza de un fin de semana completo (48 h) al mes.',
+    NOCHES:'Que se garantice la libranza de una de las dos noches (24 o 31 de diciembre).',
+    VAC:'Que se asignen en el cuadrante todos los días de vacaciones que corresponden.',
+    D96:'Que se garanticen los 96 días naturales de descanso anual (art. 59 del Acuerdo), sin contar vacaciones.',
+    CALC:'Que se corrija el cómputo de horas declarado y se aporte el desglose de cómo se calcula.',
+    ESTR:'Que se complete o aclare el cuadrante (casillas vacías o códigos sin definir en la leyenda).',
+    DIA:'Que se ajusten los turnos que superan la jornada diaria máxima.',
+    PART:'Que se respete el descanso mínimo en la jornada partida.'
+  };
+  function redactar(items,o){
+    const y=o.anio,ed=t=>'[EDITABLE '+t+']',L=[];
+    const fecha=o.fechaEntrega?new Date(o.fechaEntrega+'T00:00:00Z').toLocaleDateString('es-ES',{timeZone:'UTC'}):ed('fecha de entrega');
+    const por=new Map();items.forEach(i=>{if(!por.has(i.regla))por.set(i.regla,[]);por.get(i.regla).push(i);});
+    const ficha=i=>'- '+i.etq+(i.dia===null||i.dia===undefined?'':' · '+fmt(y,i.dia))+': '+i.det;
+    const hechos=()=>{
+      let n=0;
+      por.forEach((v,r)=>{
+        n++;L.push('');L.push(n+'. '+REGLAS[r].n.toUpperCase()+' ('+v.length+(v.length===1?' caso':' casos')+')');
+        v.slice(0,15).forEach(i=>L.push('   '+ficha(i)));
+        if(v.length>15)L.push('   … y '+(v.length-15)+' casos más (se aportan en anexo).');
+        L.push('   Normativa: '+REGLAS[r].f.replace(' (criterio permisivo)','')+'.');
+      });
+    };
+    const plazo=o.fechaEntrega?plazoEntrega(y,o.fechaEntrega):null;
+    const fuera=plazo&&plazo.enPlazo===false;
+    if(o.destino==='itss'){
+      L.push('A LA INSPECCIÓN PROVINCIAL DE TRABAJO Y SEGURIDAD SOCIAL DE SEVILLA');
+      L.push('');L.push('Sección Sindical de CCOO en Ilunion Seguridad, S.A. — centro: '+(o.centro||ed('centro'))+'.');
+      L.push('');L.push('HECHOS');
+      L.push('Revisado el cuadrante anual '+y+', entregado por la empresa el '+fecha+', se constatan los siguientes incumplimientos:');
+      hechos();
+      if(fuera)L.push('\n'+(por.size+1)+'. ENTREGA FUERA DE PLAZO\n   El cuadrante anual debe entregarse con un mes de antelación al inicio del año (límite '+new Date(plazo.limite).toLocaleDateString('es-ES',{timeZone:'UTC'})+'); se entregó con '+(-plazo.dias)+' días de retraso.');
+      L.push('');L.push('PRUEBAS');L.push('- Cuadrante anual '+y+' entregado por la empresa (se adjunta).');L.push('- Relación de incidencias detectadas (anexo).');
+      L.push('');L.push('SOLICITO');
+      L.push('Que se inicie actuación inspectora y se requiera a la empresa para que corrija el cuadrante en lo siguiente:');
+      por.forEach((v,r)=>L.push('- '+PIDE[r]));
+      L.push('');L.push('En Sevilla, a '+ed('fecha')+'.');L.push('Fdo.: '+ed('nombre y DNI del denunciante'));
+    }else{
+      L.push('ASUNTO: Cuadrante anual '+y+' · '+(o.centro||ed('centro'))+' · incumplimientos en el tiempo de trabajo');
+      L.push('');L.push('A la atención de la Dirección de Recursos Humanos de Ilunion Seguridad:');
+      L.push('');L.push('Revisado el cuadrante anual '+y+', entregado el '+fecha+', la Sección Sindical de CCOO detecta los incumplimientos que se detallan a continuación.');
+      hechos();
+      if(fuera)L.push('\nAdemás, el cuadrante se entregó fuera del plazo de un mes de antelación al inicio del año (límite '+new Date(plazo.limite).toLocaleDateString('es-ES',{timeZone:'UTC'})+'), con '+(-plazo.dias)+' días de retraso. Aplicarlo sin respetar ese plazo puede constituir una modificación unilateral de condiciones (art. 41 ET).');
+      L.push('');L.push('SOLICITAMOS');
+      por.forEach((v,r)=>L.push('- '+PIDE[r]));
+      L.push('- Respuesta por escrito y cuadrante rectificado antes del '+ed('fecha límite')+'; en caso contrario, la Sección Sindical acudirá a la Inspección de Trabajo.');
+      L.push('');L.push('En Sevilla, a '+ed('fecha')+'.');L.push('Sección Sindical CCOO · Ilunion Seguridad Sevilla');
+    }
+    return L.join('\n');
+  }
+
   function plazoEntrega(y,recepcion){
     const limite=new Date(Date.UTC(y-1,11,1));
     if(!recepcion)return{limite};
     const r=new Date(recepcion+'T00:00:00Z'),dias=Math.round((limite-r)/864e5);
     return{limite,dias,enPlazo:dias>=0};
   }
-  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa};
+  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa,redactar};
 })();
 if(typeof module!=='undefined')module.exports=Motor;
 </script>
@@ -584,13 +685,19 @@ if(typeof module!=='undefined')module.exports=Motor;
 if(typeof document==='undefined')return;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let pl=null,res=null,filtroRegla='',verTodo=false,libro=null;
+let pl=null,res=null,filtroRegla='',verTodo=false,libro=null,leyAct=null,fichaTi=null;
+const LSR='cuadrantes_rev_v1';
 const opts={};
 const LS='cuadrantes_ley_v1',LSP='cuadrantes_par_v1';
 const PARAMS=[['jornadaAnual','Jornada anual (h)'],['ausComputan','Vacac./bajas computan horas (1/0)'],['tolHoras','Tolerancia (h)'],['pctPrefijado','% prefijado mín.'],['mesMin','Mes mín. (h)'],['mesMax','Mes máx. (h)'],['febMin','Feb. mín. (h)'],['febMax','Feb. máx. (h)'],['descLegal','Descanso legal (h)'],['descPactado','Descanso Acuerdo (h)'],['maxDiaria','Máx. turno (h)'],['vacaciones','Vacaciones (días)'],['vacacionesMin','Vacaciones mín. legal'],['descAnual','Descanso anual (días)'],['partidoMin','Partido mín. (h)'],['descSemanalH','Descanso semanal (h)']];
 const sg=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 const ss=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 
+let rev=sg(LSR)||{};
+const idDe=i=>{let h=0;const t=i.nombre+'|'+i.regla+'|'+i.dia+'|'+i.det;for(let k=0;k<t.length;k++)h=(h*31+t.charCodeAt(k))|0;return String(h);};
+const estDe=i=>(rev[i.id]&&rev[i.id].e)||'pend';
+const setRev=(id,p)=>{rev[id]=Object.assign(rev[id]||{},p);ss(LSR,rev);};
+const etqDe=i=>{const m=i.nombre.match(/\((\d+)\)\s*$/);return m?'nº '+m[1]:'trabajador '+(i.ti+1);};
 function anio(){return parseInt($('p-anio').value,10)||2027;}
 function pintarParams(){
   const g=Object.assign({},Motor.DEF,sg(LSP)||{});
@@ -658,20 +765,26 @@ function verificar(){
   if(res)res.resumen.forEach(r=>{});
   document.querySelectorAll('#t-trab [data-pct]').forEach(i=>{const ti=+i.dataset.pct;opts[ti]=opts[ti]||{};opts[ti].pct=Math.min(100,Math.max(1,parseFloat(i.value)||100));});
   document.querySelectorAll('#t-trab [data-fs]').forEach(i=>{const ti=+i.dataset.fs;opts[ti]=opts[ti]||{};opts[ti].exentoFS=i.checked;});
-  res=Motor.verificar(pl,ley,P,opts);filtroRegla='';verTodo=false;pintar();
+  res=Motor.verificar(pl,ley,P,opts);leyAct=ley;filtroRegla='';verTodo=false;
+  res.inc.forEach((i,k)=>{i.k=k;i.id=idDe(i);i.etq=etqDe(i);});
+  pintar();
   $('c-res').classList.remove('oculto');$('c-res').scrollIntoView({behavior:'smooth'});
 }
 
+function kpiRev(){
+  const rel=res.inc.filter(i=>i.sev!=='info'),n=e=>rel.filter(i=>estDe(i)===e).length;
+  return '<div class="kpi"><b>'+n('pend')+'</b><span>por revisar</span></div><div class="kpi" style="border-color:var(--verde)"><b style="color:var(--verde)">'+n('conf')+'</b><span>confirmadas</span></div><div class="kpi"><b>'+n('desc')+'</b><span>descartadas</span></div>';
+}
 function pintar(){
   const c=s=>res.inc.filter(i=>i.sev===s).length;
-  $('kpis').innerHTML='<div class="kpi"><b>'+pl.trabajadores.length+'</b><span>trabajadores</span></div><div class="kpi e"><b>'+c('error')+'</b><span>errores</span></div><div class="kpi a"><b>'+c('aviso')+'</b><span>avisos</span></div><div class="kpi i"><b>'+c('info')+'</b><span>informativas</span></div><div class="kpi"><b>'+new Set(res.inc.filter(i=>i.sev==='error').map(i=>i.ti)).size+'</b><span>trabajadores con error</span></div>';
+  $('kpis').innerHTML='<div class="kpi"><b>'+pl.trabajadores.length+'</b><span>trabajadores</span></div><div class="kpi e"><b>'+c('error')+'</b><span>errores</span></div><div class="kpi a"><b>'+c('aviso')+'</b><span>avisos</span></div><div class="kpi i"><b>'+c('info')+'</b><span>informativas</span></div><div class="kpi"><b>'+new Set(res.inc.filter(i=>i.sev==='error').map(i=>i.ti)).size+'</b><span>trabajadores con error</span></div><div id="kpi-rev" style="display:contents">'+kpiRev()+'</div>';
   const cnt=new Map();res.inc.forEach(i=>{cnt.set(i.ti,cnt.get(i.ti)||{e:0,a:0});if(i.sev==='error')cnt.get(i.ti).e++;if(i.sev==='aviso')cnt.get(i.ti).a++;});
   const P=res.P;
   $('t-trab').innerHTML='<thead><tr><th>Trabajador</th><th class="num">H. trabajo</th><th class="num">Cómputo</th><th class="num">Vac.</th><th class="num">Desc. L</th><th class="num">Noct. h</th><th class="num">Sáb/dom h</th><th class="num">FS libres</th><th class="num">Err.</th><th class="num">Avisos</th><th>% jornada</th><th>Exento FS</th></tr></thead><tbody>'+
-    res.resumen.map(r=>{const k=cnt.get(r.ti)||{e:0,a:0};return '<tr><td>'+esc(r.nombre)+'</td><td class="num">'+r.horasTrab.toFixed(1)+'</td><td class="num">'+r.horas.toFixed(1)+'</td><td class="num">'+r.vac+'</td><td class="num">'+r.libres+'</td><td class="num">'+r.noct.toFixed(1)+'</td><td class="num">'+r.finde.toFixed(1)+'</td><td class="num">'+r.fs+(r.fsDud?'+'+r.fsDud:'')+'</td><td class="num">'+k.e+'</td><td class="num">'+k.a+'</td><td><input type="number" data-pct="'+r.ti+'" value="'+r.pct+'" min="1" max="100"></td><td><input type="checkbox" data-fs="'+r.ti+'"'+(r.exentoFS?' checked':'')+'></td></tr>';}).join('')+'</tbody>';
+    res.resumen.map(r=>{const k=cnt.get(r.ti)||{e:0,a:0};return '<tr><td><button class="lnk" data-ficha="'+r.ti+'">'+esc(r.nombre)+'</button></td><td class="num">'+r.horasTrab.toFixed(1)+'</td><td class="num">'+r.horas.toFixed(1)+'</td><td class="num">'+r.vac+'</td><td class="num">'+r.libres+'</td><td class="num">'+r.noct.toFixed(1)+'</td><td class="num">'+r.finde.toFixed(1)+'</td><td class="num">'+r.fs+(r.fsDud?'+'+r.fsDud:'')+'</td><td class="num">'+k.e+'</td><td class="num">'+k.a+'</td><td><input type="number" data-pct="'+r.ti+'" value="'+r.pct+'" min="1" max="100"></td><td><input type="checkbox" data-fs="'+r.ti+'"'+(r.exentoFS?' checked':'')+'></td></tr>';}).join('')+'</tbody>';
   const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   $('t-mes').innerHTML='<thead><tr><th>Trabajador</th>'+M.map(m=>'<th class="num">'+m+'</th>').join('')+'</tr></thead><tbody>'+
-    res.resumen.map(r=>'<tr><td style="text-align:left">'+esc(r.nombre)+'</td>'+r.horasMes.map((h,m)=>{
+    res.resumen.map(r=>'<tr><td style="text-align:left"><button class="lnk" data-ficha="'+r.ti+'">'+esc(r.nombre)+'</button></td>'+r.horasMes.map((h,m)=>{
       const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;
       const k=r.pct<100?'':(h>mx||h<mn?'h-bad':'h-ok');return '<td class="'+k+'">'+h.toFixed(0)+'</td>';}).join('')+'</tr>').join('')+'</tbody>';
   const regs=[...new Set(res.inc.map(i=>i.regla))];
@@ -681,20 +794,68 @@ function pintar(){
 }
 function filtradas(){
   const s=$('f-sev').value,q=$('f-busca').value.trim().toLowerCase();
-  return res.inc.filter(i=>(!s||i.sev===s)&&(!filtroRegla||i.regla===filtroRegla)&&(!q||i.nombre.toLowerCase().includes(q)));
+  const e=$('f-est').value;
+  return res.inc.filter(i=>(!s||i.sev===s)&&(!filtroRegla||i.regla===filtroRegla)&&(!e||estDe(i)===e)&&(!q||i.nombre.toLowerCase().includes(q)));
 }
+const selEst=(i,cl)=>'<select class="est '+(cl||'')+'" data-est="'+i.k+'"><option value="pend"'+(estDe(i)==='pend'?' selected':'')+'>Por revisar</option><option value="conf"'+(estDe(i)==='conf'?' selected':'')+'>Confirmada</option><option value="desc"'+(estDe(i)==='desc'?' selected':'')+'>Descartada</option></select>';
 function pintarInc(){
   const f=filtradas(),y=anio(),lim=verTodo?f.length:300;
-  $('t-inc').innerHTML='<thead><tr><th>Grav.</th><th>Trabajador</th><th>Fecha</th><th>Regla</th><th>Detalle</th></tr></thead><tbody>'+
-    f.slice(0,lim).map(i=>'<tr class="sev-'+i.sev+'"><td><span class="tag '+i.sev+'">'+i.sev+'</span></td><td>'+esc(i.nombre)+'</td><td>'+(i.dia===null?'—':Motor.fmt(y,i.dia))+'</td><td>'+esc(Motor.REGLAS[i.regla].n)+'</td><td class="det">'+esc(i.det)+'</td></tr>').join('')+'</tbody>';
+  $('t-inc').innerHTML='<thead><tr><th>Grav.</th><th>Trabajador</th><th>Fecha</th><th>Regla</th><th>Detalle</th><th>Estado</th><th></th></tr></thead><tbody>'+
+    f.slice(0,lim).map(i=>'<tr class="sev-'+i.sev+' rev-'+estDe(i)+'" data-k="'+i.k+'"><td><span class="tag '+i.sev+'">'+i.sev+'</span></td><td>'+esc(i.nombre)+'</td><td>'+(i.dia===null?'—':Motor.fmt(y,i.dia))+'</td><td>'+esc(Motor.REGLAS[i.regla].n)+'</td><td class="det">'+esc(i.det)+(rev[i.id]&&rev[i.id].n?'<br><i style="color:var(--azul)">Nota: '+esc(rev[i.id].n)+'</i>':'')+'</td><td>'+selEst(i)+'</td><td><button class="btn" data-ver="'+i.k+'">Ver</button></td></tr>').join('')+'</tbody>';
   $('inc-mas').innerHTML=f.length>lim?f.length+' incidencias; se muestran '+lim+'. <a href="#" id="ver-todo">Mostrar todas</a>':(f.length?f.length+' incidencias.':'Sin incidencias con este filtro.');
 }
+function refrescarRev(){$('kpi-rev').innerHTML=kpiRev();}
+function cambiarEstado(k,e){
+  const i=res.inc[k];setRev(i.id,{e});
+  if($('f-est').value)pintarInc();else{const tr=document.querySelector('#t-inc tr[data-k="'+k+'"]');if(tr)tr.className='sev-'+i.sev+' rev-'+e;}
+  refrescarRev();
+}
+function masivo(e){filtradas().filter(i=>i.sev!=='info').forEach(i=>setRev(i.id,{e}));pintarInc();refrescarRev();}
+
+/* ---------- Ficha del trabajador: calendario del año con las incidencias ---------- */
+function claseCelda(c,L){
+  if(!c)return pl.vaciaLibre?'c-l':'c-e';
+  if(!L)return'c-x';
+  if(L.tipo==='L')return'c-l';if(L.tipo==='V')return'c-v';if(L.tipo==='B'||L.tipo==='P')return'c-b';
+  if(L.segs){const a=L.segs[0][0]%1440;return(a>=1140||a<360)?'c-n':'c-t';}
+  return'c-t';
+}
+function calendario(ti,sel){
+  const t=pl.trabajadores[ti],y=res.P.anio,N=Motor.diasAnio(y);
+  const marca=new Set(res.inc.filter(i=>i.ti===ti&&i.dia!==null).map(i=>i.dia));
+  const hh=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  let h='<table class="cal"><tr><td class="mes nd"></td>'+Array.from({length:31},(_,d)=>'<th>'+(d+1)+'</th>').join('')+'</tr>',idx=0;
+  for(let m=0;m<12;m++){
+    const dm=Motor.diasMes(y,m);h+='<tr><td class="mes">'+M[m]+'</td>';
+    for(let d=0;d<31;d++){
+      if(d>=dm){h+='<td class="nd"></td>';continue;}
+      const c=(t.celdas[idx]||'').trim().toUpperCase(),L=leyAct[c],w=Motor.fecha(y,idx).getUTCDay();
+      const hor=L&&L.segs?' '+L.segs.map(s=>hh(s[0])+'-'+hh(s[1])).join('+'):'';
+      h+='<td class="'+claseCelda(c,L)+(w===0||w===6?' fin':'')+(marca.has(idx)?' inc':'')+(sel===idx?' sel':'')+'" title="'+Motor.fmt(y,idx)+' · '+(c||'libre')+hor+'" data-d="'+idx+'">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
+      idx++;
+    }
+    h+='</tr>';
+  }
+  return h+'</table>';
+}
+function abrirFicha(ti,k){
+  fichaTi=ti;const r=res.resumen[ti],sel=k!==undefined?res.inc[k]:null,y=res.P.anio;
+  $('m-tit').textContent=r.nombre;
+  $('m-res').innerHTML='Horas de trabajo <b>'+r.horasTrab.toFixed(1)+'</b> · cómputo <b>'+r.horas.toFixed(1)+'</b> · vacaciones <b>'+r.vac+'</b> días · libranzas <b>'+r.libres+'</b> · fines de semana libres <b>'+r.fs+(r.fsDud?'+'+r.fsDud+' dudosos':'')+'</b> · nocturnas <b>'+r.noct.toFixed(1)+' h</b> · sáb/dom <b>'+r.finde.toFixed(1)+' h</b>';
+  $('m-cal').innerHTML=calendario(ti,sel&&sel.dia!==null?sel.dia:-1);
+  const mis=res.inc.filter(i=>i.ti===ti);
+  $('m-inc').innerHTML=mis.length?mis.map(i=>'<div class="inc-item'+(sel&&sel.k===i.k?' sel':'')+'" data-k="'+i.k+'"><div><span class="tag '+i.sev+'">'+i.sev+'</span> <b>'+esc(Motor.REGLAS[i.regla].n)+'</b>'+(i.dia===null?'':' · '+Motor.fmt(y,i.dia))+'<br>'+esc(i.det)+'</div><div>'+selEst(i)+'</div><textarea rows="1" data-nota="'+i.k+'" placeholder="Nota (qué has comprobado, qué te ha dicho el trabajador…)">'+esc((rev[i.id]&&rev[i.id].n)||'')+'</textarea></div>').join(''):'<p class="nota">Sin incidencias.</p>';
+  $('modal').classList.remove('oculto');
+  const s=document.querySelector('#m-inc .sel');if(s)s.scrollIntoView({block:'nearest'});
+}
+function cerrarFicha(){$('modal').classList.add('oculto');pintarInc();refrescarRev();}
 function csv(){
   const y=anio(),q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  const l=[['Gravedad','Trabajador','Fecha','Regla','Detalle'].map(q).join(';')];
-  filtradas().forEach(i=>l.push([i.sev,i.nombre,i.dia===null?'':Motor.fmt(y,i.dia),Motor.REGLAS[i.regla].n,i.det].map(q).join(';')));
+  const l=[['Gravedad','Trabajador','Fecha','Regla','Detalle','Estado','Nota'].map(q).join(';')];
+  filtradas().forEach(i=>l.push([i.sev,i.nombre,i.dia===null?'':Motor.fmt(y,i.dia),Motor.REGLAS[i.regla].n,i.det,({pend:'Por revisar',conf:'Confirmada',desc:'Descartada'})[estDe(i)],(rev[i.id]&&rev[i.id].n)||''].map(q).join(';')));
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+l.join('\r\n')],{type:'text/csv;charset=utf-8'}));
-  a.download='incidencias_cuadrante_'+y+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  a.download='revision_cuadrante_'+y+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 
 function cargarHoja(){
@@ -732,6 +893,27 @@ $('p-anio').addEventListener('change',()=>{plazo();});
 $('f-recep').addEventListener('change',plazo);
 $('f-sev').addEventListener('change',pintarInc);
 $('f-busca').addEventListener('input',pintarInc);
+$('f-est').addEventListener('change',pintarInc);
+$('b-confv').addEventListener('click',()=>masivo('conf'));
+$('b-descv').addEventListener('click',()=>masivo('desc'));
+document.addEventListener('click',e=>{
+  const v=e.target.closest('[data-ver]');if(v){const i=res.inc[+v.dataset.ver];abrirFicha(i.ti,i.k);return;}
+  const f=e.target.closest('[data-ficha]');if(f){abrirFicha(+f.dataset.ficha);return;}
+  if(e.target.id==='m-cerrar'||e.target.id==='modal')cerrarFicha();
+});
+document.addEventListener('change',e=>{
+  const s=e.target.closest('[data-est]');if(s){cambiarEstado(+s.dataset.est,s.value);if(!$('modal').classList.contains('oculto')){const it=s.closest('.inc-item');if(it)it.dataset.e=s.value;}return;}
+  const n=e.target.closest('[data-nota]');if(n){setRev(res.inc[+n.dataset.nota].id,{n:n.value.trim()});}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modal').classList.contains('oculto'))cerrarFicha();});
+$('b-esc').addEventListener('click',()=>{
+  const items=res.inc.filter(i=>estDe(i)==='conf');
+  if(!items.length){$('esc-txt').value='No hay incidencias confirmadas. Revisa la lista (botón «Ver») y marca como «Confirmada» las que quieras incluir.';return;}
+  const nom=$('e-nom').value==='nom';
+  const it=items.map(i=>Object.assign({},i,{etq:nom?i.nombre.replace(/\s*\((\d+)\)\s*$/,' (nº $1)'):i.etq}));
+  $('esc-txt').value=Motor.redactar(it,{anio:res.P.anio,destino:$('e-dest').value,centro:$('e-centro').value.trim(),fechaEntrega:$('f-recep').value});
+});
+$('b-esc-cp').addEventListener('click',()=>{const t=$('esc-txt');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>{});else document.execCommand('copy');});
 $('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;filtroRegla=b.dataset.r;pintar();});
 $('inc-mas').addEventListener('click',e=>{if(e.target.id==='ver-todo'){e.preventDefault();verTodo=true;pintarInc();}});
 $('b-ley-aplicar').addEventListener('click',()=>{
