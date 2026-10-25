@@ -105,14 +105,53 @@ tr.cal-r td{background:none}
 .ok-t{color:var(--verde);font-weight:700}.mal-t{color:var(--rojo);font-weight:700}
 .sub{font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;margin:16px 0 4px}
 #m-esc{min-height:240px;font-size:12.5px}
+#lote{display:none}
+.hoja{font-size:12px}
+.hh{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:4px solid var(--rojo);padding-bottom:6px;margin-bottom:6px}
+.hh-t{font-family:'Archivo Black',sans-serif;font-size:19px;text-transform:uppercase}
+.hh-n{text-align:right;font-size:13px}
+.hoja .cal td{min-width:25px;padding:2px 0;position:relative;font-size:10px}
+.hoja sup{font-size:7px;color:#c00;font-weight:700;margin-left:1px}
+.hoja table.ft{font-size:11px}
+.hoja table.ft td{white-space:normal;vertical-align:top;padding:4px 6px}
+.hoja .form{border:2px solid var(--tinta);border-radius:4px;padding:6px 10px;margin-top:8px;line-height:1.9;break-inside:avoid}
+.hoja .vacl{margin-top:8px;font-size:12px}
+.hoja .lin{display:inline-block;border-bottom:1px solid #000;min-width:170px;height:14px;vertical-align:bottom}
+.hoja .lin.l{min-width:100%;display:block;margin:7px 0}
+.hoja .cols{columns:3;column-gap:16px;font-size:11px}
+.emp{width:100%;border-collapse:collapse;table-layout:fixed;font-family:Arial,Helvetica,sans-serif;font-size:7.5px;margin:0 0 3px}
+.emp td{border:1px solid #666;text-align:center;padding:0;height:11px;line-height:11px;overflow:hidden;white-space:nowrap;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:7.5px;min-width:0;position:relative}
+.emp td.fin{background:#d6d6d6;font-weight:700}
+.emp td.fes{background:#b5b5b5;font-weight:700}
+.emp td.nd{border:0;background:none}
+.emp td.cod{height:14px;line-height:14px;font-size:8px}
+.emp td.inc{outline:1.6px solid #d00;outline-offset:-1.6px;font-weight:700}
+.emp td.sel{background:#FFF176}
+.emp td.tm{border:0;background:none;text-align:right;font-weight:700;font-size:8px;padding-right:2px}
+.emp td.tv{border:0;border-bottom:1px solid #000;background:none;text-align:right;font-size:11px;padding-right:2px}
+.emp sup{font-size:6px;font-weight:700;color:#d00;position:absolute;top:0;right:1px;line-height:6px}
+.emp-mes{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:10px;margin:5px 0 1px}
+.emp-cab{width:46%;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:8.5px}
+.emp-cab td{border:1px solid #444;padding:3px 6px;background:#fff}
+.emp-cab td:first-child{font-weight:700;width:26%}
+.emp-obs{border:1px solid #444;height:34px;margin-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:9px;padding:2px 5px}
+.emp-tot{display:flex;justify-content:flex-end;align-items:center;gap:6px;font-family:Arial,Helvetica,sans-serif;margin-top:4px}
+.emp-tot b{border:1px solid #444;padding:4px 10px;font-size:11px}
+.hoja .pie{font-size:10px;color:#555;margin-top:8px}
 @media print{
-  body>*:not(#modal){display:none!important}
+  body>*:not(#modal):not(#lote){display:none!important}
+  body.lote #modal{display:none!important}
+  body.lote #lote{display:block!important}
+  .hoja{break-after:page}
+  .hoja:last-child{break-after:auto}
+  .salto{break-before:page}
+  #modal .modal>*:not(#m-hoja){display:none!important}
   .overlay{position:static!important;background:none!important;padding:0!important;display:block!important}
   .modal{max-width:none!important;box-shadow:none!important;padding:0!important}
   .no-print{display:none!important}
   textarea{border:1px solid #bbb!important;resize:none}
   .cal td,.cal th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  @page{size:A4 landscape;margin:10mm}
+  @page{size:A4 portrait;margin:8mm}
 }
 .oculto{display:none!important}
 footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px 30px}
@@ -177,13 +216,20 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
 <section class="card oculto" id="c-res">
   <h2>Resultado</h2>
   <div id="kpis" class="kpis"></div>
-  <h2 style="margin-top:14px">Ficha de un trabajador</h2>
+  <h2 style="margin-top:14px">Hoja impresa para el trabajador</h2>
+  <p class="nota" style="margin-bottom:8px">Es el cuadrante anual como el de la hoja «IMPRESIÓN C. ANUAL» del Excel, con los fallos de convenio y Acuerdo marcados encima, las vacaciones concedidas y un recuadro para que el trabajador compruebe si coinciden con las que solicitó y te lo devuelva.</p>
   <div class="fila">
-    <div class="campo"><label for="b-emp">Nº de empleado o nombre</label><input type="text" id="b-emp" list="dl-emp" size="34" placeholder="Ej.: 75002"></div>
-    <button class="btn pri" id="b-emp-ok">Abrir su hoja anual</button>
+    <div class="campo"><label for="h-que">Fallos que se imprimen</label><select id="h-que"><option value="sindesc">Todos menos los descartados</option><option value="conf">Solo los confirmados</option><option value="todos">Todos</option></select></div>
+    <div class="campo"><label for="h-limite">Devolver antes del</label><input type="date" id="h-limite"></div>
+    <div class="campo"><label for="h-contacto">Contacto del delegado</label><input type="text" id="h-contacto" size="26" placeholder="Nombre · teléfono"></div>
+  </div>
+  <div class="fila">
+    <div class="campo"><label for="b-emp">Una hoja: nº de empleado o nombre</label><input type="text" id="b-emp" list="dl-emp" size="30" placeholder="Ej.: 75002"></div>
+    <button class="btn pri" id="b-emp-ok">Ver e imprimir su hoja</button>
+    <button class="btn" id="b-lote">Imprimir las hojas de todos</button>
+    <label style="font-size:13px"><input type="checkbox" id="lote-solo"> solo los que tienen fallos</label>
   </div>
   <datalist id="dl-emp"></datalist>
-  <p class="nota" style="margin-bottom:6px">Es la misma hoja que «IMPRESIÓN C. ANUAL» del Excel, pero con las comprobaciones. También se abre pulsando el nombre en la tabla de abajo.</p>
   <h2 style="margin-top:14px">Por trabajador</h2>
   <p class="nota" style="margin-bottom:6px">Ajusta «% jornada» (reducciones) o marca «Exento FS» (contrato de fin de semana / rotación pactada) y pulsa de nuevo <b>Verificar</b>.</p>
   <div class="tabla-caja" style="max-height:420px"><table id="t-trab"></table></div>
@@ -216,38 +262,24 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
 
 </div></main>
 <div class="overlay oculto" id="modal"><div class="modal">
-  <div class="fila no-print" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" id="m-print">Imprimir / guardar PDF</button><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
-  <h3 id="m-tit"></h3>
-  <div id="m-res" class="nota"></div>
-  <div class="leyc"><span class="a">Trabajo</span><span class="b">Noche / tarde-noche</span><span class="c">Libre</span><span class="d">Vacaciones</span><span class="e">Baja / permiso</span><span class="f">Código sin definir</span><span style="border-bottom:3px solid #8A9098;padding-bottom:1px">Sáb / dom</span><span style="outline:2px solid #c00">Con incidencia</span><span style="outline:2px dashed #25508C">Lo que pedí</span></div>
-  <div style="overflow-x:auto"><div id="m-cal"></div></div>
-
-  <div class="sub">Lo que pedí frente a lo que me han concedido</div>
-  <div class="fila" style="margin-bottom:4px">
-    <div class="campo" style="flex:1 1 280px"><label for="p-vac">Vacaciones que pedí (fechas)</label><textarea id="p-vac" data-pet="vac" rows="2" placeholder="14/07-31/07, 01/09-14/09"></textarea></div>
-    <div class="campo" style="flex:1 1 280px"><label for="p-otros">Otros días libres que tengo acordados (asuntos propios, cambios, permisos…)</label><textarea id="p-otros" data-pet="otros" rows="2" placeholder="24/12, 31/12"></textarea></div>
-  </div>
-  <div id="p-res"></div>
-
-  <div class="sub">Vacaciones concedidas</div><div id="m-vac"></div>
-  <div class="sub">Festivos</div><div id="m-fest"></div>
-  <div class="sub">Fines de semana libres</div><div id="m-fs"></div>
-  <div class="sub">Horas por mes</div><div id="m-meses" style="overflow-x:auto"></div>
-  <div class="sub">Incidencias detectadas</div><div id="m-inc"></div>
-
-  <div class="no-print">
+  <div class="fila no-print" style="justify-content:flex-end;margin-bottom:6px"><button class="btn pri" id="m-print">Imprimir / guardar PDF</button><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
+  <div id="m-hoja"></div>
+  <div class="no-print" id="m-rev">
+    <div class="sub">Revisión de este trabajador (no se imprime)</div>
+    <div id="m-inc"></div>
     <div class="sub">Escrito de este trabajador</div>
-    <p class="nota" style="margin-bottom:6px">Incluye sus incidencias <b>confirmadas</b> y las peticiones no atendidas. Usa el destinatario elegido más arriba.</p>
+    <p class="nota" style="margin-bottom:6px">Con sus incidencias <b>confirmadas</b>. Usa el destinatario elegido en el apartado del escrito.</p>
     <button class="btn pri" id="m-esc-b">Generar escrito</button> <button class="btn" id="m-esc-cp">Copiar</button>
     <textarea id="m-esc" style="margin-top:8px"></textarea>
   </div>
 </div></div>
+<div id="lote"></div>
+
 <script id="motor">
 /* ====================== MOTOR (sin DOM) ====================== */
 const Motor=(function(){
   const DIA=1440;
   const REGLAS={
-    SOLIC:{n:'Peticiones del trabajador',f:'ET 38.2 y 38.3: las vacaciones se fijan de común acuerdo y el trabajador conoce sus fechas al menos dos meses antes de disfrutarlas'},
     CALC:{n:'Cómputo de la empresa',f:'La columna HORAS que declara la empresa debe coincidir con la suma de las casillas del mes'},
     ESTR:{n:'Estructura',f:'Casillas vacías o códigos que no están en la leyenda'},
     ANUAL:{n:'Jornada anual',f:'Conv. estatal art. 52 y Acuerdo Ilunion art. 56: 1.782 h/año'},
@@ -409,7 +441,8 @@ const Motor=(function(){
     const y=P.anio,N=diasAnio(y),TOT=N*DIA,inc=[],resumen=[];
     pl.trabajadores.forEach((tr,ti)=>{
       const o=Object.assign({pct:100,exentoFS:false},opts[ti]||{});
-      const add=(regla,sev,dia,det)=>inc.push({ti,nombre:tr.nombre,regla,sev,dia,det});
+      const rango=(a,b)=>Array.from({length:Math.max(0,b-a+1)},(_,x)=>a+x);
+      const add=(regla,sev,dia,det,dias)=>inc.push({ti,nombre:tr.nombre,regla,sev,dia,det,dias:dias||(dia===null||dia===undefined?[]:[dia])});
       const jor=[],tipoDia=new Array(N).fill(null),horasMes=new Array(12).fill(0);
       const aus=new Array(12).fill(0),celMes=new Array(12).fill(0),desc=new Map();
       let vac=0,bajas=0,perm=0,libres=0,credito=0,vacias=[],runV=null;
@@ -419,7 +452,7 @@ const Motor=(function(){
         if(!raw){ if(pl.vaciaLibre){tipoDia[i]='L';libres++;continue;} if(runV&&runV[1]===i-1)runV[1]=i; else{runV=[i,i];vacias.push(runV);} continue; }
         const cod=raw.toUpperCase(),L=ley[cod];
         celMes[mesDe(y,i)]++;
-        if(!L){ if(!desc.has(cod))desc.set(cod,{n:0,primera:i});desc.get(cod).n++; continue; }
+        if(!L){ if(!desc.has(cod))desc.set(cod,{n:0,primera:i,dias:[]});desc.get(cod).n++;desc.get(cod).dias.push(i); continue; }
         tipoDia[i]=L.tipo;
         const m=mesDe(y,i);
         if(L.tipo==='V'){vac++;aus[m]++;cred(L,m);}
@@ -427,13 +460,13 @@ const Motor=(function(){
         else if(L.tipo==='P'){perm++;aus[m]++;cred(L,m);}
         else if(L.tipo==='L')libres++;
         else if(L.tipo==='T'){
-          if(L.incompleta){ if(!desc.has('«'+cod+'» sin horas'))desc.set('«'+cod+'» sin horas',{n:0,primera:i,incompleto:true});desc.get('«'+cod+'» sin horas').n++; continue; }
+          if(L.incompleta){ if(!desc.has('«'+cod+'» sin horas'))desc.set('«'+cod+'» sin horas',{n:0,primera:i,incompleto:true,dias:[]});desc.get('«'+cod+'» sin horas').n++;desc.get('«'+cod+'» sin horas').dias.push(i); continue; }
           horasMes[m]+=L.horas;
           jor.push({dia:i,horas:L.horas,cod,segs:L.segs?L.segs.map(([a,b])=>[i*DIA+a,i*DIA+b]):null});
         }
       }
-      vacias.forEach(([a,b])=>add('ESTR','aviso',a,'Casillas vacías: '+(b===a?'1 día':(b-a+1)+' días')+(b>a?' (hasta '+fmt(y,b)+')':'')+'. Un cuadrante anual debe tener todos los días asignados.'));
-      desc.forEach((v,k)=>add('ESTR','error',v.primera,v.incompleto?('Código '+k+' (tipo trabajo) sin horas ni horario en la leyenda: '+v.n+' casillas no computadas.'):('Código «'+k+'» no está en la leyenda ('+v.n+' casillas; primera el '+fmt(y,v.primera)+'). ¿Errata o código nuevo?')));
+      vacias.forEach(([a,b])=>add('ESTR','aviso',a,'Casillas vacías: '+(b===a?'1 día':(b-a+1)+' días')+(b>a?' (hasta '+fmt(y,b)+')':'')+'. Un cuadrante anual debe tener todos los días asignados.',rango(a,b)));
+      desc.forEach((v,k)=>add('ESTR','error',v.primera,(v.incompleto?('Código '+k+' (tipo trabajo) sin horas ni horario en la leyenda: '+v.n+' casillas no computadas.'):('Código «'+k+'» no está en la leyenda ('+v.n+' casillas; primera el '+fmt(y,v.primera)+'). ¿Errata o código nuevo?')),v.dias));
 
       const horasTrab=jor.reduce((s,j)=>s+j.horas,0),horas=horasTrab+credito;
       // Meses con datos: un trabajador que entra o sale a mitad de año solo se evalúa en sus meses
@@ -485,15 +518,15 @@ const Motor=(function(){
           if(j.segs&&p.segs){
             const g=(j.segs[0][0]-p.segs[p.segs.length-1][1])/60;
             const par=p.cod+'→'+j.cod;
-            if(g<0)add('DESC','error',j.dia,'Turnos solapados ('+par+'): el turno empieza antes de que acabe el anterior.');
-            else if(g<P.descLegal)add('DESC','error',j.dia,'Solo '+g.toFixed(1)+' h de descanso entre jornadas ('+par+'); mínimo legal '+P.descLegal+' h.');
-            else if(g<P.descPactado)descAv.push([j.dia,g,par]);
+            if(g<0)add('DESC','error',j.dia,'Turnos solapados ('+par+'): el turno empieza antes de que acabe el anterior.',[p.dia,j.dia]);
+            else if(g<P.descLegal)add('DESC','error',j.dia,'Solo '+g.toFixed(1)+' h de descanso entre jornadas ('+par+'); mínimo legal '+P.descLegal+' h.',[p.dia,j.dia]);
+            else if(g<P.descPactado)descAv.push([j.dia,g,par,p.dia]);
           }
         }
       });
       if(descAv.length){
         const min=Math.min(...descAv.map(x=>x[1]));
-        add('DESC','aviso',descAv[0][0],descAv.length+' descansos entre '+P.descLegal+' y '+P.descPactado+' h (el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos; el más corto '+min.toFixed(1)+' h). Fechas: '+descAv.slice(0,8).map(x=>fmt(y,x[0]).slice(4,9)+' ('+x[2]+')').join(', ')+(descAv.length>8?' …':'')+'.');
+        add('DESC','aviso',descAv[0][0],descAv.length+' descansos entre '+P.descLegal+' y '+P.descPactado+' h (el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos; el más corto '+min.toFixed(1)+' h). Fechas: '+descAv.slice(0,8).map(x=>fmt(y,x[0]).slice(4,9)+' ('+x[2]+')').join(', ')+(descAv.length>8?' …':'')+'.',descAv.flatMap(x=>[x[3],x[0]]));
       }
       // Intervalos ocupados
       const iv=mezclar(jor.filter(j=>j.segs).flatMap(j=>j.segs.map(s=>s.slice())));
@@ -508,10 +541,10 @@ const Motor=(function(){
       tramos.forEach(([a,b])=>{
         const d=(b-a)/DIA,dia0=Math.floor(a/DIA);
         maxRun=Math.max(maxRun,d);
-        if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos sin ningún descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): difícilmente compatible con el descanso semanal de día y medio, aun acumulado en 14 días (ET 37.1).');
+        if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos sin ningún descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): difícilmente compatible con el descanso semanal de día y medio, aun acumulado en 14 días (ET 37.1).',rango(dia0,Math.min(N-1,dia0+Math.floor(d))));
         else if(d>7)semAv.push([dia0,d]);
       });
-      if(semAv.length)add('SEM','aviso',semAv[0][0],semAv.length+' tramos de 8 a 12 días seguidos sin descanso de '+P.descSemanalH+' h (solo válido si el descanso se acumula, ET 37.1; el más largo '+Math.round(Math.max(...semAv.map(x=>x[1])))+' días). Primeros: '+semAv.slice(0,6).map(x=>fmt(y,x[0]).slice(4,9)).join(', ')+(semAv.length>6?' …':'')+'.');
+      if(semAv.length)add('SEM','aviso',semAv[0][0],semAv.length+' tramos de 8 a 12 días seguidos sin descanso de '+P.descSemanalH+' h (solo válido si el descanso se acumula, ET 37.1; el más largo '+Math.round(Math.max(...semAv.map(x=>x[1])))+' días). Primeros: '+semAv.slice(0,6).map(x=>fmt(y,x[0]).slice(4,9)).join(', ')+(semAv.length>6?' …':'')+'.',semAv.flatMap(x=>rango(x[0],Math.min(N-1,x[0]+Math.floor(x[1])))));
       // Fin de semana libre al mes
       let fsEstrictos=0,fsDudosos=0;
       if(!o.exentoFS){
@@ -535,7 +568,7 @@ const Motor=(function(){
       if(N>=365){
         const d24=(new Date(Date.UTC(y,11,24))-new Date(Date.UTC(y,0,1)))/864e5,d31=(new Date(Date.UTC(y,11,31))-new Date(Date.UTC(y,0,1)))/864e5;
         const trabaja24=solapa(iv,d24*DIA+1320,(d24+1)*DIA+360),trabaja31=solapa(iv,d31*DIA+1320,(d31+1)*DIA+360);
-        if(trabaja24&&trabaja31)add('NOCHES','error',d24,'Trabaja la noche del 24 y la del 31 de diciembre. El Acuerdo garantiza libranza de una de las dos.');
+        if(trabaja24&&trabaja31)add('NOCHES','error',d24,'Trabaja la noche del 24 y la del 31 de diciembre. El Acuerdo garantiza libranza de una de las dos.',[d24,d31]);
       }
       // Vacaciones
       if(nAct<12){}
@@ -596,6 +629,13 @@ const Motor=(function(){
     let anio=null;
     for(let r=0;r<Math.min(A.length,40);r++)if(norm(A[r][1])==='AÑO'&&typeof A[r][2]==='number'){anio=A[r][2];break;}
     if(!anio){est.push({sev:'error',msg:'No se encuentra el año en la hoja CUADRANTES (celda «AÑO»).'});bloqueante=true;anio=DEF.anio;}
+    let centro='',cliente='';
+    const tras=(row,re)=>{const k=row.findIndex(x=>re.test(norm(x)));if(k<0)return'';const v=row.slice(k+1).find(x=>String(x).trim()!=='');return v?String(v).replace(/\s+/g,' ').trim():'';};
+    for(let r=0;r<Math.min(A.length,40);r++){
+      if(!centro)centro=tras(A[r],/^CENTRO DE TRABAJO/);
+      if(!cliente)cliente=tras(A[r],/^CLIENTE$/);
+    }
+    centro=centro||cliente;
     const N=diasAnio(anio),emps=new Map(),filaDe=new Map(),orden=[];
     const bloques=[];
     for(let r=0;r<A.length;r++)if(norm(A[r][1])==='MES'){const m=MESES.indexOf(String(A[r][2]).trim().toLowerCase());if(m>=0)bloques.push({r,m});}
@@ -660,7 +700,7 @@ const Motor=(function(){
     let leyenda=null;
     if(hl)leyenda=leyendaEmpresa(S[hl]);
     else est.push({sev:'aviso',msg:'No hay hoja «Leyenda de Turnos»: define los códigos a mano.'});
-    return{trabajadores:tr,N,anio,columnas:N,esperado:N,est,bloqueante,cabecera:true,vaciaLibre:true,leyenda,festivos,empresa:true};
+    return{trabajadores:tr,N,anio,columnas:N,esperado:N,est,bloqueante,cabecera:true,vaciaLibre:true,leyenda,festivos,centro,empresa:true};
   }
 
   /* ---------- Ficha individual: peticiones, festivos, fines de semana ---------- */
@@ -684,22 +724,6 @@ const Motor=(function(){
       for(let d=1;d<=diasMes(y,mi);d++)if(norm(row[1+d])==='X')set.add(idxDe(y,mi,d));
     });
     return set;
-  }
-  function parseRangos(txt,y){
-    const dias=new Set(),err=[];
-    const F='(\\d{1,2})[\\/.](\\d{1,2})(?:[\\/.]\\d{2,4})?';
-    const re=new RegExp('^'+F+'(?:\\s*(?:-|–|a|al|hasta)\\s*'+F+')?$','i');
-    String(txt||'').split(/[\n;,]+/).map(x=>x.trim()).filter(Boolean).forEach(tok=>{
-      const m=tok.match(re);
-      if(!m){err.push('«'+tok+'»: formato no válido (usa 15/07-31/07 o 24/12)');return;}
-      const d1=+m[1],m1=+m[2]-1,d2=m[3]?+m[3]:d1,m2=m[4]?+m[4]-1:m1;
-      const ok=(d,mm)=>mm>=0&&mm<12&&d>=1&&d<=diasMes(y,mm);
-      if(!ok(d1,m1)||!ok(d2,m2)){err.push('«'+tok+'»: fecha inexistente en '+y);return;}
-      const a=idxDe(y,m1,d1),b=idxDe(y,m2,d2);
-      if(b<a){err.push('«'+tok+'»: el final es anterior al inicio');return;}
-      for(let i=a;i<=b;i++)dias.add(i);
-    });
-    return{dias,err};
   }
   function rangosDe(arr){
     const a=[...arr].sort((p,q)=>p-q),out=[];
@@ -732,19 +756,6 @@ const Motor=(function(){
     const v=[];for(let i=0;i<diasAnio(y);i++)if(tipoCelda(tr,ley,i,vaciaLibre)==='V')v.push(i);
     return rangosDe(v);
   }
-  function peticiones(tr,ley,y,vacTxt,otrosTxt,vaciaLibre){
-    const v=parseRangos(vacTxt,y),o=parseRangos(otrosTxt,y);
-    const conc=new Set();for(let i=0;i<diasAnio(y);i++)if(tipoCelda(tr,ley,i,vaciaLibre)==='V')conc.add(i);
-    const det=idxs=>rangosDe(idxs).map(([a,b])=>{
-      const cods={};for(let i=a;i<=b;i++){const c=codDe(tr,i)||'libre';cods[c]=(cods[c]||0)+1;}
-      return{a,b,dias:b-a+1,cods};
-    });
-    const pedNoConc=[...v.dias].filter(i=>!conc.has(i)),concNoPed=v.dias.size?[...conc].filter(i=>!v.dias.has(i)):[];
-    const otrosTrab=[...o.dias].filter(i=>tipoCelda(tr,ley,i,vaciaLibre)==='T');
-    return{err:[...v.err,...o.err],pedidas:v.dias,otros:o.dias,nPed:v.dias.size,nConc:conc.size,
-      coinciden:[...v.dias].filter(i=>conc.has(i)).length,
-      pedNoConc:det(pedNoConc),concNoPed:det(concNoPed),otrosTrab:det(otrosTrab)};
-  }
 
   const PIDE={
     DESC:'Que se rectifiquen los turnos afectados para garantizar el descanso mínimo entre jornadas (12 h legales y 13 h según el Acuerdo de empresa).',
@@ -759,8 +770,7 @@ const Motor=(function(){
     CALC:'Que se corrija el cómputo de horas declarado y se aporte el desglose de cómo se calcula.',
     ESTR:'Que se complete o aclare el cuadrante (casillas vacías o códigos sin definir en la leyenda).',
     DIA:'Que se ajusten los turnos que superan la jornada diaria máxima.',
-    PART:'Que se respete el descanso mínimo en la jornada partida.',
-    SOLIC:'Que se atiendan las peticiones indicadas o se justifique por escrito su denegación, indicando las fechas alternativas ofrecidas.'
+    PART:'Que se respete el descanso mínimo en la jornada partida.'
   };
   function redactar(items,o){
     const y=o.anio,ed=t=>'[EDITABLE '+t+']',L=[];
@@ -810,7 +820,7 @@ const Motor=(function(){
     const r=new Date(recepcion+'T00:00:00Z'),dias=Math.round((limite-r)/864e5);
     return{limite,dias,enPlazo:dias>=0};
   }
-  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa,redactar,parseRangos,rangosDe,peticiones,finesLibres,festivosTrabajador,bloquesVacaciones,festivosFaltan,festivosOficiales,tipoCelda};
+  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa,redactar,rangosDe,finesLibres,festivosTrabajador,bloquesVacaciones,festivosFaltan,festivosOficiales,tipoCelda};
 })();
 if(typeof module!=='undefined')module.exports=Motor;
 </script>
@@ -950,107 +960,118 @@ function cambiarEstado(k,e){
 function masivo(e){filtradas().filter(i=>i.sev!=='info').forEach(i=>setRev(i.id,{e}));pintarInc();refrescarRev();}
 
 /* ---------- Ficha del trabajador: calendario del año con las incidencias ---------- */
-function claseCelda(c,L){
-  if(!c)return pl.vaciaLibre?'c-l':'c-e';
-  if(!L)return'c-x';
-  if(L.tipo==='L')return'c-l';if(L.tipo==='V')return'c-v';if(L.tipo==='B'||L.tipo==='P')return'c-b';
-  if(L.segs){const a=L.segs[0][0]%1440;return(a>=1140||a<360)?'c-n':'c-t';}
-  return'c-t';
-}
-const LSPET='cuadrantes_pet_v1';
-let pet=sg(LSPET)||{};
-const matDe=ti=>{const m=pl.trabajadores[ti].nombre.match(/\((\d+)\)\s*$/);return m?m[1]:'i'+ti;};
-const clavePet=ti=>res.P.anio+'|'+matDe(ti);
+const LSH='cuadrantes_hoja_v1';
+let hojaOp=Object.assign({limite:'',contacto:'',que:'sindesc'},sg(LSH)||{});
+const matDe=ti=>{const m=pl.trabajadores[ti].nombre.match(/\((\d+)\)\s*$/);return m?m[1]:'';};
 const fd=(y,i)=>Motor.fmt(y,i).slice(4,9);
 const rg=(y,[a,b])=>a===b?fd(y,a):fd(y,a)+' → '+fd(y,b);
-function calendario(ti,sel,pt){
-  const t=pl.trabajadores[ti],y=res.P.anio;
-  const marca=new Set(res.inc.filter(i=>i.ti===ti&&i.dia!==null).map(i=>i.dia));
-  const hh=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  let h='<table class="cal"><tr><td class="mes nd"></td>'+Array.from({length:31},(_,d)=>'<th>'+(d+1)+'</th>').join('')+'</tr>',idx=0;
+const hh=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const num1=x=>x.toFixed(1).replace('.',',');
+function fallosHoja(ti){
+  const q=hojaOp.que;
+  return res.inc.filter(i=>i.ti===ti&&i.sev!=='info'&&(q==='todos'||(q==='conf'?estDe(i)==='conf':estDe(i)!=='desc')))
+    .sort((a,b)=>(a.dia===null)-(b.dia===null)||(a.dia-b.dia)||(a.sev==='error'?-1:1));
+}
+const DL=['D','L','M','X','J','V','S'];
+function cuadranteEmpresa(ti,marcas,sel){
+  const t=pl.trabajadores[ti],y=res.P.anio,r=res.resumen[ti];
+  const MESN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const col='<colgroup>'+'<col style="width:2.6%">'.repeat(31)+'<col></colgroup>';
+  let h='',idx=0;
   for(let m=0;m<12;m++){
-    const dm=Motor.diasMes(y,m);h+='<tr><td class="mes">'+M[m]+'</td>';
+    const dm=Motor.diasMes(y,m);let r1='',r2='',r3='';
     for(let d=0;d<31;d++){
-      if(d>=dm){h+='<td class="nd"></td>';continue;}
-      const c=(t.celdas[idx]||'').trim().toUpperCase(),L=leyAct[c],w=Motor.fecha(y,idx).getUTCDay();
-      const hor=L&&L.segs?' '+L.segs.map(s=>hh(s[0])+'-'+hh(s[1])).join('+'):'';
-      let extra='';
-      if(pt&&pt.pedidas.has(idx))extra+=' ped'+(Motor.tipoCelda(t,leyAct,idx,pl.vaciaLibre)!=='V'?' pedmal':'');
-      if(pt&&pt.otros.has(idx))extra+=' ped'+(Motor.tipoCelda(t,leyAct,idx,pl.vaciaLibre)==='T'?' pedmal':'');
-      h+='<td class="'+claseCelda(c,L)+(w===0||w===6?' fin':'')+extra+(marca.has(idx)?' inc':'')+(sel===idx?' sel':'')+'" title="'+Motor.fmt(y,idx)+' · '+(c||'libre')+hor+'" data-d="'+idx+'">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
+      if(d>=dm){r1+='<td class="nd"></td>';r2+='<td class="nd"></td>';r3+='<td class="nd"></td>';continue;}
+      const c=(t.celdas[idx]||'').trim().toUpperCase(),w=Motor.fecha(y,idx).getUTCDay(),mk=marcas.get(idx);
+      const fes=pl.festivos&&pl.festivos.has(idx),fin=w===0||w===6,cl=fes?' fes':(fin?' fin':'');
+      const L=leyAct[c],hor=L&&L.segs?' '+L.segs.map(s=>hh(s[0])+'-'+hh(s[1])).join('+'):'';
+      r1+='<td class="'+cl.trim()+'">'+DL[w]+'</td>';
+      r2+='<td class="'+cl.trim()+'">'+(d+1)+'</td>';
+      r3+='<td class="cod'+cl+(mk?' inc':'')+(sel===idx?' sel':'')+'" title="'+Motor.fmt(y,idx)+' · '+(c||'libre')+hor+'">'+esc(c.length>3?c.slice(0,3):c)+(mk?'<sup>'+mk[0]+(mk.length>1?'+':'')+'</sup>':'')+'</td>';
       idx++;
     }
-    h+='</tr>';
+    h+='<div class="emp-mes">'+MESN[m]+'</div><table class="emp">'+col+
+      '<tr>'+r1+'<td class="tm">'+MESN[m]+'</td></tr><tr>'+r2+'<td class="tm" style="font-size:6.5px">H. PREVISTAS</td></tr><tr>'+r3+'<td class="tv">'+r.horasMes[m].toFixed(2).replace('.',',')+'</td></tr></table>';
   }
-  return h+'</table>';
+  return h;
 }
-let ptAct=null,selDia=-1;
-function listaCods(o){return Object.keys(o).map(k=>k+(o[k]>1?'×'+o[k]:'')).join(', ');}
-function peticionesUI(){
-  const ti=fichaTi,y=res.P.anio,t=pl.trabajadores[ti],g=pet[clavePet(ti)]||{};
-  const vt=$('p-vac').value,ot=$('p-otros').value;
-  pet[clavePet(ti)]={vac:vt,otros:ot};ss(LSPET,pet);
-  if(!vt.trim()&&!ot.trim()){ptAct=null;$('p-res').innerHTML='<p class="nota">Escribe las fechas que pediste (rangos separados por coma) y se compara con lo que figura en el cuadrante.</p>';$('m-cal').innerHTML=calendario(ti,selDia,null);return;}
-  const r=Motor.peticiones(t,leyAct,y,vt,ot,pl.vaciaLibre);ptAct=r;
-  let h='';
-  if(r.err.length)h+='<div class="aviso-caja err">'+r.err.map(esc).join('<br>')+'</div>';
-  if(vt.trim()){
-    const ok=r.nPed>0&&r.coinciden===r.nPed&&r.nConc===r.nPed;
-    h+='<div class="mbox"><h4>Vacaciones: pediste '+r.nPed+' días · te han concedido '+r.nConc+' · coinciden '+r.coinciden+' '+(ok?'<span class="ok-t">✔ coinciden exactamente</span>':'<span class="mal-t">✖ no coinciden</span>')+'</h4>';
-    if(r.pedNoConc.length)h+='<b class="mal-t">Pedidos y NO concedidos</b><ul>'+r.pedNoConc.map(x=>'<li>'+rg(y,[x.a,x.b])+' ('+x.dias+' d.) — en su lugar figura: '+esc(listaCods(x.cods))+'</li>').join('')+'</ul>';
-    if(r.concNoPed.length)h+='<b>Concedidos y NO pedidos</b><ul>'+r.concNoPed.map(x=>'<li>'+rg(y,[x.a,x.b])+' ('+x.dias+' d.)</li>').join('')+'</ul>';
-    h+='</div>';
-  }
-  if(ot.trim()){
-    h+='<div class="mbox"><h4>Otros días acordados: '+r.otros.size+' días '+(r.otrosTrab.length?'<span class="mal-t">✖ hay días con turno asignado</span>':'<span class="ok-t">✔ todos libres</span>')+'</h4>';
-    if(r.otrosTrab.length)h+='<ul>'+r.otrosTrab.map(x=>'<li>'+rg(y,[x.a,x.b])+' — figura turno: '+esc(listaCods(x.cods))+'</li>').join('')+'</ul>';
-    h+='</div>';
-  }
-  $('p-res').innerHTML=h;$('m-cal').innerHTML=calendario(ti,selDia,r);
-}
-function fichaSecciones(ti){
+function hojaHTML(ti,sel){
   const t=pl.trabajadores[ti],y=res.P.anio,r=res.resumen[ti],P=res.P;
-  // vacaciones concedidas
+  const fallos=fallosHoja(ti),marcas=new Map();
+  fallos.forEach((f,n)=>f.dias.forEach(d=>{if(!marcas.has(d))marcas.set(d,[]);if(!marcas.get(d).includes(n+1))marcas.get(d).push(n+1);}));
+  const nombre=t.nombre.replace(/\s*\(\d+\)\s*$/,''),mat=matDe(ti);
+  // turnos que aparecen en su cuadrante
+  const usados=new Map();t.celdas.forEach(c=>{c=(c||'').trim().toUpperCase();if(c)usados.set(c,(usados.get(c)||0)+1);});
+  const cods=[...usados.keys()].sort((a,b)=>(isNaN(a)-isNaN(b))||(+a-+b)||a.localeCompare(b));
+  const etqTipo={V:'vacaciones',B:'baja',P:'permiso/otros'};
+  const turnos=cods.map(c=>{const L=leyAct[c];
+    if(!L)return '<span><b>'+esc(c)+'</b> — sin definir</span>';
+    if(L.tipo==='T')return '<span><b>'+esc(c)+'</b> '+(L.segs?L.segs.map(s=>hh(s[0])+'–'+hh(s[1])).join(' + '):'')+(L.horas!==null?' ('+num1(L.horas)+' h)':'')+'</span>';
+    if(L.tipo==='L')return '';
+    return '<span><b>'+esc(c)+'</b> '+etqTipo[L.tipo]+(L.horas?' (cuenta '+num1(L.horas)+' h)':'')+'</span>';}).filter(Boolean);
+  // fallos
+  const fil=fallos.map((f,n)=>'<tr><td><b>'+(n+1)+'</b></td><td>'+(f.sev==='error'?'<span class="mal-t">Error</span>':'<span style="color:var(--ambar);font-weight:700">Aviso</span>')+'</td><td>'+(f.dia===null?'Año / meses':fd(y,f.dia)+(f.dias.length>1?' …':''))+'</td><td>'+esc(f.det)+'</td><td>'+esc(Motor.REGLAS[f.regla].f.replace(' (criterio permisivo)',''))+'</td></tr>').join('');
+  // vacaciones
   const bl=Motor.bloquesVacaciones(t,leyAct,y,pl.vaciaLibre),tot=bl.reduce((s,[a,b])=>s+b-a+1,0);
-  $('m-vac').innerHTML=bl.length?'<div class="mbox"><ul>'+bl.map(x=>'<li>'+rg(y,x)+' <b>('+(x[1]-x[0]+1)+' días)</b></li>').join('')+'</ul><p style="margin-top:6px">Total concedido: <b>'+tot+' días</b> '+(tot>=P.vacaciones?'<span class="ok-t">✔ alcanza los '+P.vacaciones+'</span>':'<span class="mal-t">✖ faltan '+(P.vacaciones-tot)+' para '+P.vacaciones+'</span>')+(bl.length>2?' · repartidas en '+bl.length+' bloques':'')+'.</p></div>':'<p class="nota">No hay ningún día de vacaciones (códigos V) en el cuadrante.</p>';
-  // festivos
+  const vac=bl.length?'<ul style="margin:2px 0 0 18px">'+bl.map(x=>'<li>'+rg(y,x)+' — <b>'+(x[1]-x[0]+1)+' días</b></li>').join('')+'</ul><p style="margin-top:4px">Total concedido: <b>'+tot+' días</b> '+(tot>=P.vacaciones?'<span class="ok-t">(alcanza los '+P.vacaciones+')</span>':'<span class="mal-t">(faltan '+(P.vacaciones-tot)+' para '+P.vacaciones+')</span>')+(bl.length>2?' · en '+bl.length+' bloques':'')+'.</p>':'<p><span class="mal-t">No figura ningún día de vacaciones en el cuadrante.</span></p>';
+  // festivos trabajados
+  let fest='';
   if(pl.festivos&&pl.festivos.size){
-    const fs=Motor.festivosTrabajador(t,leyAct,y,pl.festivos,pl.vaciaLibre),of=Motor.festivosOficiales(y);
-    const nom=i=>{const f=of.find(x=>x.idx===i||x.idx+1===i&&Motor.fecha(y,x.idx).getUTCDay()===0);return f?f.n+(f.idx!==i?' (trasladado)':''):'Local / otro';};
-    const trab=fs.filter(f=>f.horas>0);
-    $('m-fest').innerHTML='<div class="tabla-caja"><table><thead><tr><th>Fecha</th><th>Festivo</th><th>Casilla</th><th class="num">Horas en el festivo</th></tr></thead><tbody>'+fs.map(f=>'<tr><td>'+Motor.fmt(y,f.idx)+'</td><td>'+esc(nom(f.idx))+'</td><td>'+esc(f.cod||'libre')+'</td><td class="num">'+(f.horas?'<b>'+f.horas.toFixed(1)+'</b>':'—')+'</td></tr>').join('')+'</tbody></table></div><p class="nota" style="margin-top:6px">Trabaja <b>'+trab.length+' de '+fs.length+'</b> festivos ('+trab.reduce((s,f)=>s+f.horas,0).toFixed(1)+' h). Comprueba en nómina que esas horas llevan el plus de fin de semana y festivos (art. 44 h).</p>';
-  }else $('m-fest').innerHTML='<p class="nota">El archivo no trae festivos marcados: no se puede comprobar.</p>';
-  // fines de semana
-  const fl=Motor.finesLibres(t,leyAct,y),M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const pm=M.map((x,m)=>fl.filter(i=>Motor.fecha(y,i).getUTCMonth()===m));
-  $('m-fs').innerHTML='<div class="mbox">'+pm.map((a,m)=>'<span style="display:inline-block;margin:2px 10px 2px 0"><b>'+M[m]+'</b> '+(a.length?'<span class="ok-t">'+a.map(i=>fd(y,i)).join(', ')+'</span>':'<span class="mal-t">ninguno</span>')+'</span>').join('')+'<p style="margin-top:6px">'+fl.length+' fines de semana completos libres (sáb 00:00 – dom 24:00); el Acuerdo garantiza al menos uno al mes.</p></div>';
+    const fs=Motor.festivosTrabajador(t,leyAct,y,pl.festivos,pl.vaciaLibre),tr=fs.filter(f=>f.horas>0);
+    fest='<p><b>Festivos:</b> trabajas '+tr.length+' de '+fs.length+(tr.length?' ('+tr.map(f=>fd(y,f.idx)+' '+num1(f.horas)+' h').join(', ')+')':'')+'. Las horas en festivo llevan plus de fin de semana y festivos: comprueba tu nómina.</p>';
+  }
+  // fines de semana libres
+  const M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const fl=Motor.finesLibres(t,leyAct,y);
+  const fsm=M.map((x,m)=>{const a=fl.filter(i=>Motor.fecha(y,i).getUTCMonth()===m);return '<b>'+x+'</b> '+(a.length?a.map(i=>fd(y,i)).join(', '):'<span class="mal-t">ninguno</span>');}).join(' · ');
   // horas por mes
   const decl=t.decl||[];
-  $('m-meses').innerHTML='<table class="heat"><thead><tr><th style="text-align:left"></th>'+M.map(x=>'<th>'+x+'</th>').join('')+'<th>Año</th></tr></thead><tbody><tr><td style="text-align:left">Cómputo según casillas</td>'+r.horasMes.map((h,m)=>{const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;return '<td class="'+(r.pct<100||!h?'':(h>mx||h<mn?'h-bad':'h-ok'))+'">'+h.toFixed(1)+'</td>';}).join('')+'<td>'+r.horas.toFixed(1)+'</td></tr>'+(decl.some(x=>x!==null)?'<tr><td style="text-align:left">Declarado por la empresa</td>'+decl.map((d,m)=>'<td class="'+(d!==null&&Math.abs(d-r.horasMes[m])>0.6?'h-bad':'')+'">'+(d===null?'—':d.toFixed(1))+'</td>').join('')+'<td></td></tr>':'')+'</tbody></table><p class="nota" style="margin-top:4px">Horquilla mensual: '+P.mesMin+'–'+P.mesMax+' h (febrero '+P.febMin+'–'+P.febMax+'). Horas de trabajo del año: <b>'+r.horasTrab.toFixed(1)+'</b> de '+P.jornadaAnual+'.</p>';
-}
-function incFicha(ti,k){
-  const y=res.P.anio,mis=res.inc.filter(i=>i.ti===ti),sel=k!==undefined?res.inc[k]:null;
-  $('m-inc').innerHTML=mis.length?mis.map(i=>'<div class="inc-item'+(sel&&sel.k===i.k?' sel':'')+'" data-k="'+i.k+'"><div><span class="tag '+i.sev+'">'+i.sev+'</span> <b>'+esc(Motor.REGLAS[i.regla].n)+'</b>'+(i.dia===null?'':' · '+Motor.fmt(y,i.dia))+'<br>'+esc(i.det)+'</div><div class="no-print">'+selEst(i)+'</div><textarea rows="1" data-nota="'+i.k+'" placeholder="Nota (qué has comprobado, qué te ha dicho el trabajador…)">'+esc((rev[i.id]&&rev[i.id].n)||'')+'</textarea></div>').join(''):'<p class="nota">Sin incidencias: no se ha detectado nada anómalo con las reglas de esta herramienta.</p>';
+  const meses='<table class="heat" style="font-size:10px"><thead><tr><th style="text-align:left"></th>'+M.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody><tr><td style="text-align:left">Según casillas</td>'+r.horasMes.map((h,m)=>{const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;return '<td class="'+(r.pct<100||!h?'':(h>mx||h<mn?'h-bad':'h-ok'))+'">'+num1(h)+'</td>';}).join('')+'</tr>'+(decl.some(x=>x!==null)?'<tr><td style="text-align:left">Declaradas empresa</td>'+decl.map((d,m)=>'<td class="'+(d!==null&&Math.abs(d-r.horasMes[m])>0.6?'h-bad':'')+'">'+(d===null?'—':num1(d))+'</td>').join('')+'</tr>':'')+'</tbody></table>';
+  const lim=hojaOp.limite?new Date(hojaOp.limite+'T00:00:00Z').toLocaleDateString('es-ES',{timeZone:'UTC'}):'';
+  return '<div class="hoja">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
+      '<table class="emp-cab"><tr><td>Nº EMP.</td><td style="text-align:center;font-weight:700">'+esc(mat||'—')+'</td></tr><tr><td>NOMBRE</td><td style="text-align:center">'+esc(nombre)+'</td></tr></table>'+
+      '<div style="text-align:right;font-family:Arial,sans-serif"><div style="font-weight:900;font-size:13px;color:#c00">CCOO</div><div style="font-size:8.5px;font-weight:700">Sección Sindical<br>Ilunion Seguridad Sevilla</div></div></div>'+
+    '<div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;display:flex;gap:40px;margin-bottom:2px"><span>Año: '+y+'</span><span>'+esc(pl.centro||'')+'</span></div>'+
+    '<div style="font-family:Arial,sans-serif;font-size:7.5px;color:#444;margin-bottom:2px">Gris: sábado, domingo y festivo · <span style="color:#d00;font-weight:700">Recuadro rojo: día con un fallo señalado (el nº remite a la lista de la página 2)</span></div>'+
+    cuadranteEmpresa(ti,marcas,sel===undefined?-1:sel)+
+    '<div class="emp-tot"><span style="font-family:Arial,sans-serif;font-weight:700;font-size:10px">TOTAL ANUAL</span><b>'+r.horas.toFixed(2).replace('.',',')+'</b></div>'+
+    '<div class="emp-obs"><b>Observaciones:</b> '+(fallos.length?fallos.length+' fallo'+(fallos.length>1?'s':'')+' señalado'+(fallos.length>1?'s':'')+' por la Sección Sindical (ver página 2).':'Sin fallos señalados.')+'</div>'+
+    '<div class="salto"></div><div class="sub" style="margin-top:0">'+esc(nombre)+' · Nº '+esc(mat||'—')+' · cuadrante anual '+y+'</div>'+
+    '<div class="sub">Fallos detectados por la Sección Sindical</div>'+
+    (fil?'<div class="tabla-caja"><table class="ft"><thead><tr><th>Nº</th><th>Gravedad</th><th>Fecha</th><th>Fallo</th><th>Norma</th></tr></thead><tbody>'+fil+'</tbody></table></div>':'<p>No se ha detectado ningún fallo con las reglas de convenio y Acuerdo revisadas. Esto no garantiza que el cuadrante sea correcto: revísalo tú también.</p>')+
+    '<div class="sub">Vacaciones concedidas</div><div class="mbox">'+vac+'<p style="margin-top:4px"><b>Compara estas fechas con las que tú solicitaste.</b></p></div>'+
+    '<div class="form"><b>COMPROBACIÓN DEL TRABAJADOR</b> — devuélvela a la Sección Sindical de CCOO'+(lim?' <b>antes del '+lim+'</b>':'')+(hojaOp.contacto?' · '+esc(hojaOp.contacto):'')+'<br>'+
+      '☐ Las vacaciones concedidas <b>coinciden</b> con las que solicité.<br>☐ <b>No coinciden</b>. Pedí: <span class="lin" style="min-width:240px"></span> Me han dado: <span class="lin" style="min-width:240px"></span><br>'+
+      '☐ Otros errores (días libres acordados que no figuran, turnos que no son míos…): <span class="lin" style="min-width:200px"></span><span class="lin l"></span>'+
+      'Fecha: <span class="lin" style="min-width:110px"></span> &nbsp; Firma: <span class="lin" style="min-width:220px"></span></div>'+
+    '<div class="sub">Turnos que figuran en tu cuadrante</div><div class="cols">'+turnos.join('<br>')+'</div>'+
+    '<div class="sub">Otras comprobaciones</div><div class="mbox">'+fest+'<p style="margin-top:4px"><b>Fines de semana completos libres:</b> '+fsm+'</p></div>'+
+    '<div style="margin-top:6px">'+meses+'</div>'+
+    '<div class="pie">Revisión de la Sección Sindical de CCOO en Ilunion Seguridad Sevilla con una herramienta de apoyo. Un fallo señalado es un indicio que hay que contrastar con el cuadrante original, no una resolución.</div>'+
+  '</div>';
 }
 function abrirFicha(ti,k){
-  fichaTi=ti;const r=res.resumen[ti],sel=k!==undefined?res.inc[k]:null,y=res.P.anio;
-  selDia=sel&&sel.dia!==null?sel.dia:-1;
-  $('m-tit').textContent=r.nombre+' · '+y;
-  $('m-res').innerHTML='Horas de trabajo <b>'+r.horasTrab.toFixed(1)+'</b> · cómputo <b>'+r.horas.toFixed(1)+'</b> · vacaciones <b>'+r.vac+'</b> días · libranzas <b>'+r.libres+'</b> · nocturnas <b>'+r.noct.toFixed(1)+' h</b> · sáb/dom <b>'+r.finde.toFixed(1)+' h</b>';
-  const g=pet[clavePet(ti)]||{};$('p-vac').value=g.vac||'';$('p-otros').value=g.otros||'';
-  $('m-esc').value='';
-  fichaSecciones(ti);incFicha(ti,k);peticionesUI();
+  fichaTi=ti;const sel=k!==undefined?res.inc[k]:null;
+  $('m-hoja').innerHTML=hojaHTML(ti,sel&&sel.dia!==null?sel.dia:-1);
+  incFicha(ti,k);$('m-esc').value='';
   $('modal').classList.remove('oculto');
   const s=document.querySelector('#m-inc .sel');if(s)s.scrollIntoView({block:'nearest'});
 }
+function incFicha(ti,k){
+  const y=res.P.anio,mis=res.inc.filter(i=>i.ti===ti),sel=k!==undefined?res.inc[k]:null;
+  $('m-inc').innerHTML=mis.length?mis.map(i=>'<div class="inc-item'+(sel&&sel.k===i.k?' sel':'')+'" data-k="'+i.k+'"><div><span class="tag '+i.sev+'">'+i.sev+'</span> <b>'+esc(Motor.REGLAS[i.regla].n)+'</b>'+(i.dia===null?'':' · '+Motor.fmt(y,i.dia))+'<br>'+esc(i.det)+'</div><div>'+selEst(i)+'</div><textarea rows="1" data-nota="'+i.k+'" placeholder="Nota (qué has comprobado, qué te ha dicho el trabajador…)">'+esc((rev[i.id]&&rev[i.id].n)||'')+'</textarea></div>').join(''):'<p class="nota">Sin incidencias.</p>';
+}
 function escritoFicha(){
   const ti=fichaTi,y=res.P.anio,r=res.resumen[ti],items=res.inc.filter(i=>i.ti===ti&&estDe(i)==='conf').map(i=>Object.assign({},i,{etq:r.nombre}));
-  if(ptAct){
-    ptAct.pedNoConc.forEach(x=>items.push({regla:'SOLIC',dia:x.a,etq:r.nombre,det:'Solicitó vacaciones '+rg(y,[x.a,x.b])+' ('+x.dias+' días) y no se le han concedido; figura: '+listaCods(x.cods)+'.'}));
-    ptAct.otrosTrab.forEach(x=>items.push({regla:'SOLIC',dia:x.a,etq:r.nombre,det:'Tiene acordados como libres los días '+rg(y,[x.a,x.b])+' y figura asignado a turno ('+listaCods(x.cods)+').'}));
-  }
-  $('m-esc').value=items.length?Motor.redactar(items,{anio:y,destino:$('e-dest').value,centro:$('e-centro').value.trim(),fechaEntrega:$('f-recep').value}):'No hay nada que incluir: confirma incidencias de este trabajador (botón «Confirmada» en su lista) o indica las peticiones no atendidas.';
+  $('m-esc').value=items.length?Motor.redactar(items,{anio:y,destino:$('e-dest').value,centro:$('e-centro').value.trim(),fechaEntrega:$('f-recep').value}):'No hay incidencias confirmadas de este trabajador: márcalas como «Confirmada» en la lista de arriba.';
+}
+function imprimirLote(){
+  const solo=$('lote-solo').checked,lista=pl.trabajadores.map((_,ti)=>ti).filter(ti=>!solo||fallosHoja(ti).length);
+  if(!lista.length){alert('No hay ninguna hoja que imprimir con esos filtros.');return;}
+  $('lote').innerHTML=lista.map(ti=>hojaHTML(ti)).join('');
+  document.body.classList.add('lote');
+  setTimeout(()=>window.print(),80);
 }
 function cerrarFicha(){$('modal').classList.add('oculto');pintarInc();refrescarRev();}
 function csv(){
@@ -1109,7 +1130,13 @@ document.addEventListener('change',e=>{
   const s=e.target.closest('[data-est]');if(s){cambiarEstado(+s.dataset.est,s.value);if(!$('modal').classList.contains('oculto')){const it=s.closest('.inc-item');if(it)it.dataset.e=s.value;}return;}
   const n=e.target.closest('[data-nota]');if(n){setRev(res.inc[+n.dataset.nota].id,{n:n.value.trim()});}
 });
-document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.pet)peticionesUI();});
+['h-que','h-limite','h-contacto'].forEach(id=>$(id).addEventListener('change',()=>{
+  hojaOp={que:$('h-que').value,limite:$('h-limite').value,contacto:$('h-contacto').value.trim()};ss(LSH,hojaOp);
+  if(!$('modal').classList.contains('oculto'))$('m-hoja').innerHTML=hojaHTML(fichaTi);
+}));
+$('h-que').value=hojaOp.que;$('h-limite').value=hojaOp.limite;$('h-contacto').value=hojaOp.contacto;
+$('b-lote').addEventListener('click',imprimirLote);
+window.addEventListener('afterprint',()=>{document.body.classList.remove('lote');$('lote').innerHTML='';});
 $('m-print').addEventListener('click',()=>window.print());
 $('m-esc-b').addEventListener('click',escritoFicha);
 $('m-esc-cp').addEventListener('click',()=>{const t=$('m-esc');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>{});});
