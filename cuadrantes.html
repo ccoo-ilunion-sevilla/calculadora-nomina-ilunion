@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Verificador de cuadrantes · CCOO Ilunion Seguridad Sevilla</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#14161A">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+:root{
+  --rojo:#CC0000;--rojo-osc:#9E0000;--verde:#009B48;--azul:#25508C;
+  --tinta:#14161A;--tinta-2:#4A5058;--linea:#D4D8DD;--papel:#ECEEF0;--blanco:#FFFFFF;--ambar:#B45309;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--papel);color:var(--tinta);line-height:1.5;font-size:15px}
+header{background:var(--tinta);color:#fff;padding:20px 0 16px;border-bottom:8px solid var(--rojo)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+header h1{font-family:'Archivo Black',sans-serif;font-size:clamp(20px,5vw,28px);line-height:1.05;text-transform:uppercase}
+header h1 em{color:var(--rojo);font-style:normal}
+header p{font-size:13px;color:#A8B0BA;margin-top:6px;max-width:70ch}
+main{padding:18px 0 70px}
+.card{background:#fff;border:1px solid var(--linea);border-radius:6px;padding:16px;margin-bottom:16px}
+.card h2{font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase;margin-bottom:10px;letter-spacing:.01em}
+.card h2 .n{display:inline-block;background:var(--rojo);color:#fff;border-radius:3px;padding:0 7px;margin-right:8px;font-size:13px}
+.nota{font-size:12.5px;color:var(--tinta-2)}
+.fila{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo label{font-size:12px;font-weight:600;color:var(--tinta-2)}
+input[type=text],input[type=number],input[type=date],select,textarea{padding:8px 10px;border:1px solid var(--linea);border-radius:4px;font-size:14px;font-family:inherit;background:#fff;color:var(--tinta)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--rojo);outline-offset:1px;border-color:var(--rojo)}
+textarea{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px;resize:vertical}
+input[type=number]{width:90px}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+.btn{background:#fff;border:1px solid var(--tinta);border-radius:4px;padding:9px 14px;font-weight:700;font-size:13px}
+.btn:hover{background:#F7F8F9}
+.btn.pri{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.btn.pri:hover{background:var(--rojo-osc)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+details>summary{cursor:pointer;font-weight:600;font-size:13px;margin:6px 0}
+.params{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.params input{width:100%}
+.aviso-caja{border-left:4px solid var(--ambar);background:#FFF8EC;padding:9px 12px;border-radius:3px;font-size:13px;margin:8px 0}
+.aviso-caja.err{border-color:var(--rojo);background:#FFF0F0}
+.aviso-caja.ok{border-color:var(--verde);background:#EFFAF3}
+.aviso-caja.inf{border-color:var(--azul);background:#EFF4FB}
+.tabla-caja{overflow-x:auto;border:1px solid var(--linea);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--linea);text-align:left;white-space:nowrap}
+th{background:#F7F8F9;font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;position:sticky;top:0}
+td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace}
+td.det{white-space:normal;min-width:260px}
+tr.sev-error td:first-child{border-left:4px solid var(--rojo)}
+tr.sev-aviso td:first-child{border-left:4px solid var(--ambar)}
+tr.sev-info td:first-child{border-left:4px solid var(--azul)}
+.tag{display:inline-block;border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700;color:#fff}
+.tag.error{background:var(--rojo)}.tag.aviso{background:var(--ambar)}.tag.info{background:var(--azul)}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.kpi{border:1px solid var(--linea);border-radius:5px;padding:8px 14px;min-width:110px}
+.kpi b{display:block;font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1.1}
+.kpi span{font-size:11.5px;color:var(--tinta-2)}
+.kpi.e b{color:var(--rojo)}.kpi.a b{color:var(--ambar)}.kpi.i b{color:var(--azul)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:#fff;border:1px solid var(--linea);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--tinta-2)}
+.chip[aria-pressed="true"]{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+.heat td{text-align:center;font-family:'IBM Plex Mono',monospace;padding:4px 6px}
+.h-ok{background:#E3F5EA}.h-bad{background:#FFD9D9;font-weight:700}.h-warn{background:#FFEBC8}
+td input[type=number]{width:62px;padding:3px 5px;font-size:12px}
+.oculto{display:none!important}
+footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px 30px}
+@media (max-width:640px){body{font-size:14px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Verificador de <em>cuadrantes</em> anuales</h1>
+  <p>Comprueba que el cuadrante provisional está bien estructurado y localiza los fallos contra el Acuerdo de Ilunion y el convenio estatal. Todo se procesa en tu dispositivo: no se sube ni se guarda ningún dato de trabajadores.</p>
+</div></header>
+
+<main><div class="wrap">
+
+<section class="card" id="c-plazo">
+  <h2>Plazo de entrega</h2>
+  <div class="fila">
+    <div class="campo"><label for="p-anio">Año del cuadrante</label><input type="number" id="p-anio" value="2027" min="2024" max="2040"></div>
+    <div class="campo"><label for="f-recep">Fecha en que te lo entregaron</label><input type="date" id="f-recep"></div>
+  </div>
+  <div id="plazo-res" class="nota"></div>
+</section>
+
+<section class="card" id="c-carga">
+  <h2><span class="n">1</span>Cargar el cuadrante</h2>
+  <p class="nota" style="margin-bottom:10px">Una fila por trabajador: primera columna = nombre; después una columna por día (códigos de servicio). Pega desde Excel/PDF convertido, o sube un .xlsx / .csv.</p>
+  <div class="fila">
+    <div class="campo"><label for="formato">Disposición de los días</label>
+      <select id="formato">
+        <option value="365">Días seguidos (1 ene → 31 dic)</option>
+        <option value="12x31">12 bloques de 31 columnas (un bloque por mes)</option>
+      </select></div>
+    <div class="campo"><label for="cabecera">Primera fila</label>
+      <select id="cabecera"><option value="auto">Detectar cabecera</option><option value="si">Es cabecera</option><option value="no">Son datos</option></select></div>
+    <div class="campo"><label for="archivo">Archivo</label><input type="file" id="archivo" accept=".csv,.tsv,.txt,.xlsx,.xls"></div>
+    <div class="campo oculto" id="w-hoja"><label for="hoja">Hoja</label><select id="hoja"></select></div>
+  </div>
+  <textarea id="pegado" rows="5" placeholder="…o pega aquí la tabla (tabuladores, «;» o «,»)"></textarea>
+  <div class="fila" style="margin-top:10px"><button class="btn pri" id="b-leer">Leer y comprobar estructura</button></div>
+  <div id="estructura"></div>
+</section>
+
+<section class="card oculto" id="c-ley">
+  <h2><span class="n">2</span>Leyenda de códigos</h2>
+  <p class="nota" style="margin-bottom:8px">Define qué es cada código. <b>Tipo</b>: T trabajo · L libranza/descanso · V vacaciones · B baja · P permiso/otras ausencias. <b>Horario</b>: <code>06:00-14:00</code> (partido: <code>06:00-10:00+14:00-18:00</code>; nocturno: <code>22:00-06:00</code>). <b>Horas</b>: opcional; si lo dejas vacío se calcula del horario (sin descontar pausas). Se recuerda en este dispositivo.</p>
+  <div class="tabla-caja"><table id="t-ley"><thead><tr><th>Código</th><th class="num">Casillas</th><th>Tipo</th><th>Horario</th><th>Horas</th></tr></thead><tbody></tbody></table></div>
+  <details><summary>Pegar leyenda en bloque</summary>
+    <textarea id="ley-txt" rows="5" placeholder="COD;TIPO;HORARIO;HORAS   (una línea por código)&#10;M;T;06:00-14:00;&#10;N;T;22:00-06:00;&#10;L;L;;"></textarea>
+    <div class="fila" style="margin-top:6px"><button class="btn" id="b-ley-aplicar">Aplicar pegado</button><button class="btn" id="b-ley-copiar">Copiar leyenda actual</button></div>
+  </details>
+</section>
+
+<section class="card oculto" id="c-par">
+  <h2><span class="n">3</span>Parámetros y verificación</h2>
+  <details><summary>Umbrales (editables)</summary>
+    <p class="nota">Por defecto: Acuerdo Ilunion (V Convenio, art. 56 y 59) y convenio estatal 2026-2030 (art. 52-54). El V Convenio de Ilunion vence el 31/12/2026 y seguirá en ultraactividad hasta nuevo acuerdo: comprueba que estos valores siguen siendo los aplicables.</p>
+    <div class="params" id="params"></div>
+  </details>
+  <div class="fila" style="margin-top:12px"><button class="btn pri" id="b-verif">Verificar cuadrante</button></div>
+</section>
+
+<section class="card oculto" id="c-res">
+  <h2>Resultado</h2>
+  <div id="kpis" class="kpis"></div>
+  <h2 style="margin-top:14px">Por trabajador</h2>
+  <p class="nota" style="margin-bottom:6px">Ajusta «% jornada» (reducciones) o marca «Exento FS» (contrato de fin de semana / rotación pactada) y pulsa de nuevo <b>Verificar</b>.</p>
+  <div class="tabla-caja" style="max-height:420px"><table id="t-trab"></table></div>
+  <h2 style="margin-top:18px">Horas por mes (según día de inicio del turno)</h2>
+  <div class="tabla-caja"><table id="t-mes" class="heat"></table></div>
+  <h2 style="margin-top:18px">Incidencias</h2>
+  <div class="fila">
+    <div class="campo"><label for="f-sev">Gravedad</label><select id="f-sev"><option value="">Todas</option><option value="error">Solo errores</option><option value="aviso">Avisos</option><option value="info">Informativas</option></select></div>
+    <div class="campo"><label for="f-busca">Trabajador</label><input type="text" id="f-busca" placeholder="Buscar nombre"></div>
+    <button class="btn" id="b-csv">Exportar incidencias (CSV)</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="tabla-caja" style="max-height:560px"><table id="t-inc"></table></div>
+  <p class="nota" id="inc-mas" style="margin-top:6px"></p>
+  <details style="margin-top:14px"><summary>Qué se comprueba y de dónde sale</summary><div class="tabla-caja"><table id="t-reglas"></table></div></details>
+</section>
+
+</div></main>
+<footer>Herramienta de apoyo sindical. Una incidencia es un indicio que hay que contrastar con el cuadrante original antes de reclamar.</footer>
+
+<script id="motor">
+/* ====================== MOTOR (sin DOM) ====================== */
+const Motor=(function(){
+  const DIA=1440;
+  const REGLAS={
+    ESTR:{n:'Estructura',f:'Casillas vacías o códigos que no están en la leyenda'},
+    ANUAL:{n:'Jornada anual',f:'Conv. estatal art. 52 y Acuerdo Ilunion art. 56: 1.782 h/año'},
+    PREFIJ:{n:'75 % prefijado',f:'Conv. estatal art. 53: al menos el 75 % de la jornada anual en el cuadrante'},
+    MES:{n:'Horquilla mensual',f:'Acuerdo Ilunion art. 56.2 / estatal art. 53: 144–176 h (febrero 134–162)'},
+    DESC:{n:'Descanso entre jornadas',f:'ET 34.3 (12 h) y Acuerdo Ilunion art. 56 (13 h, salvo urgencia o trabajo a turnos)'},
+    DIA:{n:'Jornada diaria',f:'ET 34.3 (9 h salvo distribución pactada); umbral editable'},
+    PART:{n:'Jornada partida',f:'Acuerdo Ilunion art. 56: 2,5 h mínimas entre mañana y tarde'},
+    SEM:{n:'Descanso semanal',f:'ET 37.1: 1,5 días seguidos, acumulable hasta 14 días (criterio permisivo)'},
+    FS:{n:'Fin de semana libre',f:'Acuerdo Ilunion art. 56.2 y estatal art. 54: un fin de semana completo (48 h) al mes'},
+    NOCHES:{n:'Nochebuena / Nochevieja',f:'Acuerdo Ilunion art. 56: libranza de una de las dos noches (24 dic o 31 dic)'},
+    VAC:{n:'Vacaciones',f:'ET 38 (30 días naturales) y Acuerdo Ilunion (31 días: verificar artículo)'},
+    D96:{n:'Descanso anual',f:'Acuerdo Ilunion art. 59: 96 días naturales (jornada ≥ 8 h), sin contar vacaciones'}
+  };
+  const DEF={anio:2027,jornadaAnual:1782,tolHoras:8,pctPrefijado:75,mesMin:144,mesMax:176,febMin:134,febMax:162,
+    descLegal:12,descPactado:13,maxDiaria:12,vacaciones:31,vacacionesMin:30,descAnual:96,partidoMin:2.5,descSemanalH:36};
+
+  const bisiesto=y=>(y%4===0&&y%100!==0)||y%400===0;
+  const diasAnio=y=>bisiesto(y)?366:365;
+  const diasMes=(y,m)=>[31,bisiesto(y)?29:28,31,30,31,30,31,31,30,31,30,31][m];
+  const fecha=(y,i)=>new Date(Date.UTC(y,0,1+i));
+  const dow=(y,i)=>fecha(y,i).getUTCDay();
+  const mesDe=(y,i)=>fecha(y,i).getUTCMonth();
+  const DS=['dom','lun','mar','mié','jue','vie','sáb'];
+  function fmt(y,i){const d=fecha(y,i);return DS[d.getUTCDay()]+' '+String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear();}
+
+  function parseTabla(txt){
+    txt=String(txt||'').replace(/^﻿/,'');
+    const first=txt.split(/\r?\n/).find(l=>l.trim())||'';
+    const t=(first.match(/\t/g)||[]).length,s=(first.match(/;/g)||[]).length,c=(first.match(/,/g)||[]).length;
+    const d=t>0?'\t':(s>=c&&s>0?';':',');
+    const rows=[];let row=[],cur='',q=false;
+    for(let i=0;i<txt.length;i++){
+      const ch=txt[i];
+      if(q){ if(ch==='"'){ if(txt[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+      else if(ch==='"') q=true;
+      else if(ch===d){row.push(cur);cur='';}
+      else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+      else if(ch==='\r'){}
+      else cur+=ch;
+    }
+    if(cur!==''||row.length){row.push(cur);rows.push(row);}
+    return rows.map(r=>r.map(x=>String(x).trim())).filter(r=>r.some(x=>x!==''));
+  }
+
+  const esDiaHeader=x=>/^\d{1,3}$/.test(x)||/^\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?$/.test(x)||/^(lun|mar|mi[eé]|jue|vie|s[aá]b|dom)/i.test(x);
+  function ultimoNoVacio(a){let k=a.length;while(k>0&&a[k-1]==='')k--;return k;}
+
+  function extraerPlantilla(rows,o){
+    const y=o.anio,N=diasAnio(y),est=[];
+    let cab=null,datos=rows;
+    if(rows.length){
+      const r0=rows[0].slice(1).filter(x=>x!=='');
+      const looks=r0.length&&r0.filter(esDiaHeader).length/r0.length>=.5;
+      const hay=o.cabecera==='si'||(o.cabecera!=='no'&&(looks||/^(nombre|trabajador|apellidos|empleado|vigilante)/i.test(rows[0][0]||'')));
+      if(hay){cab=rows[0];datos=rows.slice(1);}
+    }
+    const esperado=o.formato==='12x31'?372:N;
+    let cols=cab?ultimoNoVacio(cab)-1:0;
+    datos.forEach(r=>{cols=Math.max(cols,ultimoNoVacio(r)-1);});
+    const tr=[],vistos=new Map();let vaciasFilas=0;
+    datos.forEach((r,k)=>{
+      const nombre=(r[0]||'').trim(),resto=r.slice(1);
+      if(!nombre){ if(resto.some(x=>x!=='')) est.push({sev:'error',msg:'Fila '+(k+1+(cab?1:0))+': tiene datos pero no tiene nombre.'}); else vaciasFilas++; return; }
+      let celdas;
+      if(o.formato==='12x31'){celdas=[];for(let m=0;m<12;m++)for(let d=0;d<diasMes(y,m);d++)celdas.push(resto[m*31+d]||'');}
+      else{celdas=resto.slice(0,N);while(celdas.length<N)celdas.push('');}
+      const clave=nombre.toUpperCase().replace(/\s+/g,' ');
+      if(vistos.has(clave)) est.push({sev:'error',msg:'Nombre duplicado: «'+nombre+'» aparece en las filas '+vistos.get(clave)+' y '+(k+1+(cab?1:0))+'.'}); else vistos.set(clave,k+1+(cab?1:0));
+      tr.push({nombre,celdas});
+    });
+    let bloqueante=false;
+    if(!tr.length){est.push({sev:'error',msg:'No se ha leído ningún trabajador.'});bloqueante=true;}
+    if(cols<esperado){est.push({sev:'error',msg:'Se leen '+cols+' columnas de días y se esperaban '+esperado+(o.formato==='12x31'?' (12 × 31)':' ('+N+' días de '+y+')')+'. Faltan días: revisa el formato elegido o si la tabla está cortada.'});bloqueante=true;}
+    else if(cols>esperado) est.push({sev:'aviso',msg:'Hay '+(cols-esperado)+' columnas de más tras el último día (¿totales o cómputos?). Se ignoran.'});
+    if(cab) est.push({sev:'info',msg:'Primera fila tratada como cabecera.'});
+    if(vaciasFilas) est.push({sev:'info',msg:vaciasFilas+' filas vacías ignoradas.'});
+    return{trabajadores:tr,N,columnas:cols,esperado,est,bloqueante,cabecera:!!cab};
+  }
+
+  function codigos(pl){
+    const m=new Map();
+    pl.trabajadores.forEach(t=>t.celdas.forEach(c=>{const k=c.trim().toUpperCase();if(k)m.set(k,(m.get(k)||0)+1);}));
+    return m;
+  }
+
+  function hm(s){
+    s=String(s).trim();let m=s.match(/^(\d{1,2})[:.hH](\d{2})$/);
+    if(m){const h=+m[1],mi=+m[2];return(h<=24&&mi<60)?h*60+mi:null;}
+    m=s.match(/^(\d{1,2})$/);return m&&+m[1]<=24?+m[1]*60:null;
+  }
+  function parseHorario(s){
+    s=String(s||'').trim();if(!s)return{segs:null};
+    const segs=[];let prev=-1;
+    for(const p of s.split('+')){
+      const m=p.trim().match(/^(.+?)\s*[-–a]\s*(.+)$/);
+      if(!m)return{error:'horario «'+s+'» no válido'};
+      let a=hm(m[1]),b=hm(m[2]);
+      if(a===null||b===null)return{error:'horas no válidas en «'+s+'»'};
+      if(a<prev)a+=DIA; // segmento posterior que cruza medianoche respecto al anterior
+      if(b<=a)b+=DIA;
+      if(b===a)return{error:'turno de duración 0 en «'+s+'»'};
+      segs.push([a,b]);prev=b;
+    }
+    return{segs};
+  }
+  function compilarLeyenda(raw){
+    const ley={},err=[];
+    Object.keys(raw).forEach(cod=>{
+      const r=raw[cod],tipo=(r.tipo||'T').toUpperCase();
+      const e={cod,tipo,segs:null,horas:null,incompleta:false};
+      const ph=parseHorario(r.horario);
+      if(ph.error){err.push('«'+cod+'»: '+ph.error);e.incompleta=true;}
+      else e.segs=ph.segs;
+      const hs=String(r.horas||'').trim().replace(',','.');
+      if(hs!==''){const v=parseFloat(hs);if(isNaN(v)||v<0){err.push('«'+cod+'»: horas no válidas');e.incompleta=true;}else e.horas=v;}
+      if(e.horas===null&&e.segs)e.horas=e.segs.reduce((s,x)=>s+(x[1]-x[0]),0)/60;
+      if(tipo==='T'&&e.horas===null){e.incompleta=true;}
+      ley[cod]=e;
+    });
+    return{ley,err};
+  }
+  function parseLeyendaTxt(txt){
+    const out={};
+    txt.split(/\r?\n/).forEach(l=>{
+      if(!l.trim())return;
+      const p=l.split(/;|\t/).map(x=>x.trim());
+      if(!p[0]||/^cod/i.test(p[0]))return;
+      out[p[0].toUpperCase()]={tipo:(p[1]||'T').toUpperCase(),horario:p[2]||'',horas:p[3]||''};
+    });
+    return out;
+  }
+  function tipoSugerido(c){
+    if(/^(L|LB|LIB|LIBRE|D|DESC|DS|R)$/.test(c))return'L';
+    if(/^(V|VAC|VACACIONES)$/.test(c))return'V';
+    if(/^(B|IT|BAJA|BJ)$/.test(c))return'B';
+    if(/^(P|AP|PER|PERM|ASUNTOS)$/.test(c))return'P';
+    return'T';
+  }
+
+  function solapa(iv,a,b){ // iv: intervalos mezclados y ordenados
+    for(const[x,y]of iv){if(x>=b)break;if(y>a)return true;}return false;
+  }
+  function mezclar(segs){
+    segs.sort((p,q)=>p[0]-q[0]);const m=[];
+    segs.forEach(s=>{const l=m[m.length-1];if(l&&s[0]<=l[1])l[1]=Math.max(l[1],s[1]);else m.push([s[0],s[1]]);});
+    return m;
+  }
+  function huecos(iv,total){ // huecos libres incluyendo los de los bordes del año
+    const g=[];let p=0;iv.forEach(([a,b])=>{if(a>p)g.push([p,a]);p=Math.max(p,b);});
+    if(p<total)g.push([p,total]);return g;
+  }
+  function horasEnVentana(a,b,ini,fin){return Math.max(0,Math.min(b,fin)-Math.max(a,ini));}
+
+  function verificar(pl,ley,P,opts){
+    P=Object.assign({},DEF,P);opts=opts||{};
+    const y=P.anio,N=diasAnio(y),TOT=N*DIA,inc=[],resumen=[];
+    pl.trabajadores.forEach((tr,ti)=>{
+      const o=Object.assign({pct:100,exentoFS:false},opts[ti]||{});
+      const add=(regla,sev,dia,det)=>inc.push({ti,nombre:tr.nombre,regla,sev,dia,det});
+      const jor=[],tipoDia=new Array(N).fill(null),horasMes=new Array(12).fill(0);
+      const aus=new Array(12).fill(0),desc=new Map();
+      let vac=0,bajas=0,perm=0,libres=0,vacias=[],runV=null;
+      for(let i=0;i<N;i++){
+        const raw=(tr.celdas[i]||'').trim();
+        if(!raw){ if(runV&&runV[1]===i-1)runV[1]=i; else{runV=[i,i];vacias.push(runV);} continue; }
+        const cod=raw.toUpperCase(),L=ley[cod];
+        if(!L){ if(!desc.has(cod))desc.set(cod,{n:0,primera:i});desc.get(cod).n++; continue; }
+        tipoDia[i]=L.tipo;
+        const m=mesDe(y,i);
+        if(L.tipo==='V'){vac++;aus[m]++;}
+        else if(L.tipo==='B'){bajas++;aus[m]++;}
+        else if(L.tipo==='P'){perm++;aus[m]++;}
+        else if(L.tipo==='L')libres++;
+        else if(L.tipo==='T'){
+          if(L.incompleta){ if(!desc.has('«'+cod+'» sin horas'))desc.set('«'+cod+'» sin horas',{n:0,primera:i,incompleto:true});desc.get('«'+cod+'» sin horas').n++; continue; }
+          horasMes[m]+=L.horas;
+          jor.push({dia:i,horas:L.horas,cod,segs:L.segs?L.segs.map(([a,b])=>[i*DIA+a,i*DIA+b]):null});
+        }
+      }
+      vacias.forEach(([a,b])=>add('ESTR','aviso',a,'Casillas vacías: '+(b===a?'1 día':(b-a+1)+' días')+(b>a?' (hasta '+fmt(y,b)+')':'')+'. Un cuadrante anual debe tener todos los días asignados.'));
+      desc.forEach((v,k)=>add('ESTR','error',v.primera,v.incompleto?('Código '+k+' (tipo trabajo) sin horas ni horario en la leyenda: '+v.n+' casillas no computadas.'):('Código «'+k+'» no está en la leyenda ('+v.n+' casillas; primera el '+fmt(y,v.primera)+'). ¿Errata o código nuevo?')));
+
+      const horas=jor.reduce((s,j)=>s+j.horas,0),J=P.jornadaAnual*o.pct/100;
+      // Jornada anual y 75 %
+      if(horas>J+P.tolHoras)add('ANUAL','error',null,'El cuadrante programa '+horas.toFixed(1)+' h y la jornada anual es '+J.toFixed(1)+' h: '+(horas-J).toFixed(1)+' h de más (horas extra programadas de antemano).');
+      else if(horas<P.pctPrefijado/100*J)add('PREFIJ','error',null,'Solo hay '+horas.toFixed(1)+' h prefijadas ('+(horas/J*100).toFixed(1)+' %). El mínimo es el '+P.pctPrefijado+' % ('+(P.pctPrefijado/100*J).toFixed(1)+' h) de '+J.toFixed(1)+' h.');
+      else if(horas<J-P.tolHoras)add('ANUAL','aviso',null,'Programadas '+horas.toFixed(1)+' h de '+J.toFixed(1)+': quedan '+(J-horas).toFixed(1)+' h sin asignar. Mientras sea ≤ 25 % es legal, pero pregunta cuándo y cómo se asignan.');
+      // Horquilla mensual
+      if(o.pct<100) add('MES','info',null,'Jornada reducida ('+o.pct+' %): no se aplica la horquilla mensual estándar.');
+      else horasMes.forEach((h,m)=>{
+        const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;
+        const mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][m];
+        if(h>mx)add('MES','error',null,mes[0].toUpperCase()+mes.slice(1)+': '+h.toFixed(1)+' h, por encima del máximo de '+mx+' h.');
+        else if(h<mn){
+          if(aus[m]>0)add('MES','aviso',null,mes[0].toUpperCase()+mes.slice(1)+': '+h.toFixed(1)+' h (< '+mn+' h) con '+aus[m]+' días de vacaciones/baja/permiso. Puede ser correcto: comprobar que se compensa en los meses siguientes.');
+          else add('MES','error',null,mes[0].toUpperCase()+mes.slice(1)+': '+h.toFixed(1)+' h, por debajo del mínimo de '+mn+' h sin ausencias que lo expliquen.');
+        }
+      });
+      // Jornada diaria / partida / descanso entre jornadas
+      jor.forEach((j,k)=>{
+        if(j.horas>P.maxDiaria)add('DIA','error',j.dia,'Turno «'+j.cod+'» de '+j.horas+' h, por encima del máximo de '+P.maxDiaria+' h.');
+        if(j.segs&&j.segs.length>1)for(let s=1;s<j.segs.length;s++){
+          const g=(j.segs[s][0]-j.segs[s-1][1])/60;
+          if(g<P.partidoMin)add('PART','aviso',j.dia,'Jornada partida «'+j.cod+'» con '+g.toFixed(1)+' h entre tramos (mínimo '+P.partidoMin+' h).');
+        }
+        if(k>0){
+          const p=jor[k-1];
+          if(j.segs&&p.segs){
+            const g=(j.segs[0][0]-p.segs[p.segs.length-1][1])/60;
+            const par=p.cod+'→'+j.cod;
+            if(g<0)add('DESC','error',j.dia,'Turnos solapados ('+par+'): el turno empieza antes de que acabe el anterior.');
+            else if(g<P.descLegal)add('DESC','error',j.dia,'Solo '+g.toFixed(1)+' h de descanso entre jornadas ('+par+'); mínimo legal '+P.descLegal+' h.');
+            else if(g<P.descPactado)add('DESC','aviso',j.dia,g.toFixed(1)+' h de descanso entre jornadas ('+par+'); el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos.');
+          }
+        }
+      });
+      // Intervalos ocupados
+      const iv=mezclar(jor.filter(j=>j.segs).flatMap(j=>j.segs.map(s=>s.slice())));
+      const gaps=huecos(iv,TOT);
+      // Descanso semanal (criterio permisivo)
+      const grandes=gaps.filter(([a,b])=>b-a>=P.descSemanalH*60);
+      let maxRun=0;
+      const tramos=[];
+      if(!grandes.length)tramos.push([0,TOT]);
+      for(let g=1;g<grandes.length;g++)tramos.push([grandes[g-1][1],grandes[g][0]]);
+      tramos.forEach(([a,b])=>{
+        const d=(b-a)/DIA,dia0=Math.floor(a/DIA);
+        maxRun=Math.max(maxRun,d);
+        if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos de trabajo sin un descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): incumple el descanso semanal incluso acumulándolo.');
+        else if(d>7)add('SEM','aviso',dia0,'Unos '+Math.round(d)+' días seguidos de trabajo sin descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): solo es válido si el descanso se acumula (ET 37.1). Comprobar.');
+      });
+      // Fin de semana libre al mes
+      let fsEstrictos=0,fsDudosos=0;
+      if(!o.exentoFS){
+        const mesesFS=Array.from({length:12},()=>({ok:0,dud:0,n:0}));
+        for(let i=0;i<N-1;i++){
+          if(dow(y,i)!==6)continue;
+          const m=mesDe(y,i),a=i*DIA,b=(i+2)*DIA;
+          mesesFS[m].n++;
+          if(!solapa(iv,a,b)){mesesFS[m].ok++;fsEstrictos++;}
+          else if(gaps.some(([x,z])=>z-x>=2*DIA&&x>=a-DIA&&x<=a+720)){mesesFS[m].dud++;fsDudosos++;}
+        }
+        mesesFS.forEach((s,m)=>{
+          if(!s.n)return;
+          const mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][m];
+          if(s.ok===0&&s.dud>0)add('FS','aviso',null,mes[0].toUpperCase()+mes.slice(1)+': ningún fin de semana completo libre (sáb 00:00–dom 24:00); solo '+s.dud+' que arrancan tras un turno de viernes. Comprobar el cómputo «desde la finalización del viernes».');
+          else if(s.ok===0)add('FS','error',null,mes[0].toUpperCase()+mes.slice(1)+': no hay ningún fin de semana completo libre ('+s.n+' sábados, todos con turno).');
+        });
+        if(fsEstrictos+fsDudosos<13&&fsEstrictos+fsDudosos>0)add('FS','info',null,'Fines de semana libres en el año: '+fsEstrictos+(fsDudosos?' + '+fsDudosos+' dudosos':'')+'. El convenio estatal prevé en 2027 un periodo adicional de 48 h sobre el mensual (verificar interpretación).');
+      }
+      // Nochebuena / Nochevieja
+      if(N>=365){
+        const d24=(new Date(Date.UTC(y,11,24))-new Date(Date.UTC(y,0,1)))/864e5,d31=(new Date(Date.UTC(y,11,31))-new Date(Date.UTC(y,0,1)))/864e5;
+        const trabaja24=solapa(iv,d24*DIA+1320,(d24+1)*DIA+360),trabaja31=solapa(iv,d31*DIA+1320,(d31+1)*DIA+360);
+        if(trabaja24&&trabaja31)add('NOCHES','error',d24,'Trabaja la noche del 24 y la del 31 de diciembre. El Acuerdo garantiza libranza de una de las dos.');
+      }
+      // Vacaciones
+      if(vac<P.vacacionesMin)add('VAC','error',null,'Solo '+vac+' días de vacaciones en el cuadrante (mínimo legal '+P.vacacionesMin+').');
+      else if(vac<P.vacaciones)add('VAC','aviso',null,vac+' días de vacaciones; el Acuerdo de Ilunion reconoce '+P.vacaciones+' (verificar artículo).');
+      // Descanso anual
+      if(libres<P.descAnual){
+        const med=jor.length?horas/jor.length:0;
+        add('D96',med&&med<8?'aviso':'error',null,libres+' días de descanso (código tipo L) frente a '+P.descAnual+' del Acuerdo art. 59'+(med&&med<8?' (turno medio de '+med.toFixed(1)+' h: la regla es para jornadas ≥ 8 h)':'')+'.');
+      }
+      // Horas especiales (informativo)
+      let noct=0,finde=0;
+      jor.forEach(j=>{if(!j.segs)return;j.segs.forEach(([a,b])=>{
+        for(let d=Math.floor(a/DIA)-1;d<=Math.floor(b/DIA);d++){
+          noct+=horasEnVentana(a,b,d*DIA,d*DIA+360)+horasEnVentana(a,b,d*DIA+1320,(d+1)*DIA);
+          if(d>=0&&d<N){const w=dow(y,d);if(w===6||w===0)finde+=horasEnVentana(a,b,d*DIA,(d+1)*DIA);}
+        }});});
+      resumen.push({ti,nombre:tr.nombre,horas,horasMes,vac,libres,bajas,perm,noct:noct/60,finde:finde/60,maxRun,fs:fsEstrictos,fsDud:fsDudosos,pct:o.pct,exentoFS:o.exentoFS});
+    });
+    inc.sort((p,q)=>({error:0,aviso:1,info:2})[p.sev]-({error:0,aviso:1,info:2})[q.sev]||p.ti-q.ti||(p.dia??-1)-(q.dia??-1));
+    return{inc,resumen,P};
+  }
+
+  function plazoEntrega(y,recepcion){
+    const limite=new Date(Date.UTC(y-1,11,1));
+    if(!recepcion)return{limite};
+    const r=new Date(recepcion+'T00:00:00Z'),dias=Math.round((limite-r)/864e5);
+    return{limite,dias,enPlazo:dias>=0};
+  }
+  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega};
+})();
+if(typeof module!=='undefined')module.exports=Motor;
+</script>
+
+<script id="ui">
+/* ====================== INTERFAZ ====================== */
+(function(){
+if(typeof document==='undefined')return;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let pl=null,res=null,filtroRegla='',verTodo=false;
+const opts={};
+const LS='cuadrantes_ley_v1',LSP='cuadrantes_par_v1';
+const PARAMS=[['jornadaAnual','Jornada anual (h)'],['tolHoras','Tolerancia (h)'],['pctPrefijado','% prefijado mín.'],['mesMin','Mes mín. (h)'],['mesMax','Mes máx. (h)'],['febMin','Feb. mín. (h)'],['febMax','Feb. máx. (h)'],['descLegal','Descanso legal (h)'],['descPactado','Descanso Acuerdo (h)'],['maxDiaria','Máx. turno (h)'],['vacaciones','Vacaciones (días)'],['vacacionesMin','Vacaciones mín. legal'],['descAnual','Descanso anual (días)'],['partidoMin','Partido mín. (h)'],['descSemanalH','Descanso semanal (h)']];
+const sg=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
+const ss=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+
+function anio(){return parseInt($('p-anio').value,10)||2027;}
+function pintarParams(){
+  const g=Object.assign({},Motor.DEF,sg(LSP)||{});
+  $('params').innerHTML=PARAMS.map(([k,l])=>'<div class="campo"><label for="pm-'+k+'">'+l+'</label><input type="number" step="any" id="pm-'+k+'" value="'+g[k]+'"></div>').join('');
+}
+function leerParams(){
+  const P={anio:anio()};
+  PARAMS.forEach(([k])=>{const v=parseFloat($('pm-'+k).value);P[k]=isNaN(v)?Motor.DEF[k]:v;});
+  ss(LSP,P);return P;
+}
+function plazo(){
+  const y=anio(),r=Motor.plazoEntrega(y,$('f-recep').value);
+  const lim=r.limite.toLocaleDateString('es-ES',{timeZone:'UTC',day:'2-digit',month:'2-digit',year:'numeric'});
+  let h='Límite: el cuadrante anual debe entregarse con <b>1 mes de antelación</b> al inicio del año, es decir, <b>antes del '+lim+'</b> (Acuerdo Ilunion art. 56.2; estatal art. 53). Hoy es el '+new Date().toLocaleDateString('es-ES')+'.';
+  let cls='inf';
+  if(r.dias!==undefined){
+    if(r.enPlazo){cls='ok';h+='<br>Recibido en plazo ('+r.dias+' días de margen).';}
+    else{cls='err';h+='<br><b>Fuera de plazo por '+(-r.dias)+' días.</b> Incumplimiento de la antelación: modificación unilateral (art. 41 ET) si se aplica sin respetarla. Guarda la fecha y el medio de entrega.';}
+  }
+  $('plazo-res').innerHTML='<div class="aviso-caja '+cls+'">'+h+'</div>';
+}
+
+function estructuraUI(){
+  const e=pl.est.slice();
+  const cls=pl.bloqueante?'err':(e.some(x=>x.sev==='error'||x.sev==='aviso')?'':'ok');
+  let h='<div class="aviso-caja '+(pl.bloqueante?'err':cls)+'"><b>'+pl.trabajadores.length+' trabajadores</b> · '+pl.columnas+' columnas de días leídas (esperadas '+pl.esperado+').';
+  if(!pl.bloqueante&&!e.some(x=>x.sev==='error'))h+=' Estructura correcta.';
+  h+='</div>';
+  if(e.length)h+='<ul style="margin:6px 0 0 18px;font-size:13px">'+e.map(x=>'<li><span class="tag '+x.sev+'">'+x.sev+'</span> '+esc(x.msg)+'</li>').join('')+'</ul>';
+  $('estructura').innerHTML=h;
+}
+function leyendaUI(){
+  const cods=Motor.codigos(pl),guard=sg(LS)||{};
+  const arr=[...cods.entries()].sort((a,b)=>b[1]-a[1]);
+  $('t-ley').querySelector('tbody').innerHTML=arr.map(([c,n])=>{
+    const g=guard[c]||{tipo:Motor.tipoSugerido(c),horario:'',horas:''};
+    const op=['T','L','V','B','P'].map(t=>'<option'+(g.tipo===t?' selected':'')+'>'+t+'</option>').join('');
+    return '<tr data-c="'+esc(c)+'"><td><b>'+esc(c)+'</b></td><td class="num">'+n+'</td><td><select class="l-tipo">'+op+'</select></td><td><input type="text" class="l-hor" size="22" value="'+esc(g.horario)+'" placeholder="06:00-14:00"></td><td><input type="number" step="any" class="l-hs" value="'+esc(g.horas)+'"></td></tr>';
+  }).join('');
+}
+function leerLeyenda(){
+  const raw={};
+  $('t-ley').querySelectorAll('tbody tr').forEach(tr=>{raw[tr.dataset.c]={tipo:tr.querySelector('.l-tipo').value,horario:tr.querySelector('.l-hor').value,horas:tr.querySelector('.l-hs').value};});
+  const merged=Object.assign({},sg(LS)||{},raw);ss(LS,merged);return raw;
+}
+
+function leer(){
+  const rows=Motor.parseTabla($('pegado').value);
+  pl=Motor.extraerPlantilla(rows,{anio:anio(),formato:$('formato').value,cabecera:$('cabecera').value});
+  estructuraUI();
+  const ok=!pl.bloqueante;
+  $('c-ley').classList.toggle('oculto',!ok);$('c-par').classList.toggle('oculto',!ok);$('c-res').classList.add('oculto');
+  if(ok){leyendaUI();pintarParams();}
+}
+
+function verificar(){
+  const raw=leerLeyenda(),{ley,err}=Motor.compilarLeyenda(raw);
+  if(err.length){alert('Revisa la leyenda:\n'+err.join('\n'));return;}
+  const P=leerParams();
+  if(res)res.resumen.forEach(r=>{});
+  document.querySelectorAll('#t-trab [data-pct]').forEach(i=>{const ti=+i.dataset.pct;opts[ti]=opts[ti]||{};opts[ti].pct=Math.min(100,Math.max(1,parseFloat(i.value)||100));});
+  document.querySelectorAll('#t-trab [data-fs]').forEach(i=>{const ti=+i.dataset.fs;opts[ti]=opts[ti]||{};opts[ti].exentoFS=i.checked;});
+  res=Motor.verificar(pl,ley,P,opts);filtroRegla='';verTodo=false;pintar();
+  $('c-res').classList.remove('oculto');$('c-res').scrollIntoView({behavior:'smooth'});
+}
+
+function pintar(){
+  const c=s=>res.inc.filter(i=>i.sev===s).length;
+  $('kpis').innerHTML='<div class="kpi"><b>'+pl.trabajadores.length+'</b><span>trabajadores</span></div><div class="kpi e"><b>'+c('error')+'</b><span>errores</span></div><div class="kpi a"><b>'+c('aviso')+'</b><span>avisos</span></div><div class="kpi i"><b>'+c('info')+'</b><span>informativas</span></div><div class="kpi"><b>'+new Set(res.inc.filter(i=>i.sev==='error').map(i=>i.ti)).size+'</b><span>trabajadores con error</span></div>';
+  const cnt=new Map();res.inc.forEach(i=>{cnt.set(i.ti,cnt.get(i.ti)||{e:0,a:0});if(i.sev==='error')cnt.get(i.ti).e++;if(i.sev==='aviso')cnt.get(i.ti).a++;});
+  const P=res.P;
+  $('t-trab').innerHTML='<thead><tr><th>Trabajador</th><th class="num">Horas año</th><th class="num">Vac.</th><th class="num">Desc. L</th><th class="num">Noct. h</th><th class="num">Sáb/dom h</th><th class="num">FS libres</th><th class="num">Err.</th><th class="num">Avisos</th><th>% jornada</th><th>Exento FS</th></tr></thead><tbody>'+
+    res.resumen.map(r=>{const k=cnt.get(r.ti)||{e:0,a:0};return '<tr><td>'+esc(r.nombre)+'</td><td class="num">'+r.horas.toFixed(1)+'</td><td class="num">'+r.vac+'</td><td class="num">'+r.libres+'</td><td class="num">'+r.noct.toFixed(1)+'</td><td class="num">'+r.finde.toFixed(1)+'</td><td class="num">'+r.fs+(r.fsDud?'+'+r.fsDud:'')+'</td><td class="num">'+k.e+'</td><td class="num">'+k.a+'</td><td><input type="number" data-pct="'+r.ti+'" value="'+r.pct+'" min="1" max="100"></td><td><input type="checkbox" data-fs="'+r.ti+'"'+(r.exentoFS?' checked':'')+'></td></tr>';}).join('')+'</tbody>';
+  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  $('t-mes').innerHTML='<thead><tr><th>Trabajador</th>'+M.map(m=>'<th class="num">'+m+'</th>').join('')+'</tr></thead><tbody>'+
+    res.resumen.map(r=>'<tr><td style="text-align:left">'+esc(r.nombre)+'</td>'+r.horasMes.map((h,m)=>{
+      const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;
+      const k=r.pct<100?'':(h>mx||h<mn?'h-bad':'h-ok');return '<td class="'+k+'">'+h.toFixed(0)+'</td>';}).join('')+'</tr>').join('')+'</tbody>';
+  const regs=[...new Set(res.inc.map(i=>i.regla))];
+  $('chips').innerHTML='<button class="chip" aria-pressed="'+(filtroRegla===''?'true':'false')+'" data-r="">Todas</button>'+regs.map(r=>'<button class="chip" data-r="'+r+'" aria-pressed="'+(filtroRegla===r?'true':'false')+'">'+esc(Motor.REGLAS[r].n)+' ('+res.inc.filter(i=>i.regla===r).length+')</button>').join('');
+  pintarInc();
+  $('t-reglas').innerHTML='<thead><tr><th>Regla</th><th>Fuente</th></tr></thead><tbody>'+Object.values(Motor.REGLAS).map(r=>'<tr><td>'+esc(r.n)+'</td><td style="white-space:normal">'+esc(r.f)+'</td></tr>').join('')+'</tbody>';
+}
+function filtradas(){
+  const s=$('f-sev').value,q=$('f-busca').value.trim().toLowerCase();
+  return res.inc.filter(i=>(!s||i.sev===s)&&(!filtroRegla||i.regla===filtroRegla)&&(!q||i.nombre.toLowerCase().includes(q)));
+}
+function pintarInc(){
+  const f=filtradas(),y=anio(),lim=verTodo?f.length:300;
+  $('t-inc').innerHTML='<thead><tr><th>Grav.</th><th>Trabajador</th><th>Fecha</th><th>Regla</th><th>Detalle</th></tr></thead><tbody>'+
+    f.slice(0,lim).map(i=>'<tr class="sev-'+i.sev+'"><td><span class="tag '+i.sev+'">'+i.sev+'</span></td><td>'+esc(i.nombre)+'</td><td>'+(i.dia===null?'—':Motor.fmt(y,i.dia))+'</td><td>'+esc(Motor.REGLAS[i.regla].n)+'</td><td class="det">'+esc(i.det)+'</td></tr>').join('')+'</tbody>';
+  $('inc-mas').innerHTML=f.length>lim?f.length+' incidencias; se muestran '+lim+'. <a href="#" id="ver-todo">Mostrar todas</a>':(f.length?f.length+' incidencias.':'Sin incidencias con este filtro.');
+}
+function csv(){
+  const y=anio(),q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const l=[['Gravedad','Trabajador','Fecha','Regla','Detalle'].map(q).join(';')];
+  filtradas().forEach(i=>l.push([i.sev,i.nombre,i.dia===null?'':Motor.fmt(y,i.dia),Motor.REGLAS[i.regla].n,i.det].map(q).join(';')));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+l.join('\r\n')],{type:'text/csv;charset=utf-8'}));
+  a.download='incidencias_cuadrante_'+y+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+let libro=null;
+function cargarHoja(){
+  const ws=libro.Sheets[$('hoja').value];
+  $('pegado').value=XLSX.utils.sheet_to_csv(ws,{FS:'\t',blankrows:false});
+}
+$('archivo').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(/\.(xlsx|xls)$/i.test(f.name)){
+    if(typeof XLSX==='undefined'){alert('No se ha cargado el lector de Excel (¿sin conexión?). Pega la tabla o guarda como CSV.');return;}
+    libro=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    $('hoja').innerHTML=libro.SheetNames.map(n=>'<option>'+esc(n)+'</option>').join('');
+    $('w-hoja').classList.toggle('oculto',libro.SheetNames.length<2);cargarHoja();
+  }else $('pegado').value=await f.text();
+  leer();
+});
+$('hoja').addEventListener('change',()=>{cargarHoja();leer();});
+$('b-leer').addEventListener('click',leer);
+$('b-verif').addEventListener('click',verificar);
+$('b-csv').addEventListener('click',csv);
+$('p-anio').addEventListener('change',()=>{plazo();});
+$('f-recep').addEventListener('change',plazo);
+$('f-sev').addEventListener('change',pintarInc);
+$('f-busca').addEventListener('input',pintarInc);
+$('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;filtroRegla=b.dataset.r;pintar();});
+$('inc-mas').addEventListener('click',e=>{if(e.target.id==='ver-todo'){e.preventDefault();verTodo=true;pintarInc();}});
+$('b-ley-aplicar').addEventListener('click',()=>{
+  const p=Motor.parseLeyendaTxt($('ley-txt').value);
+  document.querySelectorAll('#t-ley tbody tr').forEach(tr=>{const g=p[tr.dataset.c];if(!g)return;tr.querySelector('.l-tipo').value=['T','L','V','B','P'].includes(g.tipo)?g.tipo:'T';tr.querySelector('.l-hor').value=g.horario;tr.querySelector('.l-hs').value=g.horas;});
+});
+$('b-ley-copiar').addEventListener('click',()=>{
+  const t=[...document.querySelectorAll('#t-ley tbody tr')].map(tr=>[tr.dataset.c,tr.querySelector('.l-tipo').value,tr.querySelector('.l-hor').value,tr.querySelector('.l-hs').value].join(';')).join('\n');
+  if(navigator.clipboard)navigator.clipboard.writeText(t).catch(()=>{});$('ley-txt').value=t;
+});
+plazo();
+})();
+</script>
+</body>
+</html>
