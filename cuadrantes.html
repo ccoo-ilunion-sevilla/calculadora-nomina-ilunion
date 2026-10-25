@@ -97,7 +97,7 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
 
 <section class="card" id="c-carga">
   <h2><span class="n">1</span>Cargar el cuadrante</h2>
-  <p class="nota" style="margin-bottom:10px">Una fila por trabajador: primera columna = nombre; después una columna por día (códigos de servicio). Pega desde Excel/PDF convertido, o sube un .xlsx / .csv.</p>
+  <p class="nota" style="margin-bottom:10px"><b>Plantilla de la empresa (.xlsx con hojas CUADRANTES y Leyenda de Turnos):</b> súbela tal cual; se reconoce sola, trae la leyenda de turnos y compara con el cómputo que declara la empresa. <b>Cualquier otra tabla:</b> una fila por trabajador: primera columna = nombre; después una columna por día (códigos de servicio). Pega desde Excel/PDF convertido, o sube un .xlsx / .csv.</p>
   <div class="fila">
     <div class="campo"><label for="formato">Disposición de los días</label>
       <select id="formato">
@@ -161,6 +161,7 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
 const Motor=(function(){
   const DIA=1440;
   const REGLAS={
+    CALC:{n:'Cómputo de la empresa',f:'La columna HORAS que declara la empresa debe coincidir con la suma de las casillas del mes'},
     ESTR:{n:'Estructura',f:'Casillas vacías o códigos que no están en la leyenda'},
     ANUAL:{n:'Jornada anual',f:'Conv. estatal art. 52 y Acuerdo Ilunion art. 56: 1.782 h/año'},
     PREFIJ:{n:'75 % prefijado',f:'Conv. estatal art. 53: al menos el 75 % de la jornada anual en el cuadrante'},
@@ -175,8 +176,10 @@ const Motor=(function(){
     D96:{n:'Descanso anual',f:'Acuerdo Ilunion art. 59: 96 días naturales (jornada ≥ 8 h), sin contar vacaciones'}
   };
   const DEF={anio:2027,jornadaAnual:1782,tolHoras:8,pctPrefijado:75,mesMin:144,mesMax:176,febMin:134,febMax:162,
-    descLegal:12,descPactado:13,maxDiaria:12,vacaciones:31,vacacionesMin:30,descAnual:96,partidoMin:2.5,descSemanalH:36};
+    ausComputan:1,descLegal:12,descPactado:13,maxDiaria:12,vacaciones:31,vacacionesMin:30,descAnual:96,partidoMin:2.5,descSemanalH:36};
 
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const cap=x=>x[0].toUpperCase()+x.slice(1);
   const bisiesto=y=>(y%4===0&&y%100!==0)||y%400===0;
   const diasAnio=y=>bisiesto(y)?366:365;
   const diasMes=(y,m)=>[31,bisiesto(y)?29:28,31,30,31,30,31,31,30,31,30,31][m];
@@ -247,7 +250,7 @@ const Motor=(function(){
   }
 
   function hm(s){
-    s=String(s).trim();let m=s.match(/^(\d{1,2})[:.hH](\d{2})$/);
+    s=String(s).trim();let m=s.match(/^(\d{1,2})[:.hH](\d{2})(?::\d{2})?$/);
     if(m){const h=+m[1],mi=+m[2];return(h<=24&&mi<60)?h*60+mi:null;}
     m=s.match(/^(\d{1,2})$/);return m&&+m[1]<=24?+m[1]*60:null;
   }
@@ -321,18 +324,20 @@ const Motor=(function(){
       const o=Object.assign({pct:100,exentoFS:false},opts[ti]||{});
       const add=(regla,sev,dia,det)=>inc.push({ti,nombre:tr.nombre,regla,sev,dia,det});
       const jor=[],tipoDia=new Array(N).fill(null),horasMes=new Array(12).fill(0);
-      const aus=new Array(12).fill(0),desc=new Map();
-      let vac=0,bajas=0,perm=0,libres=0,vacias=[],runV=null;
+      const aus=new Array(12).fill(0),celMes=new Array(12).fill(0),desc=new Map();
+      let vac=0,bajas=0,perm=0,libres=0,credito=0,vacias=[],runV=null;
+      const cred=(L,m)=>{if(P.ausComputan&&L.horas){horasMes[m]+=L.horas;credito+=L.horas;}};
       for(let i=0;i<N;i++){
         const raw=(tr.celdas[i]||'').trim();
-        if(!raw){ if(runV&&runV[1]===i-1)runV[1]=i; else{runV=[i,i];vacias.push(runV);} continue; }
+        if(!raw){ if(pl.vaciaLibre){tipoDia[i]='L';libres++;continue;} if(runV&&runV[1]===i-1)runV[1]=i; else{runV=[i,i];vacias.push(runV);} continue; }
         const cod=raw.toUpperCase(),L=ley[cod];
+        celMes[mesDe(y,i)]++;
         if(!L){ if(!desc.has(cod))desc.set(cod,{n:0,primera:i});desc.get(cod).n++; continue; }
         tipoDia[i]=L.tipo;
         const m=mesDe(y,i);
-        if(L.tipo==='V'){vac++;aus[m]++;}
-        else if(L.tipo==='B'){bajas++;aus[m]++;}
-        else if(L.tipo==='P'){perm++;aus[m]++;}
+        if(L.tipo==='V'){vac++;aus[m]++;cred(L,m);}
+        else if(L.tipo==='B'){bajas++;aus[m]++;cred(L,m);}
+        else if(L.tipo==='P'){perm++;aus[m]++;cred(L,m);}
         else if(L.tipo==='L')libres++;
         else if(L.tipo==='T'){
           if(L.incompleta){ if(!desc.has('«'+cod+'» sin horas'))desc.set('«'+cod+'» sin horas',{n:0,primera:i,incompleto:true});desc.get('«'+cod+'» sin horas').n++; continue; }
@@ -343,23 +348,45 @@ const Motor=(function(){
       vacias.forEach(([a,b])=>add('ESTR','aviso',a,'Casillas vacías: '+(b===a?'1 día':(b-a+1)+' días')+(b>a?' (hasta '+fmt(y,b)+')':'')+'. Un cuadrante anual debe tener todos los días asignados.'));
       desc.forEach((v,k)=>add('ESTR','error',v.primera,v.incompleto?('Código '+k+' (tipo trabajo) sin horas ni horario en la leyenda: '+v.n+' casillas no computadas.'):('Código «'+k+'» no está en la leyenda ('+v.n+' casillas; primera el '+fmt(y,v.primera)+'). ¿Errata o código nuevo?')));
 
-      const horas=jor.reduce((s,j)=>s+j.horas,0),J=P.jornadaAnual*o.pct/100;
-      // Jornada anual y 75 %
-      if(horas>J+P.tolHoras)add('ANUAL','error',null,'El cuadrante programa '+horas.toFixed(1)+' h y la jornada anual es '+J.toFixed(1)+' h: '+(horas-J).toFixed(1)+' h de más (horas extra programadas de antemano).');
-      else if(horas<P.pctPrefijado/100*J)add('PREFIJ','error',null,'Solo hay '+horas.toFixed(1)+' h prefijadas ('+(horas/J*100).toFixed(1)+' %). El mínimo es el '+P.pctPrefijado+' % ('+(P.pctPrefijado/100*J).toFixed(1)+' h) de '+J.toFixed(1)+' h.');
-      else if(horas<J-P.tolHoras)add('ANUAL','aviso',null,'Programadas '+horas.toFixed(1)+' h de '+J.toFixed(1)+': quedan '+(J-horas).toFixed(1)+' h sin asignar. Mientras sea ≤ 25 % es legal, pero pregunta cuándo y cómo se asignan.');
-      // Horquilla mensual
-      if(o.pct<100) add('MES','info',null,'Jornada reducida ('+o.pct+' %): no se aplica la horquilla mensual estándar.');
-      else horasMes.forEach((h,m)=>{
-        const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;
-        const mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][m];
-        if(h>mx)add('MES','error',null,mes[0].toUpperCase()+mes.slice(1)+': '+h.toFixed(1)+' h, por encima del máximo de '+mx+' h.');
-        else if(h<mn){
-          if(aus[m]>0)add('MES','aviso',null,mes[0].toUpperCase()+mes.slice(1)+': '+h.toFixed(1)+' h (< '+mn+' h) con '+aus[m]+' días de vacaciones/baja/permiso. Puede ser correcto: comprobar que se compensa en los meses siguientes.');
-          else add('MES','error',null,mes[0].toUpperCase()+mes.slice(1)+': '+h.toFixed(1)+' h, por debajo del mínimo de '+mn+' h sin ausencias que lo expliquen.');
-        }
+      const horasTrab=jor.reduce((s,j)=>s+j.horas,0),horas=horasTrab+credito;
+      // Meses con datos: un trabajador que entra o sale a mitad de año solo se evalúa en sus meses
+      const activo=celMes.map(n=>n>0),nAct=activo.filter(Boolean).length;
+      const J=P.jornadaAnual*o.pct/100,Jp=J*nAct/12;
+      const mnDe=m=>(m===1?P.febMin:P.mesMin),mxDe=m=>(m===1?P.febMax:P.mesMax);
+      const bajoMin=horasMes.map((h,m)=>activo[m]&&h<mnDe(m));
+      const reducido=o.pct===100&&nAct>=3&&bajoMin.filter(Boolean).length/nAct>=0.75;
+      const completo=nAct===12&&!reducido&&o.pct===100;
+      if(nAct===0)add('ESTR','info',null,'Sin ninguna casilla rellena en el año.');
+      else if(nAct<12)add('ESTR','info',null,'Solo tiene datos en '+nAct+' meses ('+activo.map((x,m)=>x?MESES[m].slice(0,3):null).filter(Boolean).join(', ')+'): se evalúan solo esos meses y la jornada anual se prorratea.');
+      if(reducido)add('MES','info',null,'Posible jornada reducida o parcial: media de '+(horas/nAct).toFixed(1)+' h/mes (mínimo estándar '+P.mesMin+' h) en '+bajoMin.filter(Boolean).length+' de '+nAct+' meses. No se aplican los mínimos mensual, anual ni del 75 %; si es un error, revísalo, y si no, indica su «% jornada».');
+      // Jornada anual: las 1.782 h son de trabajo efectivo (sin el crédito de vacaciones/bajas)
+      if(horasTrab>Jp+P.tolHoras)add('ANUAL','error',null,'El cuadrante programa '+horasTrab.toFixed(1)+' h de trabajo y la jornada anual'+(nAct<12?' prorrateada ('+nAct+' meses)':'')+' es '+Jp.toFixed(1)+' h: '+(horasTrab-Jp).toFixed(1)+' h de más (horas extra programadas de antemano).');
+      else if(completo){
+        if(horasTrab<P.pctPrefijado/100*J)add('PREFIJ','error',null,'Solo hay '+horasTrab.toFixed(1)+' h prefijadas ('+(horasTrab/J*100).toFixed(1)+' %). El mínimo es el '+P.pctPrefijado+' % ('+(P.pctPrefijado/100*J).toFixed(1)+' h) de '+J.toFixed(1)+' h.');
+        else if(horasTrab<J-P.tolHoras)add('ANUAL','aviso',null,'Programadas '+horasTrab.toFixed(1)+' h de '+J.toFixed(1)+': quedan '+(J-horasTrab).toFixed(1)+' h sin asignar. Mientras sea ≤ 25 % es legal, pero pregunta cuándo y cómo se asignan.');
+      }
+      // Cómputo declarado por la empresa
+      if(tr.decl)tr.decl.forEach((d,m)=>{
+        if(d===null||d===undefined||!activo[m])return;
+        const dif=horasMes[m]-d;
+        if(Math.abs(dif)>0.6)add('CALC',Math.abs(dif)>2?'error':'aviso',null,cap(MESES[m])+': la empresa declara '+d.toFixed(2)+' h y las casillas suman '+horasMes[m].toFixed(2)+' h (diferencia '+(dif>0?'+':'')+dif.toFixed(2)+' h).');
       });
+      // Horquilla mensual (una incidencia por trabajador y tipo, con los meses afectados)
+      if(o.pct<100) add('MES','info',null,'Jornada reducida ('+o.pct+' %): no se aplica la horquilla mensual estándar.');
+      else{
+        const altos=[],bajosAus=[],bajos=[];
+        horasMes.forEach((h,m)=>{
+          if(!activo[m])return;
+          const mn=mnDe(m),mx=mxDe(m),t=cap(MESES[m])+' '+h.toFixed(1);
+          if(h>mx)altos.push(t+' (máx. '+mx+')');
+          else if(h<mn&&!reducido){ if(aus[m]>0)bajosAus.push(t+' ('+aus[m]+' d. de ausencia)'); else bajos.push(t+' (mín. '+mn+')'); }
+        });
+        if(altos.length)add('MES','error',null,'Por encima del máximo mensual: '+altos.join('; ')+'.');
+        if(bajos.length)add('MES','error',null,'Por debajo del mínimo mensual sin ausencias que lo expliquen: '+bajos.join('; ')+'.');
+        if(bajosAus.length)add('MES','aviso',null,'Por debajo del mínimo con vacaciones/baja/permiso (puede ser correcto; comprobar que se compensa): '+bajosAus.join('; ')+'.');
+      }
       // Jornada diaria / partida / descanso entre jornadas
+      const descAv=[];
       jor.forEach((j,k)=>{
         if(j.horas>P.maxDiaria)add('DIA','error',j.dia,'Turno «'+j.cod+'» de '+j.horas+' h, por encima del máximo de '+P.maxDiaria+' h.');
         if(j.segs&&j.segs.length>1)for(let s=1;s<j.segs.length;s++){
@@ -373,10 +400,14 @@ const Motor=(function(){
             const par=p.cod+'→'+j.cod;
             if(g<0)add('DESC','error',j.dia,'Turnos solapados ('+par+'): el turno empieza antes de que acabe el anterior.');
             else if(g<P.descLegal)add('DESC','error',j.dia,'Solo '+g.toFixed(1)+' h de descanso entre jornadas ('+par+'); mínimo legal '+P.descLegal+' h.');
-            else if(g<P.descPactado)add('DESC','aviso',j.dia,g.toFixed(1)+' h de descanso entre jornadas ('+par+'); el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos.');
+            else if(g<P.descPactado)descAv.push([j.dia,g,par]);
           }
         }
       });
+      if(descAv.length){
+        const min=Math.min(...descAv.map(x=>x[1]));
+        add('DESC','aviso',descAv[0][0],descAv.length+' descansos entre '+P.descLegal+' y '+P.descPactado+' h (el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos; el más corto '+min.toFixed(1)+' h). Fechas: '+descAv.slice(0,8).map(x=>fmt(y,x[0]).slice(4,9)+' ('+x[2]+')').join(', ')+(descAv.length>8?' …':'')+'.');
+      }
       // Intervalos ocupados
       const iv=mezclar(jor.filter(j=>j.segs).flatMap(j=>j.segs.map(s=>s.slice())));
       const gaps=huecos(iv,TOT);
@@ -386,12 +417,14 @@ const Motor=(function(){
       const tramos=[];
       if(!grandes.length)tramos.push([0,TOT]);
       for(let g=1;g<grandes.length;g++)tramos.push([grandes[g-1][1],grandes[g][0]]);
+      const semAv=[];
       tramos.forEach(([a,b])=>{
         const d=(b-a)/DIA,dia0=Math.floor(a/DIA);
         maxRun=Math.max(maxRun,d);
-        if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos de trabajo sin un descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): incumple el descanso semanal incluso acumulándolo.');
-        else if(d>7)add('SEM','aviso',dia0,'Unos '+Math.round(d)+' días seguidos de trabajo sin descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): solo es válido si el descanso se acumula (ET 37.1). Comprobar.');
+        if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos sin ningún descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): difícilmente compatible con el descanso semanal de día y medio, aun acumulado en 14 días (ET 37.1).');
+        else if(d>7)semAv.push([dia0,d]);
       });
+      if(semAv.length)add('SEM','aviso',semAv[0][0],semAv.length+' tramos de 8 a 12 días seguidos sin descanso de '+P.descSemanalH+' h (solo válido si el descanso se acumula, ET 37.1; el más largo '+Math.round(Math.max(...semAv.map(x=>x[1])))+' días). Primeros: '+semAv.slice(0,6).map(x=>fmt(y,x[0]).slice(4,9)).join(', ')+(semAv.length>6?' …':'')+'.');
       // Fin de semana libre al mes
       let fsEstrictos=0,fsDudosos=0;
       if(!o.exentoFS){
@@ -404,10 +437,10 @@ const Motor=(function(){
           else if(gaps.some(([x,z])=>z-x>=2*DIA&&x>=a-DIA&&x<=a+720)){mesesFS[m].dud++;fsDudosos++;}
         }
         mesesFS.forEach((s,m)=>{
-          if(!s.n)return;
-          const mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][m];
-          if(s.ok===0&&s.dud>0)add('FS','aviso',null,mes[0].toUpperCase()+mes.slice(1)+': ningún fin de semana completo libre (sáb 00:00–dom 24:00); solo '+s.dud+' que arrancan tras un turno de viernes. Comprobar el cómputo «desde la finalización del viernes».');
-          else if(s.ok===0)add('FS','error',null,mes[0].toUpperCase()+mes.slice(1)+': no hay ningún fin de semana completo libre ('+s.n+' sábados, todos con turno).');
+          if(!s.n||!activo[m])return;
+          const mes=MESES[m];
+          if(s.ok===0&&s.dud>0)add('FS','aviso',null,cap(mes)+': ningún fin de semana completo libre (sáb 00:00–dom 24:00); solo '+s.dud+' que arrancan tras un turno de viernes. Comprobar el cómputo «desde la finalización del viernes».');
+          else if(s.ok===0)add('FS','error',null,cap(mes)+': no hay ningún fin de semana completo libre ('+s.n+' sábados, todos con turno).');
         });
         if(fsEstrictos+fsDudosos<13&&fsEstrictos+fsDudosos>0)add('FS','info',null,'Fines de semana libres en el año: '+fsEstrictos+(fsDudosos?' + '+fsDudosos+' dudosos':'')+'. El convenio estatal prevé en 2027 un periodo adicional de 48 h sobre el mensual (verificar interpretación).');
       }
@@ -418,10 +451,11 @@ const Motor=(function(){
         if(trabaja24&&trabaja31)add('NOCHES','error',d24,'Trabaja la noche del 24 y la del 31 de diciembre. El Acuerdo garantiza libranza de una de las dos.');
       }
       // Vacaciones
-      if(vac<P.vacacionesMin)add('VAC','error',null,'Solo '+vac+' días de vacaciones en el cuadrante (mínimo legal '+P.vacacionesMin+').');
+      if(nAct<12){}
+      else if(vac<P.vacacionesMin)add('VAC','error',null,'Solo '+vac+' días de vacaciones en el cuadrante (mínimo legal '+P.vacacionesMin+'). Si entró o salió durante el año puede ser prorrata; si no, faltan días por asignar.');
       else if(vac<P.vacaciones)add('VAC','aviso',null,vac+' días de vacaciones; el Acuerdo de Ilunion reconoce '+P.vacaciones+' (verificar artículo).');
       // Descanso anual
-      if(libres<P.descAnual){
+      if(libres<P.descAnual&&nAct===12){
         const med=jor.length?horas/jor.length:0;
         add('D96',med&&med<8?'aviso':'error',null,libres+' días de descanso (código tipo L) frente a '+P.descAnual+' del Acuerdo art. 59'+(med&&med<8?' (turno medio de '+med.toFixed(1)+' h: la regla es para jornadas ≥ 8 h)':'')+'.');
       }
@@ -432,10 +466,105 @@ const Motor=(function(){
           noct+=horasEnVentana(a,b,d*DIA,d*DIA+360)+horasEnVentana(a,b,d*DIA+1320,(d+1)*DIA);
           if(d>=0&&d<N){const w=dow(y,d);if(w===6||w===0)finde+=horasEnVentana(a,b,d*DIA,(d+1)*DIA);}
         }});});
-      resumen.push({ti,nombre:tr.nombre,horas,horasMes,vac,libres,bajas,perm,noct:noct/60,finde:finde/60,maxRun,fs:fsEstrictos,fsDud:fsDudosos,pct:o.pct,exentoFS:o.exentoFS});
+      resumen.push({ti,nombre:tr.nombre,horas,horasTrab,credito,horasMes,vac,libres,bajas,perm,noct:noct/60,finde:finde/60,maxRun,fs:fsEstrictos,fsDud:fsDudosos,pct:o.pct,exentoFS:o.exentoFS});
     });
     inc.sort((p,q)=>({error:0,aviso:1,info:2})[p.sev]-({error:0,aviso:1,info:2})[q.sev]||p.ti-q.ti||(p.dia??-1)-(q.dia??-1));
     return{inc,resumen,P};
+  }
+
+  /* ---------- Importador de la plantilla de empresa (.xlsx: hojas CUADRANTES + Leyenda de Turnos) ---------- */
+  const LETRA_DIA=['D','L','M','X','J','V','S'];
+  const norm=x=>String(x===null||x===undefined?'':x).trim().toUpperCase();
+  const minutos=v=>{
+    if(typeof v==='number')return Math.round((v-Math.floor(v))*DIA)%DIA;
+    if(typeof v==='string'){const t=hm(v);return t===null?null:t%DIA;}
+    return null;
+  };
+  const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  function tipoLeyenda(c){
+    if(/^(V\d*|VA)$/.test(c))return'V';
+    if(/^IT\d*$/.test(c))return'B';
+    if(/^PR\d*$/.test(c))return'P';
+    return'T';
+  }
+  function leyendaEmpresa(A){
+    const raw={};
+    A.forEach(row=>{
+      [1,6,11,16].forEach(k=>{
+        const cod=norm(row[k]);
+        if(!cod||cod==='TURNO')return;
+        const a=minutos(row[k+1]),b=minutos(row[k+2]),h=row[k+3];
+        raw[cod]={tipo:tipoLeyenda(cod),
+          horario:(a!==null&&b!==null&&a!==b)?hhmm(a)+'-'+hhmm(b):'',
+          horas:typeof h==='number'?String(Math.round(h*1000)/1000):''};
+      });
+    });
+    return raw;
+  }
+  function importarEmpresa(S){
+    const hoja=re=>Object.keys(S).find(k=>re.test(k.trim().toUpperCase()));
+    const hc=hoja(/^CUADRANTES$/),hl=hoja(/^LEYENDA/);
+    if(!hc)return null;
+    const A=S[hc],est=[];let bloqueante=false;
+    let anio=null;
+    for(let r=0;r<Math.min(A.length,40);r++)if(norm(A[r][1])==='AÑO'&&typeof A[r][2]==='number'){anio=A[r][2];break;}
+    if(!anio){est.push({sev:'error',msg:'No se encuentra el año en la hoja CUADRANTES (celda «AÑO»).'});bloqueante=true;anio=DEF.anio;}
+    const N=diasAnio(anio),emps=new Map(),filaDe=new Map(),orden=[];
+    const bloques=[];
+    for(let r=0;r<A.length;r++)if(norm(A[r][1])==='MES'){const m=MESES.indexOf(String(A[r][2]).trim().toLowerCase());if(m>=0)bloques.push({r,m});}
+    const meses=new Set(bloques.map(b=>b.m));
+    if(meses.size<12){const f=MESES.map((x,i)=>i).filter(i=>!meses.has(i)).map(i=>MESES[i]);est.push({sev:'error',msg:'Faltan bloques mensuales en la hoja CUADRANTES: '+f.join(', ')+'.'});bloqueante=true;}
+    const mal=[];let ini=new Array(12).fill(0);
+    for(let m=1;m<12;m++)ini[m]=ini[m-1]+diasMes(anio,m-1);
+    bloques.forEach(({r,m},bi)=>{
+      const tope=bi+1<bloques.length?bloques[bi+1].r-1:A.length-1;
+      let h=-1;
+      for(let x=r+1;x<Math.min(r+16,A.length);x++)if(norm(A[x][1]).startsWith('APELLIDOS')){h=x;break;}
+      if(h<0){est.push({sev:'error',msg:'Bloque de '+MESES[m]+': no se encuentra la fila de cabecera «APELLIDOS Y NOMBRE».'});bloqueante=true;return;}
+      const dim=diasMes(anio,m);
+      // calendario: la letra de cada día debe coincidir con el año
+      const malCal=[];
+      for(let d=0;d<dim;d++){
+        const esp=LETRA_DIA[new Date(Date.UTC(anio,m,1+d)).getUTCDay()],le=norm(A[h][3+d]);
+        if(le!==esp)malCal.push((d+1)+' («'+(le||'vacío')+'» ≠ '+esp+')');
+      }
+      if(malCal.length)est.push({sev:'error',msg:'Calendario de '+MESES[m]+' no coincide con '+anio+': día '+malCal.slice(0,3).join(', ')+(malCal.length>3?' … ('+malCal.length+' días)':'')+'. ¿Plantilla sin actualizar de año?'});
+      // columna del cómputo mensual que declara la empresa
+      let hcol=3+dim;
+      for(let x=Math.max(0,h-3);x<=h&&hcol===3+dim;x++)for(let c=28;c<42;c++)if(/^(HORAS|TOTAL)$/.test(norm(A[x][c]))){hcol=c;break;}
+      for(let x=h+1;x<=h+150&&x<=tope;x++){
+        if(['AÑO','MES','PUESTO','CLIENTE'].includes(norm(A[x][1])))break;
+        const mat=A[x][2];
+        if(typeof mat!=='number'||mat<=0)continue;
+        const k=String(mat),pos=x-h-1;
+        if(!filaDe.has(pos))filaDe.set(pos,k);else if(filaDe.get(pos)!==k)mal.push(MESES[m]+' fila '+(pos+1));
+        let e=emps.get(k);
+        if(!e){e={nombre:String(A[x][1]||'').replace(/\s+/g,' ').trim(),mat:k,celdas:new Array(N).fill(''),decl:new Array(12).fill(null),datos:false,meses:new Set()};emps.set(k,e);orden.push(k);}
+        if(!e.nombre&&A[x][1])e.nombre=String(A[x][1]).trim();
+        for(let d=0;d<dim;d++){
+          const v=A[x][3+d];
+          const c=(v===''||v===null||v===undefined)?'':(typeof v==='number'?String(v):norm(v));
+          if(c){e.celdas[ini[m]+d]=c;e.datos=true;e.meses.add(m);}
+        }
+        const dv=A[x][hcol];
+        if(typeof dv==='number'){e.decl[m]=dv;}
+      }
+    });
+    if(mal.length)est.push({sev:'aviso',msg:'El orden de los trabajadores cambia entre meses (el mismo nº de fila no es siempre la misma persona): '+mal.slice(0,4).join('; ')+(mal.length>4?' …':'')+'.'});
+    const tr=[];let sinDatos=0;
+    orden.forEach(k=>{
+      const e=emps.get(k);
+      if(!e.datos){sinDatos++;return;}
+      if(e.meses.size<bloques.length)est.push({sev:'info',msg:(e.nombre||e.mat)+' solo tiene datos en '+e.meses.size+' de '+bloques.length+' meses.'});
+      tr.push({nombre:(e.nombre||'SIN NOMBRE')+' ('+e.mat+')',celdas:e.celdas,decl:e.decl});
+    });
+    if(sinDatos)est.push({sev:'info',msg:sinDatos+' filas con nº de empleado y sin ninguna casilla rellena: ignoradas.'});
+    if(!tr.length){est.push({sev:'error',msg:'No hay ningún trabajador con datos.'});bloqueante=true;}
+    est.push({sev:'info',msg:'Plantilla de empresa reconocida (hoja CUADRANTES, año '+anio+'). Las casillas vacías se tratan como libranza.'});
+    let leyenda=null;
+    if(hl)leyenda=leyendaEmpresa(S[hl]);
+    else est.push({sev:'aviso',msg:'No hay hoja «Leyenda de Turnos»: define los códigos a mano.'});
+    return{trabajadores:tr,N,anio,columnas:N,esperado:N,est,bloqueante,cabecera:true,vaciaLibre:true,leyenda,empresa:true};
   }
 
   function plazoEntrega(y,recepcion){
@@ -444,7 +573,7 @@ const Motor=(function(){
     const r=new Date(recepcion+'T00:00:00Z'),dias=Math.round((limite-r)/864e5);
     return{limite,dias,enPlazo:dias>=0};
   }
-  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega};
+  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa};
 })();
 if(typeof module!=='undefined')module.exports=Motor;
 </script>
@@ -455,10 +584,10 @@ if(typeof module!=='undefined')module.exports=Motor;
 if(typeof document==='undefined')return;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let pl=null,res=null,filtroRegla='',verTodo=false;
+let pl=null,res=null,filtroRegla='',verTodo=false,libro=null;
 const opts={};
 const LS='cuadrantes_ley_v1',LSP='cuadrantes_par_v1';
-const PARAMS=[['jornadaAnual','Jornada anual (h)'],['tolHoras','Tolerancia (h)'],['pctPrefijado','% prefijado mín.'],['mesMin','Mes mín. (h)'],['mesMax','Mes máx. (h)'],['febMin','Feb. mín. (h)'],['febMax','Feb. máx. (h)'],['descLegal','Descanso legal (h)'],['descPactado','Descanso Acuerdo (h)'],['maxDiaria','Máx. turno (h)'],['vacaciones','Vacaciones (días)'],['vacacionesMin','Vacaciones mín. legal'],['descAnual','Descanso anual (días)'],['partidoMin','Partido mín. (h)'],['descSemanalH','Descanso semanal (h)']];
+const PARAMS=[['jornadaAnual','Jornada anual (h)'],['ausComputan','Vacac./bajas computan horas (1/0)'],['tolHoras','Tolerancia (h)'],['pctPrefijado','% prefijado mín.'],['mesMin','Mes mín. (h)'],['mesMax','Mes máx. (h)'],['febMin','Feb. mín. (h)'],['febMax','Feb. máx. (h)'],['descLegal','Descanso legal (h)'],['descPactado','Descanso Acuerdo (h)'],['maxDiaria','Máx. turno (h)'],['vacaciones','Vacaciones (días)'],['vacacionesMin','Vacaciones mín. legal'],['descAnual','Descanso anual (días)'],['partidoMin','Partido mín. (h)'],['descSemanalH','Descanso semanal (h)']];
 const sg=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 const ss=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 
@@ -497,7 +626,7 @@ function leyendaUI(){
   const cods=Motor.codigos(pl),guard=sg(LS)||{};
   const arr=[...cods.entries()].sort((a,b)=>b[1]-a[1]);
   $('t-ley').querySelector('tbody').innerHTML=arr.map(([c,n])=>{
-    const g=guard[c]||{tipo:Motor.tipoSugerido(c),horario:'',horas:''};
+    const g=(pl.leyenda&&pl.leyenda[c])||(!pl.empresa&&guard[c])||{tipo:Motor.tipoSugerido(c),horario:'',horas:''};
     const op=['T','L','V','B','P'].map(t=>'<option'+(g.tipo===t?' selected':'')+'>'+t+'</option>').join('');
     return '<tr data-c="'+esc(c)+'"><td><b>'+esc(c)+'</b></td><td class="num">'+n+'</td><td><select class="l-tipo">'+op+'</select></td><td><input type="text" class="l-hor" size="22" value="'+esc(g.horario)+'" placeholder="06:00-14:00"></td><td><input type="number" step="any" class="l-hs" value="'+esc(g.horas)+'"></td></tr>';
   }).join('');
@@ -505,12 +634,17 @@ function leyendaUI(){
 function leerLeyenda(){
   const raw={};
   $('t-ley').querySelectorAll('tbody tr').forEach(tr=>{raw[tr.dataset.c]={tipo:tr.querySelector('.l-tipo').value,horario:tr.querySelector('.l-hor').value,horas:tr.querySelector('.l-hs').value};});
-  const merged=Object.assign({},sg(LS)||{},raw);ss(LS,merged);return raw;
+  if(!pl.empresa)ss(LS,Object.assign({},sg(LS)||{},raw));
+  return raw;
 }
 
 function leer(){
   const rows=Motor.parseTabla($('pegado').value);
   pl=Motor.extraerPlantilla(rows,{anio:anio(),formato:$('formato').value,cabecera:$('cabecera').value});
+  mostrar();
+}
+function mostrar(){
+  if(pl.anio&&pl.anio!==anio()){$('p-anio').value=pl.anio;plazo();}
   estructuraUI();
   const ok=!pl.bloqueante;
   $('c-ley').classList.toggle('oculto',!ok);$('c-par').classList.toggle('oculto',!ok);$('c-res').classList.add('oculto');
@@ -533,8 +667,8 @@ function pintar(){
   $('kpis').innerHTML='<div class="kpi"><b>'+pl.trabajadores.length+'</b><span>trabajadores</span></div><div class="kpi e"><b>'+c('error')+'</b><span>errores</span></div><div class="kpi a"><b>'+c('aviso')+'</b><span>avisos</span></div><div class="kpi i"><b>'+c('info')+'</b><span>informativas</span></div><div class="kpi"><b>'+new Set(res.inc.filter(i=>i.sev==='error').map(i=>i.ti)).size+'</b><span>trabajadores con error</span></div>';
   const cnt=new Map();res.inc.forEach(i=>{cnt.set(i.ti,cnt.get(i.ti)||{e:0,a:0});if(i.sev==='error')cnt.get(i.ti).e++;if(i.sev==='aviso')cnt.get(i.ti).a++;});
   const P=res.P;
-  $('t-trab').innerHTML='<thead><tr><th>Trabajador</th><th class="num">Horas año</th><th class="num">Vac.</th><th class="num">Desc. L</th><th class="num">Noct. h</th><th class="num">Sáb/dom h</th><th class="num">FS libres</th><th class="num">Err.</th><th class="num">Avisos</th><th>% jornada</th><th>Exento FS</th></tr></thead><tbody>'+
-    res.resumen.map(r=>{const k=cnt.get(r.ti)||{e:0,a:0};return '<tr><td>'+esc(r.nombre)+'</td><td class="num">'+r.horas.toFixed(1)+'</td><td class="num">'+r.vac+'</td><td class="num">'+r.libres+'</td><td class="num">'+r.noct.toFixed(1)+'</td><td class="num">'+r.finde.toFixed(1)+'</td><td class="num">'+r.fs+(r.fsDud?'+'+r.fsDud:'')+'</td><td class="num">'+k.e+'</td><td class="num">'+k.a+'</td><td><input type="number" data-pct="'+r.ti+'" value="'+r.pct+'" min="1" max="100"></td><td><input type="checkbox" data-fs="'+r.ti+'"'+(r.exentoFS?' checked':'')+'></td></tr>';}).join('')+'</tbody>';
+  $('t-trab').innerHTML='<thead><tr><th>Trabajador</th><th class="num">H. trabajo</th><th class="num">Cómputo</th><th class="num">Vac.</th><th class="num">Desc. L</th><th class="num">Noct. h</th><th class="num">Sáb/dom h</th><th class="num">FS libres</th><th class="num">Err.</th><th class="num">Avisos</th><th>% jornada</th><th>Exento FS</th></tr></thead><tbody>'+
+    res.resumen.map(r=>{const k=cnt.get(r.ti)||{e:0,a:0};return '<tr><td>'+esc(r.nombre)+'</td><td class="num">'+r.horasTrab.toFixed(1)+'</td><td class="num">'+r.horas.toFixed(1)+'</td><td class="num">'+r.vac+'</td><td class="num">'+r.libres+'</td><td class="num">'+r.noct.toFixed(1)+'</td><td class="num">'+r.finde.toFixed(1)+'</td><td class="num">'+r.fs+(r.fsDud?'+'+r.fsDud:'')+'</td><td class="num">'+k.e+'</td><td class="num">'+k.a+'</td><td><input type="number" data-pct="'+r.ti+'" value="'+r.pct+'" min="1" max="100"></td><td><input type="checkbox" data-fs="'+r.ti+'"'+(r.exentoFS?' checked':'')+'></td></tr>';}).join('')+'</tbody>';
   const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   $('t-mes').innerHTML='<thead><tr><th>Trabajador</th>'+M.map(m=>'<th class="num">'+m+'</th>').join('')+'</tr></thead><tbody>'+
     res.resumen.map(r=>'<tr><td style="text-align:left">'+esc(r.nombre)+'</td>'+r.horasMes.map((h,m)=>{
@@ -563,16 +697,28 @@ function csv(){
   a.download='incidencias_cuadrante_'+y+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 
-let libro=null;
 function cargarHoja(){
   const ws=libro.Sheets[$('hoja').value];
   $('pegado').value=XLSX.utils.sheet_to_csv(ws,{FS:'\t',blankrows:false});
 }
+const aoa=ws=>XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
 $('archivo').addEventListener('change',async e=>{
   const f=e.target.files[0];if(!f)return;
   if(/\.(xlsx|xls)$/i.test(f.name)){
     if(typeof XLSX==='undefined'){alert('No se ha cargado el lector de Excel (¿sin conexión?). Pega la tabla o guarda como CSV.');return;}
-    libro=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    $('estructura').innerHTML='<div class="aviso-caja inf">Leyendo el Excel… (los de varios MB tardan unos segundos)</div>';
+    await new Promise(r=>setTimeout(r,30));
+    try{
+      libro=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    }catch(err){$('estructura').innerHTML='<div class="aviso-caja err">No se ha podido leer el archivo: '+esc(err.message)+'</div>';return;}
+    const nom=n=>libro.SheetNames.find(x=>n.test(x.trim().toUpperCase()));
+    const hc=nom(/^CUADRANTES$/),hl=nom(/^LEYENDA/);
+    if(hc){
+      const S={};S[hc]=aoa(libro.Sheets[hc]);if(hl)S[hl]=aoa(libro.Sheets[hl]);
+      pl=Motor.importarEmpresa(S);
+      $('pegado').value='';$('w-hoja').classList.add('oculto');
+      mostrar();return;
+    }
     $('hoja').innerHTML=libro.SheetNames.map(n=>'<option>'+esc(n)+'</option>').join('');
     $('w-hoja').classList.toggle('oculto',libro.SheetNames.length<2);cargarHoja();
   }else $('pegado').value=await f.text();
