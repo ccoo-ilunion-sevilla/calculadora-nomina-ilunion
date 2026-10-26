@@ -2,7 +2,8 @@
 /*
  * Verifica un cuadrante anual (.xlsx de la plantilla de la empresa) y genera:
  *   - fallos_<nombre>.pdf   hojas por trabajador (como «IMPRESIÓN C. ANUAL») con los fallos marcados
- *   - incidencias_<nombre>.csv   todas las incidencias, con nombre y nº de empleado
+ *   - incidencias_<nombre>.csv   todas las incidencias, identificando a cada trabajador SOLO por su nº de empleado
+ *   En la hoja de cada trabajador va su propio nombre (como en la hoja de la empresa) y nada más: ni otros nombres ni el del delegado.
  *
  * Uso:  node herramientas/verificar_cuadrante.js cuadrante.xlsx [opciones]
  *   --salida <carpeta>      dónde dejar los ficheros (por defecto, junto al .xlsx)
@@ -13,8 +14,9 @@
  *   --fs horas              fin de semana libre por horas (por defecto: por casilla)
  *   --banda aviso|no        descanso 12-13 h como aviso o ignorado (por defecto: informativo)
  *   --formacion no          el código F no cuenta como turno
+ *   --con-nombres           identifica por nombre (no solo nº) en el CSV y listados; por defecto, solo nº
  *
- * Los ficheros de salida contienen nombres de trabajadores: no subirlos al repositorio.
+ * El PDF lleva el nombre de cada trabajador en su hoja: no subirlo al repositorio.
  * Requiere Playwright (ya instalado en las sesiones en la nube) y acceso a npm para bajar SheetJS una vez.
  */
 const fs=require('fs'),path=require('path'),os=require('os'),cp=require('child_process');
@@ -45,6 +47,7 @@ function sheetjs(){
 
   // criterios opcionales (se guardan en el navegador de esta ejecución)
   const sel=(id,v)=>p.evaluate(([id,v])=>{const e=document.getElementById(id);if(e){e.value=v;}},[id,v]);
+  if(opt('con-nombres'))await p.check('#c-nombres');
   await p.setInputFiles('#archivo',path.resolve(fichero));
   await p.waitForSelector('#c-res:not(.oculto), #estructura .aviso-caja.err',{timeout:240000});
   const estructura=(await p.textContent('#estructura')).replace(/\s+/g,' ').trim();
