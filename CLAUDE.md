@@ -14,6 +14,7 @@ Entregar al usuario con `SendUserFile`:
 - `incidencias_*.csv`: todas las incidencias, identificando a cada trabajador solo por nº de empleado.
 
 Y un resumen corto en el chat: nº de trabajadores, errores/avisos, y los fallos más relevantes por regla.
+Para enviar hojas **una a una** (no en lote): `--por-trabajador` genera `hojas_individuales/hoja_<nº>.pdf` (uno por trabajador con fallos; con `--todos`, de todos) y `--trabajador 75002,75010` solo los de esos nº. Entregar como `.zip` (los ficheros se nombran solo con el nº; cada PDF lleva únicamente el nombre de su trabajador).
 Opciones útiles: `--todos` (hojas de todos), `--limite AAAA-MM-DD` y `--contacto "texto"` (se imprimen en el recuadro), `--semana acum`, `--fs horas`, `--banda aviso|no`, `--formacion no`.
 
 Si la estructura no cuadra (faltan días, meses, calendario de otro año, festivos sin marcar) el script lo dice y no genera hojas: informar al usuario de eso primero.

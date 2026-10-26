@@ -1167,7 +1167,8 @@ $('m-esc-b').addEventListener('click',escritoFicha);
 $('m-esc-cp').addEventListener('click',()=>{const t=$('m-esc');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>{});});
 function abrirPorEmp(){
   const q=$('b-emp').value.trim().toLowerCase();if(!q||!res)return;
-  const ti=pl.trabajadores.findIndex(t=>t.nombre.toLowerCase().includes('('+q+')'))>=0?pl.trabajadores.findIndex(t=>t.nombre.toLowerCase().includes('('+q+')')):pl.trabajadores.findIndex(t=>t.nombre.toLowerCase().includes(q));
+  let ti=pl.trabajadores.findIndex(t=>String(t.mat||matDeNombre(t.nombre))===q);
+  if(ti<0)ti=pl.trabajadores.findIndex(t=>t.nombre.toLowerCase().includes(q));
   if(ti<0){alert('No encuentro ningún trabajador con «'+$('b-emp').value+'».');return;}
   abrirFicha(ti);
 }

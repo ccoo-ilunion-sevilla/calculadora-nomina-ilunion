@@ -8,6 +8,8 @@
  * Uso:  node herramientas/verificar_cuadrante.js cuadrante.xlsx [opciones]
  *   --salida <carpeta>      dónde dejar los ficheros (por defecto, junto al .xlsx)
  *   --todos                 hojas de TODOS los trabajadores (por defecto, solo los que tienen fallos)
+ *   --por-trabajador        además, un PDF por trabajador (hoja_<nº>.pdf) en <salida>/hojas_individuales/, para enviarlas una a una
+ *   --trabajador 75002,75010   solo los PDF individuales de esos nº de empleado (tengan o no fallos)
  *   --limite AAAA-MM-DD     fecha que se imprime en «devolver antes del»
  *   --contacto "texto"      contacto del delegado que se imprime en la hoja
  *   --semana acum           descanso semanal acumulable en 14 días (por defecto: semana lun-dom)
@@ -77,6 +79,26 @@ function sheetjs(){
     pdf=path.join(salida,'fallos_'+nombre+'.pdf');
     await p.pdf({path:pdf,preferCSSPageSize:true,printBackground:true});
   }
-  console.log(JSON.stringify({estructura,resumen:kpis,hojas,pdf,csv,erroresJS:errs},null,2));
+  // PDF individuales (un fichero por trabajador, nombrado solo con el nº de empleado)
+  let individuales=[];
+  const pedidos=opt('trabajador')&&opt('trabajador')!==true?String(opt('trabajador')).split(',').map(x=>x.trim()).filter(Boolean):null;
+  if(pedidos||opt('por-trabajador')){
+    const filas=await p.evaluate(()=>[...document.querySelectorAll('#t-trab tbody tr')].map(tr=>{const c=tr.querySelectorAll('td');return{etq:c[0].textContent.trim(),err:+c[8].textContent,av:+c[9].textContent};}));
+    const mats=filas.map(f=>({mat:(f.etq.match(/(\d+)\)?\s*$/)||[])[1],f}));
+    const lista=pedidos?pedidos:mats.filter(x=>opt('todos')||x.f.err+x.f.av>0).map(x=>x.mat);
+    const dir=path.join(salida,'hojas_individuales');fs.mkdirSync(dir,{recursive:true});
+    await p.emulateMedia({media:'screen'});
+    for(const mat of lista){
+      if(!mats.some(x=>x.mat===mat)){console.error('No existe el nº de empleado '+mat);continue;}
+      await p.fill('#b-emp',mat);await p.click('#b-emp-ok');
+      await p.waitForSelector('#modal:not(.oculto)');
+      await p.emulateMedia({media:'print'});
+      const f=path.join(dir,'hoja_'+mat+'.pdf');
+      await p.pdf({path:f,preferCSSPageSize:true,printBackground:true});
+      individuales.push(f);
+      await p.emulateMedia({media:'screen'});await p.click('#m-cerrar');
+    }
+  }
+  console.log(JSON.stringify({estructura,resumen:kpis,hojas,pdf,csv,individuales:individuales.length,carpetaIndividuales:individuales.length?path.dirname(individuales[0]):null,erroresJS:errs},null,2));
   await b.close();
 })().catch(e=>{console.error(e);process.exit(1);});
