@@ -102,7 +102,7 @@ function sheetjs(){
       if(opt('por-trabajador')||pedidos){
         await p.emulateMedia({media:'print'});
         const nom=await p.evaluate(()=>{const c=document.querySelector('#m-hoja .emp-cab tr:nth-child(2) td:nth-child(2)');return c?c.textContent.trim():'';});
-        const f=path.join(dir,'hoja_'+(nom?nom.replace(/[^\p{L}\p{N}]+/gu,'_').replace(/^_|_$/g,'')+'_':'')+mat+'.pdf');
+        const f=path.join(dir,'hoja_'+(nom?nom.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'')+'_':'')+mat+'.pdf');
         await p.pdf({path:f,preferCSSPageSize:true,printBackground:true});
         individuales.push(f);
         await p.emulateMedia({media:'screen'});
