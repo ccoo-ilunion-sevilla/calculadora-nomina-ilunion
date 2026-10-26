@@ -11,3 +11,8 @@ censo*
 *TC1*
 *TC2*
 *.xlsx
+
+# Cuadrantes de trabajadores: nunca al repositorio (público)
+*cuadrante*.csv
+*cuadrante*.pdf
+*CUADRANTE*
