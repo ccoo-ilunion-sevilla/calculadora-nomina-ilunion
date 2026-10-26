@@ -13,6 +13,7 @@
  *   --calendarios           además, un calendario .ics por trabajador (calendario_<NOMBRE_Apellidos>_<nº>_<año>_<etapa>.ics) en <salida>/calendarios/
  *   --enlaces               enlaces personales de la app «Mi cuadrante» para WhatsApp: enlaces_whatsapp.csv y mensajes_whatsapp.txt (requiere --base)
  *   --base https://…/micuadrante.html   dirección donde está publicada la app
+ *   --mes 3                 el enlace lleva solo la actualización de ese mes (1-12); la app lo fusiona con lo que el trabajador ya tiene
  *   --tel 34600000000       WhatsApp del delegado: el trabajador le avisa desde la app si sus vacaciones no coinciden
  *   --etapa definitivo      nombre del calendario: «Cuadrante AAAA · definitivo» (por defecto «previsión»)
  *   --alarma 60             añade un aviso N minutos antes de cada turno (por defecto, sin aviso)
@@ -69,6 +70,7 @@ function sheetjs(){
   }
   if(opt('enlaces')&&(!opt('base')||opt('base')===true)){console.error('--enlaces necesita --base <dirección de la app>, p. ej. --base https://ejemplo.org/micuadrante.html');await b.close();process.exit(3);}
   for(const [k,id] of [['base','h-base'],['tel','h-tel']])if(opt(k)&&opt(k)!==true)await p.evaluate(([id,v])=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('change'));},[id,String(opt(k))]);
+  if(opt('mes')&&opt('mes')!==true)await p.evaluate(v=>{const e=document.getElementById('h-mes');e.value=String(+v-1);e.dispatchEvent(new Event('change'));},String(opt('mes')));
   if(opt('etapa')==='definitivo')await sel('h-etapa','definitivo');
   if(opt('alarma')&&opt('alarma')!==true)await p.evaluate(v=>{const e=document.getElementById('h-alarma');e.value=v;e.dispatchEvent(new Event('change'));},String(opt('alarma')));
   await p.evaluate(()=>document.getElementById('h-etapa').dispatchEvent(new Event('change')));
