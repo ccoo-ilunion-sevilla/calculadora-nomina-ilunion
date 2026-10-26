@@ -1209,7 +1209,8 @@ $('m-ics').addEventListener('click',()=>{
   const ti=fichaTi,y=res.P.anio,mat=matDe(ti)||String(ti+1);
   const txt=Motor.ics(pl.trabajadores[ti],leyAct,y,{mat,etapa:hojaOp.etapa==='definitivo'?'definitivo':'previsión',alarma:+hojaOp.alarma||0});
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/calendar;charset=utf-8'}));
-  a.download='calendario_'+mat+'_'+y+'_'+(hojaOp.etapa==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  const tn=pl.trabajadores[ti].nom?pl.trabajadores[ti].nom.replace(/[^\p{L}\p{N}]+/gu,'_').replace(/^_|_$/g,'')+'_':'';
+  a.download='calendario_'+tn+mat+'_'+y+'_'+(hojaOp.etapa==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
 $('m-esc-b').addEventListener('click',escritoFicha);
 $('m-esc-cp').addEventListener('click',()=>{const t=$('m-esc');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>{});});

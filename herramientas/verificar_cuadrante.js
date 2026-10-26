@@ -8,9 +8,9 @@
  * Uso:  node herramientas/verificar_cuadrante.js cuadrante.xlsx [opciones]
  *   --salida <carpeta>      dónde dejar los ficheros (por defecto, junto al .xlsx)
  *   --solo-fallos           limita las hojas a los trabajadores con fallos (por defecto: TODOS, porque cada trabajador debe comprobar sus vacaciones y demás)
- *   --por-trabajador        además, un PDF por trabajador (hoja_<nº>.pdf) en <salida>/hojas_individuales/, para enviarlas una a una
+ *   --por-trabajador        además, un PDF por trabajador (hoja_<NOMBRE_Apellidos>_<nº>.pdf) en <salida>/hojas_individuales/, para enviarlas una a una
  *   --trabajador 75002,75010   solo los PDF individuales de esos nº de empleado (tengan o no fallos)
- *   --calendarios           además, un calendario .ics por trabajador (calendario_<nº>_<año>_<etapa>.ics) en <salida>/calendarios/
+ *   --calendarios           además, un calendario .ics por trabajador (calendario_<NOMBRE_Apellidos>_<nº>_<año>_<etapa>.ics) en <salida>/calendarios/
  *   --etapa definitivo      nombre del calendario: «Cuadrante AAAA · definitivo» (por defecto «previsión»)
  *   --alarma 60             añade un aviso N minutos antes de cada turno (por defecto, sin aviso)
  *   --limite AAAA-MM-DD     fecha que se imprime en «devolver antes del»
@@ -101,7 +101,8 @@ function sheetjs(){
       await p.waitForSelector('#modal:not(.oculto)');
       if(opt('por-trabajador')||pedidos){
         await p.emulateMedia({media:'print'});
-        const f=path.join(dir,'hoja_'+mat+'.pdf');
+        const nom=await p.evaluate(()=>{const c=document.querySelector('#m-hoja .emp-cab tr:nth-child(2) td:nth-child(2)');return c?c.textContent.trim():'';});
+        const f=path.join(dir,'hoja_'+(nom?nom.replace(/[^\p{L}\p{N}]+/gu,'_').replace(/^_|_$/g,'')+'_':'')+mat+'.pdf');
         await p.pdf({path:f,preferCSSPageSize:true,printBackground:true});
         individuales.push(f);
         await p.emulateMedia({media:'screen'});

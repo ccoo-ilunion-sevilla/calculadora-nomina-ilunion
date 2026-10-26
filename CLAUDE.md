@@ -14,7 +14,7 @@ Entregar al usuario con `SendUserFile`:
 - `incidencias_*.csv`: todas las incidencias, identificando a cada trabajador solo por nº de empleado.
 
 Y un resumen corto en el chat: nº de trabajadores, errores/avisos, y los fallos más relevantes por regla.
-Para enviar hojas **una a una** (no en lote): `--por-trabajador` genera `hojas_individuales/hoja_<nº>.pdf` (uno por trabajador, **de todos**, tengan o no fallos) y `--trabajador 75002,75010` solo los de esos nº. Entregar como `.zip` (los ficheros se nombran solo con el nº; cada PDF lleva únicamente el nombre de su trabajador).
+Para enviar hojas **una a una** (no en lote): `--por-trabajador` genera `hojas_individuales/hoja_<nº>.pdf` (uno por trabajador, **de todos**, tengan o no fallos) y `--trabajador 75002,75010` solo los de esos nº. Entregar como `.zip`. Los ficheros individuales (hojas y calendarios) se nombran con **nombre y nº de empleado** (así el delegado sabe a quién enviar cada uno); cada PDF lleva únicamente el nombre de su trabajador.
 Por defecto se generan las hojas de **todos** los trabajadores, incluidos los que no tienen fallos (cada trabajador debe comprobar sus vacaciones y demás); `--solo-fallos` las limita a quienes tienen fallos.
 **Calendarios (.ics) para que el trabajador meta su previsión en el móvil**: `--calendarios` genera `calendarios/calendario_<nº>_<año>_<etapa>.ics` por trabajador (turnos con su hora, vacaciones/bajas como días completos, sin nombres dentro). `--etapa definitivo` para el cuadrante final; `--alarma 60` añade aviso antes de cada turno. Para sustituir la previsión por el definitivo: el trabajador **borra el calendario «Cuadrante AAAA · previsión» e importa el nuevo** (los identificadores son estables, pero importar encima no elimina los días que dejaron de ser turno).
 Opciones útiles: `--limite AAAA-MM-DD` y `--contacto "texto"` (se imprimen en el recuadro), `--semana acum`, `--fs horas`, `--banda aviso|no`, `--formacion no`.
@@ -32,7 +32,7 @@ Si la estructura no cuadra (faltan días, meses, calendario de otro año, festiv
 
 ## Privacidad (la empresa clasifica el cuadrante como documento interno)
 - En la hoja PDF de cada trabajador va **solo su propio nombre y nº** (como en la hoja de la empresa). Ningún otro nombre.
-- Listados, CSV, escritos y resúmenes en el chat: **solo nº de empleado**, nunca nombres (`--con-nombres` solo si el usuario lo pide).
+- Listados, CSV, escritos y resúmenes en el chat: **solo nº de empleado**, nunca nombres (la única excepción son los nombres de los ficheros individuales, a petición del usuario) (`--con-nombres` solo si el usuario lo pide).
 - No poner el nombre del delegado en ninguna parte: el contacto de la hoja es opcional y solo lo que el usuario indique.
 - No incluir logos ni marcas de la empresa; la hoja lleva la rotulación de la Sección Sindical.
 
