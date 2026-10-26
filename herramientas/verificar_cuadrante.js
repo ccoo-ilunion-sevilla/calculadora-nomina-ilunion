@@ -9,7 +9,7 @@
  *   --salida <carpeta>      dónde dejar los ficheros (por defecto, junto al .xlsx)
  *   --solo-fallos           limita las hojas a los trabajadores con fallos (por defecto: TODOS, porque cada trabajador debe comprobar sus vacaciones y demás)
  *   --por-trabajador        además, un PDF por trabajador (hoja_<NOMBRE_Apellidos>_<nº>.pdf) en <salida>/hojas_individuales/, para enviarlas una a una
- *   --trabajador 75002,75010   solo los PDF individuales de esos nº de empleado (tengan o no fallos)
+ *   --trabajador 12345,12346   solo los PDF individuales de esos nº de empleado (tengan o no fallos)
  *   --calendarios           además, un calendario .ics por trabajador (calendario_<NOMBRE_Apellidos>_<nº>_<año>_<etapa>.ics) en <salida>/calendarios/
  *   --enlaces               enlaces personales de la app «Mi cuadrante» para WhatsApp: enlaces_whatsapp.csv y mensajes_whatsapp.txt (requiere --base)
  *   --base https://…/micuadrante.html   dirección donde está publicada la app
