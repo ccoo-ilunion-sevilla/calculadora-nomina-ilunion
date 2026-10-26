@@ -209,6 +209,12 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
   <details><summary>Umbrales (editables)</summary>
     <p class="nota">Por defecto: Acuerdo Ilunion (V Convenio, art. 56 y 59) y convenio estatal 2026-2030 (art. 52-54). El V Convenio de Ilunion vence el 31/12/2026 y seguirá en ultraactividad hasta nuevo acuerdo: comprueba que estos valores siguen siendo los aplicables.</p>
     <div class="params" id="params"></div>
+    <div class="params" id="params-sel" style="margin-top:10px">
+      <div class="campo"><label for="pm-critSem">Descanso semanal</label><select id="pm-critSem"><option value="semana">Cada semana lun–dom debe tener 36 h seguidas</option><option value="acum">Acumulable hasta 14 días (más permisivo)</option></select></div>
+      <div class="campo"><label for="pm-critFS">Fin de semana libre</label><select id="pm-critFS"><option value="casilla">Sábado y domingo sin turno en la casilla</option><option value="horas">Sáb 00:00 – dom 24:00 sin trabajar (por horas)</option></select></div>
+      <div class="campo"><label for="pm-banda">Descanso entre 12 y 13 h</label><select id="pm-banda"><option value="info">Solo informativo</option><option value="aviso">Aviso</option><option value="no">Ignorar</option></select></div>
+      <div class="campo"><label for="pm-formacion">Formación (código F)</label><select id="pm-formacion"><option value="1">Cuenta como turno</option><option value="0">No cuenta como turno</option></select></div>
+    </div>
   </details>
   <div class="fila" style="margin-top:12px"><button class="btn pri" id="b-verif">Verificar cuadrante</button></div>
 </section>
@@ -288,14 +294,14 @@ const Motor=(function(){
     DESC:{n:'Descanso entre jornadas',f:'ET 34.3 (12 h) y Acuerdo Ilunion art. 56 (13 h, salvo urgencia o trabajo a turnos)'},
     DIA:{n:'Jornada diaria',f:'ET 34.3 (9 h salvo distribución pactada); umbral editable'},
     PART:{n:'Jornada partida',f:'Acuerdo Ilunion art. 56: 2,5 h mínimas entre mañana y tarde'},
-    SEM:{n:'Descanso semanal',f:'ET 37.1: 1,5 días seguidos, acumulable hasta 14 días (criterio permisivo)'},
+    SEM:{n:'Descanso semanal',f:'ET 37.1: descanso semanal de día y medio ininterrumpido (36 h)'},
     FS:{n:'Fin de semana libre',f:'Acuerdo Ilunion art. 56.2 y estatal art. 54: un fin de semana completo (48 h) al mes'},
     NOCHES:{n:'Nochebuena / Nochevieja',f:'Acuerdo Ilunion art. 56: libranza de una de las dos noches (24 dic o 31 dic)'},
-    VAC:{n:'Vacaciones',f:'ET 38 (30 días naturales) y Acuerdo Ilunion (31 días: verificar artículo)'},
+    VAC:{n:'Vacaciones',f:'ET 38 (30 días naturales) y art. 61 del Convenio Ilunion (31 días naturales)'},
     D96:{n:'Descanso anual',f:'Acuerdo Ilunion art. 59: 96 días naturales (jornada ≥ 8 h), sin contar vacaciones'}
   };
   const DEF={anio:2027,jornadaAnual:1782,tolHoras:8,pctPrefijado:75,mesMin:144,mesMax:176,febMin:134,febMax:162,
-    ausComputan:1,descLegal:12,descPactado:13,maxDiaria:12,vacaciones:31,vacacionesMin:30,descAnual:96,partidoMin:2.5,descSemanalH:36};
+    ausComputan:1,critSem:'semana',critFS:'casilla',banda:'info',formacion:1,descLegal:12,descPactado:13,maxDiaria:12,vacaciones:31,vacacionesMin:30,descAnual:96,partidoMin:2.5,descSemanalH:36};
 
   const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const cap=x=>x[0].toUpperCase()+x.slice(1);
@@ -453,13 +459,14 @@ const Motor=(function(){
         const cod=raw.toUpperCase(),L=ley[cod];
         celMes[mesDe(y,i)]++;
         if(!L){ if(!desc.has(cod))desc.set(cod,{n:0,primera:i,dias:[]});desc.get(cod).n++;desc.get(cod).dias.push(i); continue; }
-        tipoDia[i]=L.tipo;
+        let tp=L.tipo;if(!P.formacion&&tp==='T'&&/^F\d*$/.test(cod))tp='P';
+        tipoDia[i]=tp;
         const m=mesDe(y,i);
-        if(L.tipo==='V'){vac++;aus[m]++;cred(L,m);}
-        else if(L.tipo==='B'){bajas++;aus[m]++;cred(L,m);}
-        else if(L.tipo==='P'){perm++;aus[m]++;cred(L,m);}
-        else if(L.tipo==='L')libres++;
-        else if(L.tipo==='T'){
+        if(tp==='V'){vac++;aus[m]++;cred(L,m);}
+        else if(tp==='B'){bajas++;aus[m]++;cred(L,m);}
+        else if(tp==='P'){perm++;aus[m]++;cred(L,m);}
+        else if(tp==='L')libres++;
+        else if(tp==='T'){
           if(L.incompleta){ if(!desc.has('«'+cod+'» sin horas'))desc.set('«'+cod+'» sin horas',{n:0,primera:i,incompleto:true,dias:[]});desc.get('«'+cod+'» sin horas').n++;desc.get('«'+cod+'» sin horas').dias.push(i); continue; }
           horasMes[m]+=L.horas;
           jor.push({dia:i,horas:L.horas,cod,segs:L.segs?L.segs.map(([a,b])=>[i*DIA+a,i*DIA+b]):null});
@@ -524,9 +531,9 @@ const Motor=(function(){
           }
         }
       });
-      if(descAv.length){
+      if(descAv.length&&P.banda!=='no'){
         const min=Math.min(...descAv.map(x=>x[1]));
-        add('DESC','aviso',descAv[0][0],descAv.length+' descansos entre '+P.descLegal+' y '+P.descPactado+' h (el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos; el más corto '+min.toFixed(1)+' h). Fechas: '+descAv.slice(0,8).map(x=>fmt(y,x[0]).slice(4,9)+' ('+x[2]+')').join(', ')+(descAv.length>8?' …':'')+'.',descAv.flatMap(x=>[x[3],x[0]]));
+        add('DESC',P.banda==='aviso'?'aviso':'info',descAv[0][0],descAv.length+' descansos entre '+P.descLegal+' y '+P.descPactado+' h (el Acuerdo exige '+P.descPactado+' h salvo urgencia o trabajo a turnos; el más corto '+min.toFixed(1)+' h). Fechas: '+descAv.slice(0,8).map(x=>fmt(y,x[0]).slice(4,9)+' ('+x[2]+')').join(', ')+(descAv.length>8?' …':'')+'.',descAv.flatMap(x=>[x[3],x[0]]));
       }
       // Intervalos ocupados
       const iv=mezclar(jor.filter(j=>j.segs).flatMap(j=>j.segs.map(s=>s.slice())));
@@ -541,9 +548,20 @@ const Motor=(function(){
       tramos.forEach(([a,b])=>{
         const d=(b-a)/DIA,dia0=Math.floor(a/DIA);
         maxRun=Math.max(maxRun,d);
-        if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos sin ningún descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): difícilmente compatible con el descanso semanal de día y medio, aun acumulado en 14 días (ET 37.1).',rango(dia0,Math.min(N-1,dia0+Math.floor(d))));
+        if(P.critSem!=='acum'){}
+        else if(d>12)add('SEM','error',dia0,'Unos '+Math.floor(d)+' días seguidos sin ningún descanso de '+P.descSemanalH+' h (desde el '+fmt(y,dia0)+'): difícilmente compatible con el descanso semanal de día y medio, aun acumulado en 14 días (ET 37.1).',rango(dia0,Math.min(N-1,dia0+Math.floor(d))));
         else if(d>7)semAv.push([dia0,d]);
       });
+      if(P.critSem!=='acum'){
+        const T=jor.filter(j=>j.segs).map(j=>({s:j.segs[0][0],e:j.segs[j.segs.length-1][1]})).sort((a,b)=>a.s-b.s);
+        const g36=[];for(let k=0;k<T.length-1;k++)if(T[k+1].s-T[k].e>=P.descSemanalH*60)g36.push([T[k].e,T[k+1].s]);
+        const lunes=x=>{const d=Math.floor(x/DIA);return d-((dow(y,d)+6)%7);};
+        const semanas=[...new Set(T.map(x=>lunes(x.s)))].sort((a,b)=>a-b);
+        semanas.slice(1,-1).forEach(w=>{
+          const a=w*DIA,b=(w+7)*DIA;
+          if(!g36.some(([x,z])=>x<b&&z>a))add('SEM','error',Math.max(0,w),'Semana del '+fmt(y,w).slice(4,9)+' al '+fmt(y,w+6).slice(4,9)+' sin ningún descanso continuo de '+P.descSemanalH+' h (día y medio, ET 37.1).',rango(Math.max(0,w),Math.min(N-1,w+6)));
+        });
+      }
       if(semAv.length)add('SEM','aviso',semAv[0][0],semAv.length+' tramos de 8 a 12 días seguidos sin descanso de '+P.descSemanalH+' h (solo válido si el descanso se acumula, ET 37.1; el más largo '+Math.round(Math.max(...semAv.map(x=>x[1])))+' días). Primeros: '+semAv.slice(0,6).map(x=>fmt(y,x[0]).slice(4,9)).join(', ')+(semAv.length>6?' …':'')+'.',semAv.flatMap(x=>rango(x[0],Math.min(N-1,x[0]+Math.floor(x[1])))));
       // Fin de semana libre al mes
       let fsEstrictos=0,fsDudosos=0;
@@ -553,14 +571,14 @@ const Motor=(function(){
           if(dow(y,i)!==6)continue;
           const m=mesDe(y,i),a=i*DIA,b=(i+2)*DIA;
           mesesFS[m].n++;
-          if(!solapa(iv,a,b)){mesesFS[m].ok++;fsEstrictos++;}
-          else if(gaps.some(([x,z])=>z-x>=2*DIA&&x>=a-DIA&&x<=a+720)){mesesFS[m].dud++;fsDudosos++;}
+          if(P.critFS==='horas'?!solapa(iv,a,b):(tipoDia[i]!=='T'&&tipoDia[i+1]!=='T')){mesesFS[m].ok++;fsEstrictos++;}
+          else if(P.critFS==='horas'&&gaps.some(([x,z])=>z-x>=2*DIA&&x>=a-DIA&&x<=a+720)){mesesFS[m].dud++;fsDudosos++;}
         }
         mesesFS.forEach((s,m)=>{
           if(!s.n||!activo[m])return;
           const mes=MESES[m];
           if(s.ok===0&&s.dud>0)add('FS','aviso',null,cap(mes)+': ningún fin de semana completo libre (sáb 00:00–dom 24:00); solo '+s.dud+' que arrancan tras un turno de viernes. Comprobar el cómputo «desde la finalización del viernes».');
-          else if(s.ok===0)add('FS','error',null,cap(mes)+': no hay ningún fin de semana completo libre ('+s.n+' sábados, todos con turno).');
+          else if(s.ok===0)add('FS','error',null,cap(mes)+': no hay ningún fin de semana con sábado y domingo libres ('+s.n+' sábados, todos con turno ese sábado o ese domingo).');
         });
         if(fsEstrictos+fsDudosos<13&&fsEstrictos+fsDudosos>0)add('FS','info',null,'Fines de semana libres en el año: '+fsEstrictos+(fsDudosos?' + '+fsDudosos+' dudosos':'')+'. El convenio estatal prevé en 2027 un periodo adicional de 48 h sobre el mensual (verificar interpretación).');
       }
@@ -573,7 +591,7 @@ const Motor=(function(){
       // Vacaciones
       if(nAct<12){}
       else if(vac<P.vacacionesMin)add('VAC','error',null,'Solo '+vac+' días de vacaciones en el cuadrante (mínimo legal '+P.vacacionesMin+'). Si entró o salió durante el año puede ser prorrata; si no, faltan días por asignar.');
-      else if(vac<P.vacaciones)add('VAC','aviso',null,vac+' días de vacaciones; el Acuerdo de Ilunion reconoce '+P.vacaciones+' (verificar artículo).');
+      else if(vac<P.vacaciones)add('VAC','aviso',null,vac+' días de vacaciones; el Convenio de Ilunion (art. 61) reconoce '+P.vacaciones+'.');
       // Descanso anual
       if(libres<P.descAnual&&nAct===12){
         const med=jor.length?horas/jor.length:0;
@@ -740,9 +758,9 @@ const Motor=(function(){
     for(let i=0;i<diasAnio(y);i++){const L=ley[codDe(tr,i)];if(L&&L.tipo==='T'&&!L.incompleta&&L.segs)L.segs.forEach(([a,b])=>segs.push([i*DIA+a,i*DIA+b]));}
     return mezclar(segs);
   }
-  function finesLibres(tr,ley,y){
+  function finesLibres(tr,ley,y,crit){
     const iv=ocupado(tr,ley,y),out=[];
-    for(let i=0;i<diasAnio(y)-1;i++)if(dow(y,i)===6&&!solapa(iv,i*DIA,(i+2)*DIA))out.push(i);
+    for(let i=0;i<diasAnio(y)-1;i++)if(dow(y,i)===6&&(crit==='horas'?!solapa(iv,i*DIA,(i+2)*DIA):(tipoCelda(tr,ley,i,true)!=='T'&&tipoCelda(tr,ley,i+1,true)!=='T')))out.push(i);
     return out;
   }
   function festivosTrabajador(tr,ley,y,fest,vaciaLibre){
@@ -847,11 +865,13 @@ const etqDe=i=>{const m=i.nombre.match(/\((\d+)\)\s*$/);return m?'nº '+m[1]:'tr
 function anio(){return parseInt($('p-anio').value,10)||2027;}
 function pintarParams(){
   const g=Object.assign({},Motor.DEF,sg(LSP)||{});
+  ['critSem','critFS','banda'].forEach(k=>{$('pm-'+k).value=g[k];});$('pm-formacion').value=String(g.formacion);
   $('params').innerHTML=PARAMS.map(([k,l])=>'<div class="campo"><label for="pm-'+k+'">'+l+'</label><input type="number" step="any" id="pm-'+k+'" value="'+g[k]+'"></div>').join('');
 }
 function leerParams(){
   const P={anio:anio()};
   PARAMS.forEach(([k])=>{const v=parseFloat($('pm-'+k).value);P[k]=isNaN(v)?Motor.DEF[k]:v;});
+  ['critSem','critFS','banda'].forEach(k=>{P[k]=$('pm-'+k).value;});P.formacion=+$('pm-formacion').value;
   ss(LSP,P);return P;
 }
 function plazo(){
@@ -901,7 +921,7 @@ function mostrar(){
   estructuraUI();
   const ok=!pl.bloqueante;
   $('c-ley').classList.toggle('oculto',!ok);$('c-par').classList.toggle('oculto',!ok);$('c-res').classList.add('oculto');
-  if(ok){leyendaUI();pintarParams();}
+  if(ok){leyendaUI();pintarParams();if(pl.empresa)verificar();}
 }
 
 function verificar(){
@@ -1022,7 +1042,7 @@ function hojaHTML(ti,sel){
   }
   // fines de semana libres
   const M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const fl=Motor.finesLibres(t,leyAct,y);
+  const fl=Motor.finesLibres(t,leyAct,y,P.critFS);
   const fsm=M.map((x,m)=>{const a=fl.filter(i=>Motor.fecha(y,i).getUTCMonth()===m);return '<b>'+x+'</b> '+(a.length?a.map(i=>fd(y,i)).join(', '):'<span class="mal-t">ninguno</span>');}).join(' · ');
   // horas por mes
   const decl=t.decl||[];
