@@ -230,6 +230,8 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
     <div class="campo"><label for="h-limite">Devolver antes del</label><input type="date" id="h-limite"></div>
     <div class="campo"><label for="h-etapa">Calendario (.ics)</label><select id="h-etapa"><option value="previsión">Previsión</option><option value="definitivo">Definitivo</option></select></div>
     <div class="campo"><label for="h-alarma">Aviso (min antes)</label><input type="number" id="h-alarma" min="0" placeholder="sin aviso" style="width:110px"></div>
+    <div class="campo"><label for="h-base">Dirección de la app «Mi cuadrante»</label><input type="text" id="h-base" size="34" placeholder="https://…/micuadrante.html"></div>
+    <div class="campo"><label for="h-tel">WhatsApp del delegado (para que le avisen)</label><input type="text" id="h-tel" size="16" placeholder="34600000000"></div>
     <div class="campo"><label for="h-contacto">Contacto del delegado</label><input type="text" id="h-contacto" size="26" placeholder="Teléfono o correo (opcional)"></div>
   </div>
   <div class="fila">
@@ -271,7 +273,7 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
 
 </div></main>
 <div class="overlay oculto" id="modal"><div class="modal">
-  <div class="fila no-print" style="justify-content:flex-end;margin-bottom:6px"><button class="btn pri" id="m-print">Imprimir / guardar PDF</button><button class="btn" id="m-ics">Descargar calendario (.ics)</button><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
+  <div class="fila no-print" style="justify-content:flex-end;margin-bottom:6px"><button class="btn pri" id="m-print">Imprimir / guardar PDF</button><button class="btn" id="m-ics">Descargar calendario (.ics)</button><button class="btn" id="m-link">Enlace para WhatsApp</button><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
   <div id="m-hoja"></div>
   <div class="no-print" id="m-rev">
     <div class="sub">Revisión de este trabajador (no se imprime)</div>
@@ -280,6 +282,8 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
     <p class="nota" style="margin-bottom:6px">Con sus incidencias <b>confirmadas</b>. Usa el destinatario elegido en el apartado del escrito.</p>
     <button class="btn pri" id="m-esc-b">Generar escrito</button> <button class="btn" id="m-esc-cp">Copiar</button>
     <textarea id="m-esc" style="margin-top:8px"></textarea>
+    <div class="sub">Enlace «Mi cuadrante» para WhatsApp</div>
+    <textarea id="m-link-out" rows="4" readonly placeholder="Pulsa «Enlace para WhatsApp» (arriba) para generar el mensaje con el enlace personal de este trabajador."></textarea>
   </div>
 </div></div>
 <div id="lote"></div>
@@ -1027,7 +1031,7 @@ function masivo(e){filtradas().filter(i=>i.sev!=='info').forEach(i=>setRev(i.id,
 
 /* ---------- Ficha del trabajador: calendario del año con las incidencias ---------- */
 const LSH='cuadrantes_hoja_v1';
-let hojaOp=Object.assign({limite:'',contacto:'',que:'sindesc',etapa:'previsión',alarma:''},sg(LSH)||{});
+let hojaOp=Object.assign({limite:'',contacto:'',que:'sindesc',etapa:'previsión',alarma:'',base:'',tel:''},sg(LSH)||{});
 const matDe=ti=>pl.trabajadores[ti].mat||matDeNombre(pl.trabajadores[ti].nombre);
 const fd=(y,i)=>Motor.fmt(y,i).slice(4,9);
 const rg=(y,[a,b])=>a===b?fd(y,a):fd(y,a)+' → '+fd(y,b);
@@ -1132,6 +1136,25 @@ function escritoFicha(){
   const ti=fichaTi,y=res.P.anio,r=res.resumen[ti],items=res.inc.filter(i=>i.ti===ti&&estDe(i)==='conf').map(i=>Object.assign({},i,{etq:r.nombre}));
   $('m-esc').value=items.length?Motor.redactar(items,{anio:y,destino:$('e-dest').value,centro:$('e-centro').value.trim(),fechaEntrega:$('f-recep').value}):'No hay incidencias confirmadas de este trabajador: márcalas como «Confirmada» en la lista de arriba.';
 }
+function paquete(ti){
+  const t=pl.trabajadores[ti],y=res.P.anio,r=res.resumen[ti],P=res.P,r2=x=>Math.round(x*100)/100;
+  const D=t.celdas.map(c=>(c||'').trim().toUpperCase()),L={};
+  new Set(D.filter(Boolean)).forEach(c=>{const g=leyAct[c];L[c]=g?[g.tipo,g.segs?g.segs.map(s=>hh(s[0])+'-'+hh(s[1])).join('+'):'',g.horas===null||g.horas===undefined?null:r2(g.horas)]:['?','',null];});
+  const F=fallosHoja(ti).map(f=>[f.sev==='error'?'e':'a',Motor.REGLAS[f.regla].n,f.det,Motor.REGLAS[f.regla].f.replace(' (criterio permisivo)',''),f.dias]);
+  return{v:1,y,mat:matDe(ti),n:t.nom||'',c:pl.centro||'',et:hojaOp.etapa==='definitivo'?'definitivo':'previsión',f:new Date().toISOString().slice(0,10),
+    L,D,F,Hm:r.horasMes.map(r2),Tt:r2(r.horas),Tw:r2(r.horasTrab),vm:P.vacaciones,rg:[P.mesMin,P.mesMax,P.febMin,P.febMax],red:!!(r.reducido||r.pct<100),
+    fe:pl.festivos?[...pl.festivos].sort((a,b)=>a-b):[],tel:hojaOp.tel||''};
+}
+async function enlaceDe(ti){
+  const json=JSON.stringify(paquete(ti)),b64=b=>{let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
+  let tag='j.',bytes=new TextEncoder().encode(json);
+  if(typeof CompressionStream!=='undefined'){const cs=new CompressionStream('deflate-raw');bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer());tag='z.';}
+  return (hojaOp.base||'[EDITABLE dirección de la app]')+'#d='+tag+b64(bytes);
+}
+async function mensajeEnlace(ti){
+  const y=res.P.anio,et=hojaOp.etapa==='definitivo'?'definitivo':'previsión',lim=hojaOp.limite?new Date(hojaOp.limite+'T00:00:00Z').toLocaleDateString('es-ES',{timeZone:'UTC'}):'';
+  return 'Hola, este es tu cuadrante '+y+' ('+et+'). Ábrelo desde el móvil: '+await enlaceDe(ti)+'\nRevisa los fallos que te marcamos y, sobre todo, que tus vacaciones coincidan con las que pediste'+(lim?' (antes del '+lim+')':'')+'. Si algo no cuadra, díselo a la Sección Sindical.\nSi después no te aparece, copia este enlace y pégalo en la app («Cargar mi enlace»).';
+}
 function imprimirLote(){
   const solo=$('lote-solo').checked,lista=pl.trabajadores.map((_,ti)=>ti).filter(ti=>!solo||fallosHoja(ti).length);
   if(!lista.length){alert('No hay ninguna hoja que imprimir con esos filtros.');return;}
@@ -1196,15 +1219,16 @@ document.addEventListener('change',e=>{
   const s=e.target.closest('[data-est]');if(s){cambiarEstado(+s.dataset.est,s.value);if(!$('modal').classList.contains('oculto')){const it=s.closest('.inc-item');if(it)it.dataset.e=s.value;}return;}
   const n=e.target.closest('[data-nota]');if(n){setRev(res.inc[+n.dataset.nota].id,{n:n.value.trim()});}
 });
-['h-que','h-limite','h-contacto','h-etapa','h-alarma'].forEach(id=>$(id).addEventListener('change',()=>{
-  hojaOp={que:$('h-que').value,limite:$('h-limite').value,contacto:$('h-contacto').value.trim(),etapa:$('h-etapa').value,alarma:$('h-alarma').value};ss(LSH,hojaOp);
+['h-que','h-limite','h-contacto','h-etapa','h-alarma','h-base','h-tel'].forEach(id=>$(id).addEventListener('change',()=>{
+  hojaOp={que:$('h-que').value,limite:$('h-limite').value,contacto:$('h-contacto').value.trim(),etapa:$('h-etapa').value,alarma:$('h-alarma').value,base:$('h-base').value.trim(),tel:$('h-tel').value.replace(/\D/g,'')};ss(LSH,hojaOp);
   if(!$('modal').classList.contains('oculto'))$('m-hoja').innerHTML=hojaHTML(fichaTi);
 }));
-$('h-etapa').value=hojaOp.etapa;$('h-alarma').value=hojaOp.alarma;$('h-que').value=hojaOp.que;$('h-limite').value=hojaOp.limite;$('h-contacto').value=hojaOp.contacto;
+$('h-base').value=hojaOp.base;$('h-tel').value=hojaOp.tel;$('h-etapa').value=hojaOp.etapa;$('h-alarma').value=hojaOp.alarma;$('h-que').value=hojaOp.que;$('h-limite').value=hojaOp.limite;$('h-contacto').value=hojaOp.contacto;
 $('b-lote').addEventListener('click',imprimirLote);
 $('c-nombres').addEventListener('change',()=>{if(Sempresa&&pl&&pl.empresa){pl=Motor.importarEmpresa(Sempresa,{nombres:$('c-nombres').checked});mostrar();}});
 window.addEventListener('afterprint',()=>{document.body.classList.remove('lote');$('lote').innerHTML='';});
 $('m-print').addEventListener('click',()=>window.print());
+$('m-link').addEventListener('click',async()=>{const o=$('m-link-out');o.value=await mensajeEnlace(fichaTi);o.select();if(navigator.clipboard)navigator.clipboard.writeText(o.value).catch(()=>{});});
 $('m-ics').addEventListener('click',()=>{
   const ti=fichaTi,y=res.P.anio,mat=matDe(ti)||String(ti+1);
   const txt=Motor.ics(pl.trabajadores[ti],leyAct,y,{mat,etapa:hojaOp.etapa==='definitivo'?'definitivo':'previsión',alarma:+hojaOp.alarma||0});

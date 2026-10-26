@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mi cuadrante · CCOO Ilunion Seguridad Sevilla</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#14161A">
+<link rel="manifest" href="micuadrante.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Mi cuadrante">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#CC0000;--rojo-osc:#9E0000;--verde:#009B48;--azul:#25508C;--tinta:#14161A;--tinta-2:#4A5058;--linea:#D4D8DD;--papel:#ECEEF0;--ambar:#B45309}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--papel);color:var(--tinta);line-height:1.45;font-size:15px;padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+header{background:var(--tinta);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:6px solid var(--rojo)}
+header h1{font-family:'Archivo Black',sans-serif;font-size:19px;text-transform:uppercase;line-height:1.05}
+header h1 em{color:var(--rojo);font-style:normal}
+header .sub{font-size:12.5px;color:#A8B0BA;margin-top:3px}
+.chip{display:inline-block;border-radius:99px;padding:1px 9px;font-size:11px;font-weight:700;background:var(--azul);color:#fff;margin-left:6px;vertical-align:1px}
+.chip.def{background:var(--verde)}
+main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
+.oculto{display:none!important}
+.card{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px;margin-bottom:12px}
+.card h2{font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;margin-bottom:8px}
+.nota{font-size:12.5px;color:var(--tinta-2)}
+.btn{background:#fff;border:1px solid var(--tinta);border-radius:6px;padding:10px 14px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.btn.pri{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.btn.wa{background:#1FA855;border-color:#1FA855;color:#fff}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--tinta);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
+.tabs button{flex:1;background:none;border:0;color:#A8B0BA;font:600 11.5px 'Inter',sans-serif;padding:9px 2px 8px;cursor:pointer;border-top:3px solid transparent}
+.tabs button[aria-selected="true"]{color:#fff;border-top-color:var(--rojo)}
+.tabs button b{display:block;font-size:17px;line-height:1.1}
+.hoy{display:flex;align-items:center;gap:14px}
+.hoy .cod{font-family:'Archivo Black',sans-serif;font-size:34px;min-width:64px;text-align:center;border-radius:8px;padding:6px 8px}
+.hoy .hh{font-size:19px;font-weight:700}
+.t{background:#DCEBFA}.n{background:#C9C6EE}.l{background:#EDEFF1;color:#6a717a}.v{background:#CDEFD8}.b{background:#FDE9B8}.x{background:#FFB3B3}
+.lista div{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--linea);font-size:14px}
+.lista div:last-child{border:0}
+.mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mnav b{font-family:'Archivo Black',sans-serif;text-transform:uppercase;font-size:15px}
+.mnav button{background:#fff;border:1px solid var(--linea);border-radius:6px;width:42px;height:38px;font-size:18px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.grid .dh{font-size:11px;font-weight:700;text-align:center;color:var(--tinta-2)}
+.dia{border-radius:6px;min-height:58px;padding:3px 2px 2px;text-align:center;font-size:11px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}
+.dia .num{font-size:10px;color:#555;text-align:left;padding-left:3px;line-height:1}
+.dia .c{font-weight:800;font-size:15px;line-height:1.15}
+.dia .h{font-size:8.5px;line-height:1.1;color:#333}
+.dia.fes .num{color:var(--rojo);font-weight:800}
+.dia.fin{box-shadow:inset 0 -3px 0 #9aa0a8}
+.dia.hoyd{border-color:var(--tinta)}
+.dia.fallo{border-color:var(--rojo)}
+.dia.cambio::after{content:'';position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:#F2B400}
+.dia.ped{outline:2px dashed var(--azul);outline-offset:-2px}
+.dia.sel{border-color:#000;background-image:linear-gradient(#FFF17655,#FFF17655)}
+.det{margin-top:10px;border:1px solid var(--linea);border-radius:8px;padding:10px 12px;background:#FAFAFA;font-size:14px}
+.anio{overflow-x:auto;border:1px solid var(--linea);border-radius:6px;background:#fff}
+.anio table{border-collapse:collapse;font-size:10px;min-width:760px;width:100%}
+.anio td,.anio th{border:1px solid #bbb;text-align:center;padding:2px 0;min-width:21px;height:19px}
+.anio th{background:#f3f4f6;font-weight:600}
+.anio td.m{text-align:left;font-weight:700;min-width:36px;background:#f3f4f6;padding-left:4px}
+.anio td.fin{background:#d6d6d6;font-weight:700}.anio td.fes{background:#b5b5b5}
+.anio td.fallo{outline:2px solid var(--rojo);outline-offset:-2px;font-weight:700}
+.anio td.cambio{background:#FFE58A}
+.sev{display:inline-block;border-radius:3px;padding:0 6px;font-size:11px;font-weight:800;color:#fff;margin-right:4px}
+.sev.e{background:var(--rojo)}.sev.a{background:var(--ambar)}
+.fallo-c{border:1px solid var(--linea);border-left:5px solid var(--ambar);border-radius:6px;padding:9px 11px;margin-bottom:8px;font-size:13.5px}
+.fallo-c.e{border-left-color:var(--rojo)}
+.fallo-c .nm{font-size:11.5px;color:var(--tinta-2);margin-top:4px}
+textarea,input[type=text],input[type=number],select{width:100%;padding:10px;border:1px solid var(--linea);border-radius:6px;font:inherit;font-size:15px;background:#fff}
+textarea{min-height:64px;resize:vertical}
+label{display:block;font-size:12.5px;font-weight:600;margin:8px 0 4px}
+.ok{color:var(--verde);font-weight:700}.mal{color:var(--rojo);font-weight:700}
+.aviso{border-left:4px solid var(--ambar);background:#FFF8EC;padding:9px 12px;border-radius:4px;font-size:13px;margin:8px 0}
+.aviso.err{border-color:var(--rojo);background:#FFF0F0}.aviso.okk{border-color:var(--verde);background:#EFFAF3}
+table.h{width:100%;border-collapse:collapse;font-size:12.5px}
+table.h td,table.h th{padding:5px 6px;border-bottom:1px solid var(--linea);text-align:right}
+table.h td:first-child,table.h th:first-child{text-align:left}
+table.h td.bad{background:#FFD9D9;font-weight:700}
+.bienv{text-align:center;padding:30px 10px}
+.bienv h2{font-size:17px;margin-bottom:8px}
+footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:6px 16px 20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mi <em>cuadrante</em></h1>
+  <div class="sub" id="cab">CCOO · Ilunion Seguridad Sevilla</div>
+</header>
+<main id="app"></main>
+<nav class="tabs oculto" id="tabs" role="tablist">
+  <button data-t="hoy" aria-selected="true"><b>⏱</b>Hoy</button>
+  <button data-t="mes"><b>▦</b>Mes</button>
+  <button data-t="anio"><b>≣</b>Año</button>
+  <button data-t="rev"><b>✔</b>Revisar</button>
+  <button data-t="cal"><b>⬇</b>Calendario</button>
+</nav>
+<footer>Herramienta de apoyo de la Sección Sindical de CCOO. Tus datos se guardan solo en este móvil. Contrasta siempre con el cuadrante oficial.</footer>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='mc_v1',DIA=1440;
+const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DS=['dom','lun','mar','mié','jue','vie','sáb'],DL=['L','M','X','J','V','S','D'];
+let store={packs:{},pet:{},ultimo:null},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false;
+try{store=Object.assign(store,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
+const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
+
+/* ---------- fechas ---------- */
+const nDias=y=>((y%4===0&&y%100!==0)||y%400===0)?366:365;
+const dm=(y,m)=>[31,nDias(y)===366?29:28,31,30,31,30,31,31,30,31,30,31][m];
+const fec=(y,i)=>new Date(Date.UTC(y,0,1+i));
+const idx=(y,m,d)=>Math.round((Date.UTC(y,m,d)-Date.UTC(y,0,1))/864e5);
+const fmt=(y,i)=>{const d=fec(y,i);return DS[d.getUTCDay()]+' '+String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0');};
+const corto=(y,i)=>fmt(y,i).slice(4);
+const hoyIdx=y=>{const n=new Date();return n.getFullYear()===y?idx(y,n.getMonth(),n.getDate()):-1;};
+
+/* ---------- decodificación del enlace ---------- */
+const b64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
+async function decodificar(s){
+  const tag=s.slice(0,2),bytes=b64u(s.slice(2));
+  if(tag==='z.'){
+    if(typeof DecompressionStream==='undefined')throw new Error('Tu navegador es muy antiguo para abrir este enlace. Actualízalo o ábrelo con Chrome/Safari recientes.');
+    const buf=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
+  if(tag==='j.')return JSON.parse(new TextDecoder().decode(bytes));
+  throw new Error('Enlace no válido.');
+}
+const firma=p=>p.et+'|'+p.D.join(',');
+function importar(p){
+  if(!p||p.v!==1||!Array.isArray(p.D)||!p.y)throw new Error('El enlace no tiene el formato esperado.');
+  const act=store.packs[p.y]&&store.packs[p.y].actual;
+  if(act&&act.mat&&p.mat&&act.mat!==p.mat&&!confirm('Este enlace es de otro trabajador (nº '+p.mat+') y en este móvil tienes guardado el nº '+act.mat+'. ¿Sustituirlo?'))return false;
+  const e=store.packs[p.y]||{};
+  if(act&&firma(act)!==firma(p))e.previa=act;
+  e.actual=p;store.packs[p.y]=e;store.ultimo=p.y;guardar();return true;
+}
+function cargarActivo(){
+  const y=store.ultimo,e=y&&store.packs[y];
+  pack=e?e.actual:null;prev=e?e.previa||null:null;
+  if(pack){const h=hoyIdx(pack.y);mes=(h>=0&&h<nDias(pack.y))?fec(pack.y,h).getUTCMonth():0;}
+}
+
+/* ---------- información de un día ---------- */
+const info=(p,i)=>{const c=(p.D[i]||'').trim();const g=c?p.L[c]:null;const tipo=!c?'L':(g?g[0]:'?');return{c,tipo,hor:g?g[1]:'',horas:g?g[2]:null};};
+const minu=h=>{const m=h.match(/^(\d{2}):(\d{2})$/);return m?(+m[1])*60+(+m[2]):null;};
+function segs(hor){
+  if(!hor)return[];let prev=-1;const out=[];
+  hor.split('+').forEach(p=>{const m=p.split('-');let a=minu(m[0]),b=minu(m[1]);if(a===null||b===null)return;if(a<prev)a+=DIA;if(b<=a)b+=DIA;out.push([a,b]);prev=b;});
+  return out;
+}
+const esNoche=hor=>{const s=segs(hor);if(!s.length)return false;const a=s[0][0]%DIA;return a>=1140||a<360;};
+const cls=(i)=>{const x=info(pack,i);if(x.tipo==='L')return'l';if(x.tipo==='V')return'v';if(x.tipo==='B'||x.tipo==='P')return'b';if(x.tipo==='?')return'x';return esNoche(x.hor)?'n':'t';};
+const horTxt=hor=>hor.split('+').map(s=>s.replace('-','–')).join(' + ');
+const nombreTipo={T:'Turno',L:'Libre',V:'Vacaciones',B:'Baja',P:'Permiso / otros','?':'Código sin definir'};
+const descDia=(p,i)=>{const x=info(p,i);return x.tipo==='T'?'Turno '+x.c+' · '+horTxt(x.hor)+(x.horas!==null?' ('+String(x.horas).replace('.',',')+' h)':''):(x.c?(nombreTipo[x.tipo]||x.tipo)+' ('+x.c+')':'Libre');};
+
+/* ---------- conjuntos marcados ---------- */
+const diasFallo=()=>{const s=new Set();(pack.F||[]).forEach(f=>(f[4]||[]).forEach(d=>s.add(d)));return s;};
+function cambios(){
+  if(!prev||prev.y!==pack.y)return[];
+  const out=[];for(let i=0;i<nDias(pack.y);i++){if((prev.D[i]||'')!==(pack.D[i]||''))out.push(i);}return out;
+}
+const diasCambio=()=>new Set(cambios());
+function parseRangos(txt,y){
+  const dias=new Set(),err=[],F='(\\d{1,2})[\\/.](\\d{1,2})(?:[\\/.]\\d{2,4})?';
+  const re=new RegExp('^'+F+'(?:\\s*(?:-|–|a|al|hasta)\\s*'+F+')?$','i');
+  String(txt||'').split(/[\n;,]+/).map(x=>x.trim()).filter(Boolean).forEach(tok=>{
+    const m=tok.match(re);if(!m){err.push('«'+tok+'»: formato no válido (ej.: 15/07-31/07 o 24/12)');return;}
+    const d1=+m[1],m1=+m[2]-1,d2=m[3]?+m[3]:d1,m2=m[4]?+m[4]-1:m1,ok=(d,mm)=>mm>=0&&mm<12&&d>=1&&d<=dm(y,mm);
+    if(!ok(d1,m1)||!ok(d2,m2)){err.push('«'+tok+'»: fecha inexistente');return;}
+    const a=idx(y,m1,d1),b=idx(y,m2,d2);if(b<a){err.push('«'+tok+'»: el final es anterior al inicio');return;}
+    for(let i=a;i<=b;i++)dias.add(i);
+  });
+  return{dias,err};
+}
+const rangos=arr=>{const a=[...arr].sort((p,q)=>p-q),o=[];a.forEach(i=>{const l=o[o.length-1];if(l&&i===l[1]+1)l[1]=i;else o.push([i,i]);});return o;};
+const rg=(y,[a,b])=>a===b?corto(y,a):corto(y,a)+' → '+corto(y,b);
+
+/* ---------- vistas ---------- */
+function cab(){
+  if(!pack){$('cab').textContent='CCOO · Ilunion Seguridad Sevilla';return;}
+  $('cab').innerHTML=esc(pack.n||'')+(pack.n?' · ':'')+'Nº '+esc(pack.mat||'—')+' · '+pack.y+'<span class="chip '+(pack.et==='definitivo'?'def':'')+'">'+esc(pack.et)+'</span>';
+}
+const cajaPegar=()=>'<div class="card"><h2>Cargar mi enlace</h2><p class="nota">Copia el enlace del mensaje de WhatsApp (o el mensaje entero) y pégalo aquí. Sirve si abriste el enlace en otro navegador o si instalaste la app y la ves vacía.</p><textarea id="pega" placeholder="Pega aquí el enlace…"></textarea><p style="margin-top:8px"><button class="btn pri" id="bpega">Cargar</button></p><div id="pmsg"></div></div>';
+function vBienvenida(msg){
+  return '<div class="card bienv"><h2>Mi cuadrante</h2><p>'+(msg?esc(msg):'Abre el <b>enlace personal</b> que te ha enviado la Sección Sindical por WhatsApp y verás tu cuadrante, los fallos que hemos detectado y podrás comprobar tus vacaciones.')+'</p></div>'+cajaPegar();
+}
+function proximos(n){
+  const y=pack.y,N=nDias(y),h=hoyIdx(y),ahora=new Date(),ahoraMin=ahora.getHours()*60+ahora.getMinutes();
+  const out=[];for(let i=Math.max(0,h<0?0:h);i<N&&out.length<n;i++){
+    const x=info(pack,i);if(x.tipo!=='T'||!x.hor)continue;
+    const s=segs(x.hor);const fin=i===h?s[s.length-1][1]:0;
+    if(i===h&&fin<=ahoraMin)continue;out.push(i);
+  }return out;
+}
+function vHoy(){
+  const y=pack.y,N=nDias(y),h=hoyIdx(y);let html='';
+  if(h>=0&&h<N){
+    const x=info(pack,h);
+    html+='<div class="card"><h2>Hoy · '+fmt(y,h)+'</h2><div class="hoy"><div class="cod '+cls(h)+'">'+esc(x.c||'—')+'</div><div><div class="hh">'+(x.tipo==='T'?esc(horTxt(x.hor)):esc(nombreTipo[x.tipo]||'Libre'))+'</div><div class="nota">'+esc(descDia(pack,h))+'</div></div></div></div>';
+  }else html+='<div class="aviso">Tu cuadrante es del año <b>'+y+'</b>. Hoy no está dentro de ese año.</div>';
+  const px=proximos(6);
+  html+='<div class="card"><h2>Próximos turnos</h2><div class="lista">'+(px.length?px.map(i=>{const x=info(pack,i);return '<div><span><b>'+fmt(y,i)+'</b></span><span>'+esc(x.c)+' · '+esc(horTxt(x.hor))+'</span></div>';}).join(''):'<div><span class="nota">No hay más turnos en el cuadrante.</span></div>')+'</div></div>';
+  const nf=(pack.F||[]).filter(f=>f[0]==='e').length,nc=cambios().length;
+  html+='<div class="card"><h2>Resumen</h2><div class="lista"><div><span>Fallos detectados (errores)</span><span class="'+(nf?'mal':'ok')+'">'+nf+'</span></div><div><span>Total de avisos</span><span>'+((pack.F||[]).length-nf)+'</span></div>'+(prev?'<div><span>Cambios desde tu versión anterior ('+esc(prev.et)+')</span><span class="'+(nc?'mal':'ok')+'">'+nc+'</span></div>':'')+'<div><span>Horas del año (cómputo)</span><span>'+String(pack.Tt).replace('.',',')+'</span></div></div><p class="nota" style="margin-top:8px">Pulsa «Revisar» para ver los fallos y comprobar tus vacaciones.</p></div>';
+  return html;
+}
+function vMes(){
+  const y=pack.y,m=mes,fl=diasFallo(),cm=diasCambio(),fe=new Set(pack.fe||[]),h=hoyIdx(y);
+  const pt=store.pet[y]||{},ped=pt.vac?parseRangos(pt.vac,y).dias:new Set();
+  const first=idx(y,m,1),off=(fec(y,first).getUTCDay()+6)%7,n=dm(y,m);
+  let g=DL.map(d=>'<div class="dh">'+d+'</div>').join('')+'<div></div>'.repeat(off);
+  for(let d=1;d<=n;d++){
+    const i=first+d-1,x=info(pack,i),w=fec(y,i).getUTCDay();
+    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div><div class="c">'+esc(x.c||'')+'</div><div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div></div>';
+  }
+  const det=selDia>=0&&fec(y,selDia).getUTCMonth()===m?detalleDia(selDia):'<div class="det nota">Toca un día para ver el detalle.</div>';
+  return '<div class="mnav"><button data-m="-1" aria-label="Mes anterior">‹</button><b>'+MES[m]+' '+y+'</b><button data-m="1" aria-label="Mes siguiente">›</button></div><div class="grid">'+g+'</div>'+
+    '<p class="nota" style="margin-top:8px">Rojo: día con fallo · punto amarillo: cambió respecto a tu versión anterior · azul discontinuo: vacaciones que pediste · sombreado inferior: sáb/dom · número rojo: festivo.</p>'+det;
+}
+function detalleDia(i){
+  const y=pack.y,x=info(pack,i);let h='<div class="det"><b>'+fmt(y,i)+'</b><br>'+esc(descDia(pack,i));
+  if(prev&&prev.y===y&&(prev.D[i]||'')!==(pack.D[i]||''))h+='<br><span class="mal">Cambio:</span> antes <b>'+esc(descDia(prev,i))+'</b> ('+esc(prev.et)+')';
+  const fs=(pack.F||[]).filter(f=>(f[4]||[]).includes(i));
+  fs.forEach(f=>{h+='<div class="fallo-c '+f[0]+'" style="margin-top:8px"><span class="sev '+f[0]+'">'+(f[0]==='e'?'ERROR':'AVISO')+'</span><b>'+esc(f[1])+'</b><br>'+esc(f[2])+'<div class="nm">'+esc(f[3])+'</div></div>';});
+  return h+'</div>';
+}
+function vAnio(){
+  const y=pack.y,fl=diasFallo(),cm=diasCambio(),fe=new Set(pack.fe||[]);let h='<div class="anio"><table><tr><th></th>'+Array.from({length:31},(_,d)=>'<th>'+(d+1)+'</th>').join('')+'</tr>';
+  for(let m=0;m<12;m++){
+    h+='<tr><td class="m">'+MES[m].slice(0,3)+'</td>';
+    for(let d=0;d<31;d++){
+      if(d>=dm(y,m)){h+='<td style="border:0;background:none"></td>';continue;}
+      const i=idx(y,m,d+1),w=fec(y,i).getUTCDay(),c=(pack.D[i]||'');
+      h+='<td class="'+(fe.has(i)?'fes':(w===0||w===6?'fin':''))+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+'" data-i="'+i+'" data-go="1">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
+    }
+    h+='</tr>';
+  }
+  return h+'</table></div><p class="nota" style="margin-top:8px">Desliza hacia los lados. Gris: sáb/dom/festivo · recuadro rojo: fallo · amarillo: cambio. Toca un día para verlo en el mes.</p>';
+}
+function vRevisar(){
+  const y=pack.y,F=pack.F||[];let h='';
+  // fallos
+  h+='<div class="card"><h2>Fallos detectados ('+F.length+')</h2>'+(F.length?F.map((f,k)=>'<div class="fallo-c '+f[0]+'"><span class="sev '+f[0]+'">'+(f[0]==='e'?'ERROR':'AVISO')+'</span><b>'+esc(f[1])+'</b><br>'+esc(f[2])+'<div class="nm">'+esc(f[3])+'</div>'+((f[4]||[]).length?'<p style="margin-top:6px"><button class="btn" data-ver="'+k+'">Ver en el calendario</button></p>':'')+'</div>').join(''):'<p class="ok">No se ha detectado ningún fallo con las reglas revisadas.</p><p class="nota" style="margin-top:6px">Eso no garantiza que el cuadrante sea correcto: revísalo tú también.</p>')+'</div>';
+  // vacaciones
+  const V=[];for(let i=0;i<nDias(y);i++)if(info(pack,i).tipo==='V')V.push(i);
+  const bl=rangos(V),tot=V.length,pt=store.pet[y]||{};
+  h+='<div class="card"><h2>Mis vacaciones</h2>'+(bl.length?'<div class="lista">'+bl.map(b=>'<div><span>'+rg(y,b)+'</span><b>'+(b[1]-b[0]+1)+' días</b></div>').join('')+'</div><p style="margin-top:6px">Concedidas: <b>'+tot+' días</b> '+(tot>=pack.vm?'<span class="ok">(alcanzan los '+pack.vm+')</span>':'<span class="mal">(faltan '+(pack.vm-tot)+' para '+pack.vm+')</span>')+'</p>':'<p class="mal">No figura ningún día de vacaciones en el cuadrante.</p>')+
+    '<label for="pv">Fechas de vacaciones que <b>yo pedí</b></label><textarea id="pv" placeholder="Ej.: 14/07-31/07, 01/09-14/09">'+esc(pt.vac||'')+'</textarea><div id="pres"></div></div>';
+  // cambios
+  if(prev&&prev.y===y){
+    const c=cambios();
+    h+='<div class="card"><h2>Cambios desde tu versión anterior ('+esc(prev.et)+' → '+esc(pack.et)+')</h2>'+(c.length?'<p class="nota" style="margin-bottom:6px">'+c.length+' días distintos:</p><div class="lista">'+c.map(i=>'<div><span><b>'+fmt(y,i)+'</b></span><span style="text-align:right">'+esc(descDia(prev,i))+' → <b>'+esc(descDia(pack,i))+'</b></span></div>').join('')+'</div>':'<p class="ok">Sin cambios: es igual que tu versión anterior.</p>')+'</div>';
+  }
+  // horas
+  const rg4=pack.rg||[144,176,134,162];
+  h+='<div class="card"><h2>Horas por mes</h2><table class="h"><tr><th>Mes</th><th>Horas</th><th>Horquilla</th></tr>'+pack.Hm.map((v,m)=>{const mn=m===1?rg4[2]:rg4[0],mx=m===1?rg4[3]:rg4[1],mal=!pack.red&&v>0&&(v<mn||v>mx);return '<tr><td>'+MES[m]+'</td><td class="'+(mal?'bad':'')+'">'+String(v).replace('.',',')+'</td><td>'+mn+'–'+mx+'</td></tr>';}).join('')+'</table><p class="nota" style="margin-top:6px">Total del año: <b>'+String(pack.Tt).replace('.',',')+'</b> h (trabajo efectivo: '+String(pack.Tw).replace('.',',')+' h; jornada anual 1.782 h).</p></div>';
+  return h;
+}
+function comparar(){
+  const y=pack.y,txt=$('pv').value,r=parseRangos(txt,y);let h='';
+  store.pet[y]=Object.assign(store.pet[y]||{},{vac:txt});guardar();
+  if(r.err.length)h+='<div class="aviso err">'+r.err.map(esc).join('<br>')+'</div>';
+  if(!txt.trim()){$('pres').innerHTML='';return;}
+  const conc=new Set();for(let i=0;i<nDias(y);i++)if(info(pack,i).tipo==='V')conc.add(i);
+  const pnc=[...r.dias].filter(i=>!conc.has(i)),cnp=[...conc].filter(i=>!r.dias.has(i)),ok=r.dias.size&&!pnc.length&&!cnp.length;
+  const que=rangos(pnc).map(b=>{const c={};for(let i=b[0];i<=b[1];i++){const k=pack.D[i]||'libre';c[k]=(c[k]||0)+1;}return rg(y,b)+' ('+(b[1]-b[0]+1)+' d.) — figura: '+Object.keys(c).map(k=>k+(c[k]>1?'×'+c[k]:'')).join(', ');});
+  h+='<div class="aviso '+(ok?'okk':'err')+'">'+(ok?'<b>✔ Tus vacaciones coinciden exactamente</b> con las que pediste ('+r.dias.size+' días).':'<b>✖ No coinciden.</b> Pediste '+r.dias.size+' días y tienes concedidos '+conc.size+'.')+'</div>';
+  if(pnc.length)h+='<p class="mal" style="margin-top:6px">Pedidos y NO concedidos</p><ul style="margin-left:18px;font-size:13.5px">'+que.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  if(cnp.length)h+='<p style="margin-top:6px"><b>Concedidos y NO pedidos</b></p><ul style="margin-left:18px;font-size:13.5px">'+rangos(cnp).map(b=>'<li>'+rg(y,b)+' ('+(b[1]-b[0]+1)+' d.)</li>').join('')+'</ul>';
+  // aviso al delegado por WhatsApp
+  const msg='Nº '+(pack.mat||'—')+' · cuadrante '+y+' ('+pack.et+'): '+(ok?'mis vacaciones COINCIDEN con las que pedí.':'mis vacaciones NO coinciden. Pedí: '+txt.trim()+'. '+(pnc.length?'Pedidos y no concedidos: '+que.join('; ')+'. ':'')+(cnp.length?'Concedidos y no pedidos: '+rangos(cnp).map(b=>rg(y,b)).join('; ')+'.':''));
+  h+='<p style="margin-top:10px"><a class="btn wa" style="display:inline-block;text-decoration:none" href="https://wa.me/'+(pack.tel?pack.tel:'')+'?text='+encodeURIComponent(msg)+'" target="_blank" rel="noopener">Avisar a la Sección Sindical por WhatsApp</a></p>'+(pack.tel?'':'<p class="nota" style="margin-top:4px">Se abrirá WhatsApp para que elijas a quién enviarlo.</p>');
+  $('pres').innerHTML=h;
+  if(tab==='mes')render();
+}
+function vCal(){
+  return cajaPegar()+'<div class="card"><h2>Pasar mi cuadrante al calendario del móvil</h2><p class="nota">Descarga un archivo con todos tus turnos (con su hora) y tus vacaciones. Se importa en Google Calendar, Apple Calendar u Outlook.</p>'+
+    '<label for="al">Aviso antes de cada turno</label><select id="al"><option value="0">Sin aviso</option><option value="30">30 minutos antes</option><option value="60" selected>1 hora antes</option><option value="120">2 horas antes</option><option value="180">3 horas antes</option></select>'+
+    '<p style="margin-top:10px"><button class="btn pri" id="bics">Descargar calendario (.ics)</button></p></div>'+
+    '<div class="card"><h2>Cómo importarlo</h2><div class="nota"><p><b>iPhone:</b> abre el archivo descargado y pulsa «Añadir todos». Mejor elige un calendario nuevo llamado «Cuadrante '+pack.y+' · '+esc(pack.et)+'».</p><p style="margin-top:6px"><b>Android / Google Calendar:</b> desde un ordenador, en calendar.google.com → Configuración → Importar y exportar. Crea antes un calendario nuevo para importarlo ahí.</p></div></div>'+
+    '<div class="card"><h2>Cuando llegue el cuadrante definitivo</h2><p class="nota">Abre el nuevo enlace: esta app te enseñará los cambios. Para el calendario del móvil, <b>borra el calendario «Cuadrante '+pack.y+' · previsión»</b> e importa el nuevo; así no quedan turnos viejos.</p></div>';
+}
+function icsPack(p,alarma){
+  const y=p.y,N=nDias(y),pad=n=>String(n).padStart(2,'0');
+  const f=abs=>{const d=new Date(Date.UTC(y,0,1)+abs*60000);return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00';};
+  const fd=i=>{const d=fec(y,i);return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate());};
+  const e=t=>String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  const fold=l=>{const o=[];while(l.length>66){o.push(l.slice(0,66));l=' '+l.slice(66);}o.push(l);return o.join('\r\n');};
+  const st=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'');
+  const et=p.et==='definitivo'?'definitivo':'previsión',seq=et==='definitivo'?1:0,mat=p.mat||'x';
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CCOO Ilunion Seguridad Sevilla//Mi cuadrante//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+e('Cuadrante '+y+' · '+et),'X-WR-TIMEZONE:Europe/Madrid'];
+  const nota='Cuadrante '+y+' ('+et+'). Revisado por la Sección Sindical de CCOO; contrasta siempre con el cuadrante oficial.';
+  const ev=(uid,extra,sum,desc)=>{L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+st+'Z','LAST-MODIFIED:'+st+'Z','SEQUENCE:'+seq);extra.forEach(x=>L.push(x));L.push('SUMMARY:'+e(sum),'DESCRIPTION:'+e(desc));if(alarma>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(sum),'TRIGGER:-PT'+alarma+'M','END:VALARM');L.push('END:VEVENT');};
+  const bl={V:[],B:[],P:[]};
+  for(let i=0;i<N;i++){const x=info(p,i);if(!x.c)continue;
+    if(x.tipo==='T'&&x.hor){segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':'Turno '+x.c)+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+'\n'+nota);});}
+    else if(bl[x.tipo])bl[x.tipo].push(i);}
+  const nm={V:'Vacaciones',B:'Baja',P:'Permiso / otros'};
+  Object.keys(bl).forEach(t=>rangos(bl[t]).forEach(([a,b])=>ev(mat+'-'+t+'-'+fd(a),['DTSTART;VALUE=DATE:'+fd(a),'DTEND;VALUE=DATE:'+fd(b+1)],nm[t],(b-a+1)+' días.\n'+nota)));
+  L.push('END:VCALENDAR');return L.map(fold).join('\r\n')+'\r\n';
+}
+
+/* ---------- render ---------- */
+function render(){
+  cab();
+  const t=$('tabs');
+  if(!pack){t.classList.add('oculto');$('app').innerHTML=vBienvenida(window.__msg);return;}
+  t.classList.remove('oculto');
+  t.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===tab?'true':'false'));
+  $('app').innerHTML=({hoy:vHoy,mes:vMes,anio:vAnio,rev:vRevisar,cal:vCal})[tab]();
+  if(tab==='rev')comparar();
+}
+document.addEventListener('click',e=>{
+  const tb=e.target.closest('[data-t]');if(tb&&tb.closest('#tabs')){tab=tb.dataset.t;render();window.scrollTo(0,0);return;}
+  const mv=e.target.closest('[data-m]');if(mv){mes=(mes+ +mv.dataset.m+12)%12;selDia=-1;render();return;}
+  const d=e.target.closest('.dia');if(d){selDia=+d.dataset.i;render();return;}
+  const go=e.target.closest('[data-go]');if(go){selDia=+go.dataset.i;mes=fec(pack.y,selDia).getUTCMonth();tab='mes';render();return;}
+  const v=e.target.closest('[data-ver]');if(v){const f=pack.F[+v.dataset.ver],d0=(f[4]||[])[0];if(d0!==undefined){selDia=d0;mes=fec(pack.y,d0).getUTCMonth();tab='mes';render();window.scrollTo(0,0);}return;}
+  if(e.target.id==='bpega'){cargarTexto($('pega').value);return;}
+  if(e.target.id==='bics'){
+    const txt=icsPack(pack,+$('al').value),a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([txt],{type:'text/calendar;charset=utf-8'}));
+    a.download='cuadrante_'+pack.y+'_'+(pack.et==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  }
+});
+document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();});
+document.addEventListener('input',e=>{if(e.target.id==='pv'){clearTimeout(window.__t);window.__t=setTimeout(comparar,500);}});
+
+async function cargarTexto(txt){
+  const m=String(txt).match(/#d=([A-Za-z]\.[A-Za-z0-9_-]+)/);
+  if(!m){$('pmsg').innerHTML='<div class="aviso err">No encuentro el enlace en lo que has pegado. Copia el enlace completo del mensaje.</div>';return;}
+  try{const p=await decodificar(m[1]);if(importar(p)){cargarActivo();tab='hoy';selDia=-1;window.__msg=null;render();}}
+  catch(err){$('pmsg').innerHTML='<div class="aviso err">'+esc(err.message)+'</div>';}
+}
+async function desdeHash(){
+  const h=location.hash;if(!h.startsWith('#d='))return false;
+  try{
+    const p=await decodificar(h.slice(3));
+    if(importar(p)){cargarActivo();tab='hoy';selDia=-1;}
+  }catch(err){window.__msg=err.message;}
+  history.replaceState(null,'',location.pathname+location.search);
+  return true;
+}
+window.addEventListener('hashchange',async()=>{if(await desdeHash())render();});
+(async function(){cargarActivo();await desdeHash();render();})();
+})();
+</script>
+</body>
+</html>

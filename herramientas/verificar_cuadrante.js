@@ -11,6 +11,9 @@
  *   --por-trabajador        además, un PDF por trabajador (hoja_<NOMBRE_Apellidos>_<nº>.pdf) en <salida>/hojas_individuales/, para enviarlas una a una
  *   --trabajador 75002,75010   solo los PDF individuales de esos nº de empleado (tengan o no fallos)
  *   --calendarios           además, un calendario .ics por trabajador (calendario_<NOMBRE_Apellidos>_<nº>_<año>_<etapa>.ics) en <salida>/calendarios/
+ *   --enlaces               enlaces personales de la app «Mi cuadrante» para WhatsApp: enlaces_whatsapp.csv y mensajes_whatsapp.txt (requiere --base)
+ *   --base https://…/micuadrante.html   dirección donde está publicada la app
+ *   --tel 34600000000       WhatsApp del delegado: el trabajador le avisa desde la app si sus vacaciones no coinciden
  *   --etapa definitivo      nombre del calendario: «Cuadrante AAAA · definitivo» (por defecto «previsión»)
  *   --alarma 60             añade un aviso N minutos antes de cada turno (por defecto, sin aviso)
  *   --limite AAAA-MM-DD     fecha que se imprime en «devolver antes del»
@@ -64,6 +67,8 @@ function sheetjs(){
     for(const [id,v] of cambia)await sel(id,v);
     await p.click('#b-verif');await p.waitForTimeout(1500);
   }
+  if(opt('enlaces')&&(!opt('base')||opt('base')===true)){console.error('--enlaces necesita --base <dirección de la app>, p. ej. --base https://ejemplo.org/micuadrante.html');await b.close();process.exit(3);}
+  for(const [k,id] of [['base','h-base'],['tel','h-tel']])if(opt(k)&&opt(k)!==true)await p.evaluate(([id,v])=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('change'));},[id,String(opt(k))]);
   if(opt('etapa')==='definitivo')await sel('h-etapa','definitivo');
   if(opt('alarma')&&opt('alarma')!==true)await p.evaluate(v=>{const e=document.getElementById('h-alarma');e.value=v;e.dispatchEvent(new Event('change'));},String(opt('alarma')));
   await p.evaluate(()=>document.getElementById('h-etapa').dispatchEvent(new Event('change')));
@@ -86,9 +91,9 @@ function sheetjs(){
     await p.pdf({path:pdf,preferCSSPageSize:true,printBackground:true});
   }
   // PDF individuales (un fichero por trabajador, nombrado solo con el nº de empleado)
-  let individuales=[],calendarios=0;
+  let individuales=[],calendarios=0;const enlaces=[];
   const pedidos=opt('trabajador')&&opt('trabajador')!==true?String(opt('trabajador')).split(',').map(x=>x.trim()).filter(Boolean):null;
-  if(pedidos||opt('por-trabajador')||opt('calendarios')){
+  if(pedidos||opt('por-trabajador')||opt('calendarios')||opt('enlaces')){
     const filas=await p.evaluate(()=>[...document.querySelectorAll('#t-trab tbody tr')].map(tr=>{const c=tr.querySelectorAll('td');return{etq:c[0].textContent.trim(),err:+c[8].textContent,av:+c[9].textContent};}));
     const mats=filas.map(f=>({mat:(f.etq.match(/(\d+)\)?\s*$/)||[])[1],f}));
     const lista=pedidos?pedidos:mats.filter(x=>!opt('solo-fallos')||x.f.err+x.f.av>0).map(x=>x.mat);
@@ -107,10 +112,21 @@ function sheetjs(){
         individuales.push(f);
         await p.emulateMedia({media:'screen'});
       }
+      if(opt('enlaces')){
+        await p.click('#m-link');await p.waitForFunction(()=>document.getElementById('m-link-out').value.length>50);
+        const msg=await p.inputValue('#m-link-out');
+        const nom=await p.evaluate(()=>{const c=document.querySelector('#m-hoja .emp-cab tr:nth-child(2) td:nth-child(2)');return c?c.textContent.trim():'';});
+        enlaces.push({mat,nom,msg});
+      }
       if(opt('calendarios')){const [d]=await Promise.all([p.waitForEvent('download'),p.click('#m-ics')]);await d.saveAs(path.join(dirc,d.suggestedFilename()));calendarios++;}
       await p.click('#m-cerrar');
     }
   }
-  console.log(JSON.stringify({estructura,resumen:kpis,hojas,pdf,csv,individuales:individuales.length,carpetaIndividuales:individuales.length?path.dirname(individuales[0]):null,calendarios,carpetaCalendarios:calendarios?path.join(salida,'calendarios'):null,erroresJS:errs},null,2));
+  if(enlaces.length){
+    const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+    fs.writeFileSync(path.join(salida,'enlaces_whatsapp.csv'),'\uFEFF'+['Nº;Nombre;Mensaje',...enlaces.map(e=>[e.mat,e.nom,e.msg].map(q).join(';'))].join('\r\n'));
+    fs.writeFileSync(path.join(salida,'mensajes_whatsapp.txt'),enlaces.map(e=>'=== '+e.nom+' · Nº '+e.mat+' ===\n'+e.msg+'\n').join('\n'));
+  }
+  console.log(JSON.stringify({enlaces:enlaces.length,estructura,resumen:kpis,hojas,pdf,csv,individuales:individuales.length,carpetaIndividuales:individuales.length?path.dirname(individuales[0]):null,calendarios,carpetaCalendarios:calendarios?path.join(salida,'calendarios'):null,erroresJS:errs},null,2));
   await b.close();
 })().catch(e=>{console.error(e);process.exit(1);});
