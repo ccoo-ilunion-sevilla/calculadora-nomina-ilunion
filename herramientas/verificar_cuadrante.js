@@ -7,7 +7,7 @@
  *
  * Uso:  node herramientas/verificar_cuadrante.js cuadrante.xlsx [opciones]
  *   --salida <carpeta>      dónde dejar los ficheros (por defecto, junto al .xlsx)
- *   --todos                 hojas de TODOS los trabajadores (por defecto, solo los que tienen fallos)
+ *   --solo-fallos           limita las hojas a los trabajadores con fallos (por defecto: TODOS, porque cada trabajador debe comprobar sus vacaciones y demás)
  *   --por-trabajador        además, un PDF por trabajador (hoja_<nº>.pdf) en <salida>/hojas_individuales/, para enviarlas una a una
  *   --trabajador 75002,75010   solo los PDF individuales de esos nº de empleado (tengan o no fallos)
  *   --limite AAAA-MM-DD     fecha que se imprime en «devolver antes del»
@@ -70,7 +70,7 @@ function sheetjs(){
   const csv=path.join(salida,'incidencias_'+nombre+'.csv');await dl.saveAs(csv);
   // PDF de hojas
   await p.evaluate(()=>{window.print=()=>{};});
-  if(opt('todos'))await p.uncheck('#lote-solo');else await p.check('#lote-solo');
+  if(opt('solo-fallos'))await p.check('#lote-solo');else await p.uncheck('#lote-solo');
   await p.click('#b-lote');
   const hojas=await p.locator('#lote .hoja').count();
   let pdf=null;
@@ -85,7 +85,7 @@ function sheetjs(){
   if(pedidos||opt('por-trabajador')){
     const filas=await p.evaluate(()=>[...document.querySelectorAll('#t-trab tbody tr')].map(tr=>{const c=tr.querySelectorAll('td');return{etq:c[0].textContent.trim(),err:+c[8].textContent,av:+c[9].textContent};}));
     const mats=filas.map(f=>({mat:(f.etq.match(/(\d+)\)?\s*$/)||[])[1],f}));
-    const lista=pedidos?pedidos:mats.filter(x=>opt('todos')||x.f.err+x.f.av>0).map(x=>x.mat);
+    const lista=pedidos?pedidos:mats.filter(x=>!opt('solo-fallos')||x.f.err+x.f.av>0).map(x=>x.mat);
     const dir=path.join(salida,'hojas_individuales');fs.mkdirSync(dir,{recursive:true});
     await p.emulateMedia({media:'screen'});
     for(const mat of lista){

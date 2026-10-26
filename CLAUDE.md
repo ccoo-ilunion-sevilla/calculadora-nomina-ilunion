@@ -10,12 +10,13 @@ node herramientas/verificar_cuadrante.js <ruta.xlsx> --salida <carpeta en el scr
 ```
 
 Entregar al usuario con `SendUserFile`:
-- `fallos_*.pdf`: una hoja de 2 caras por trabajador con fallos (cuadrante tipo «IMPRESIÓN C. ANUAL» con los días con fallo recuadrados; cara 2 con la lista de fallos, vacaciones concedidas y recuadro de comprobación para el trabajador).
+- `fallos_*.pdf`: una hoja de 2 caras por trabajador (todos) (cuadrante tipo «IMPRESIÓN C. ANUAL» con los días con fallo recuadrados; cara 2 con la lista de fallos, vacaciones concedidas y recuadro de comprobación para el trabajador).
 - `incidencias_*.csv`: todas las incidencias, identificando a cada trabajador solo por nº de empleado.
 
 Y un resumen corto en el chat: nº de trabajadores, errores/avisos, y los fallos más relevantes por regla.
-Para enviar hojas **una a una** (no en lote): `--por-trabajador` genera `hojas_individuales/hoja_<nº>.pdf` (uno por trabajador con fallos; con `--todos`, de todos) y `--trabajador 75002,75010` solo los de esos nº. Entregar como `.zip` (los ficheros se nombran solo con el nº; cada PDF lleva únicamente el nombre de su trabajador).
-Opciones útiles: `--todos` (hojas de todos), `--limite AAAA-MM-DD` y `--contacto "texto"` (se imprimen en el recuadro), `--semana acum`, `--fs horas`, `--banda aviso|no`, `--formacion no`.
+Para enviar hojas **una a una** (no en lote): `--por-trabajador` genera `hojas_individuales/hoja_<nº>.pdf` (uno por trabajador, **de todos**, tengan o no fallos) y `--trabajador 75002,75010` solo los de esos nº. Entregar como `.zip` (los ficheros se nombran solo con el nº; cada PDF lleva únicamente el nombre de su trabajador).
+Por defecto se generan las hojas de **todos** los trabajadores, incluidos los que no tienen fallos (cada trabajador debe comprobar sus vacaciones y demás); `--solo-fallos` las limita a quienes tienen fallos.
+Opciones útiles: `--limite AAAA-MM-DD` y `--contacto "texto"` (se imprimen en el recuadro), `--semana acum`, `--fs horas`, `--banda aviso|no`, `--formacion no`.
 
 Si la estructura no cuadra (faltan días, meses, calendario de otro año, festivos sin marcar) el script lo dice y no genera hojas: informar al usuario de eso primero.
 

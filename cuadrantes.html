@@ -605,7 +605,7 @@ const Motor=(function(){
           noct+=horasEnVentana(a,b,d*DIA,d*DIA+360)+horasEnVentana(a,b,d*DIA+1320,(d+1)*DIA);
           if(d>=0&&d<N){const w=dow(y,d);if(w===6||w===0)finde+=horasEnVentana(a,b,d*DIA,(d+1)*DIA);}
         }});});
-      resumen.push({ti,nombre:tr.nombre,horas,horasTrab,credito,horasMes,vac,libres,bajas,perm,noct:noct/60,finde:finde/60,maxRun,fs:fsEstrictos,fsDud:fsDudosos,pct:o.pct,exentoFS:o.exentoFS});
+      resumen.push({ti,nombre:tr.nombre,horas,horasTrab,credito,reducido,horasMes,vac,libres,bajas,perm,noct:noct/60,finde:finde/60,maxRun,fs:fsEstrictos,fsDud:fsDudosos,pct:o.pct,exentoFS:o.exentoFS});
     });
     inc.sort((p,q)=>({error:0,aviso:1,info:2})[p.sev]-({error:0,aviso:1,info:2})[q.sev]||p.ti-q.ti||(p.dia??-1)-(q.dia??-1));
     return{inc,resumen,P};
@@ -957,7 +957,7 @@ function pintar(){
   $('t-mes').innerHTML='<thead><tr><th>Trabajador</th>'+M.map(m=>'<th class="num">'+m+'</th>').join('')+'</tr></thead><tbody>'+
     res.resumen.map(r=>'<tr><td style="text-align:left"><button class="lnk" data-ficha="'+r.ti+'">'+esc(r.nombre)+'</button></td>'+r.horasMes.map((h,m)=>{
       const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;
-      const k=r.pct<100?'':(h>mx||h<mn?'h-bad':'h-ok');return '<td class="'+k+'">'+h.toFixed(0)+'</td>';}).join('')+'</tr>').join('')+'</tbody>';
+      const k=(r.pct<100||r.reducido)?'':(h>mx||h<mn?'h-bad':'h-ok');return '<td class="'+k+'">'+h.toFixed(0)+'</td>';}).join('')+'</tr>').join('')+'</tbody>';
   const regs=[...new Set(res.inc.map(i=>i.regla))];
   $('chips').innerHTML='<button class="chip" aria-pressed="'+(filtroRegla===''?'true':'false')+'" data-r="">Todas</button>'+regs.map(r=>'<button class="chip" data-r="'+r+'" aria-pressed="'+(filtroRegla===r?'true':'false')+'">'+esc(Motor.REGLAS[r].n)+' ('+res.inc.filter(i=>i.regla===r).length+')</button>').join('');
   pintarInc();
@@ -1050,7 +1050,7 @@ function hojaHTML(ti,sel){
   const fsm=M.map((x,m)=>{const a=fl.filter(i=>Motor.fecha(y,i).getUTCMonth()===m);return '<b>'+x+'</b> '+(a.length?a.map(i=>fd(y,i)).join(', '):'<span class="mal-t">ninguno</span>');}).join(' · ');
   // horas por mes
   const decl=t.decl||[];
-  const meses='<table class="heat" style="font-size:10px"><thead><tr><th style="text-align:left"></th>'+M.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody><tr><td style="text-align:left">Según casillas</td>'+r.horasMes.map((h,m)=>{const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;return '<td class="'+(r.pct<100||!h?'':(h>mx||h<mn?'h-bad':'h-ok'))+'">'+num1(h)+'</td>';}).join('')+'</tr>'+(decl.some(x=>x!==null)?'<tr><td style="text-align:left">Declaradas empresa</td>'+decl.map((d,m)=>'<td class="'+(d!==null&&Math.abs(d-r.horasMes[m])>0.6?'h-bad':'')+'">'+(d===null?'—':num1(d))+'</td>').join('')+'</tr>':'')+'</tbody></table>';
+  const meses='<table class="heat" style="font-size:10px"><thead><tr><th style="text-align:left"></th>'+M.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody><tr><td style="text-align:left">Según casillas</td>'+r.horasMes.map((h,m)=>{const mn=m===1?P.febMin:P.mesMin,mx=m===1?P.febMax:P.mesMax;return '<td class="'+(r.pct<100||r.reducido||!h?'':(h>mx||h<mn?'h-bad':'h-ok'))+'">'+num1(h)+'</td>';}).join('')+'</tr>'+(decl.some(x=>x!==null)?'<tr><td style="text-align:left">Declaradas empresa</td>'+decl.map((d,m)=>'<td class="'+(d!==null&&Math.abs(d-r.horasMes[m])>0.6?'h-bad':'')+'">'+(d===null?'—':num1(d))+'</td>').join('')+'</tr>':'')+'</tbody></table>';
   const lim=hojaOp.limite?new Date(hojaOp.limite+'T00:00:00Z').toLocaleDateString('es-ES',{timeZone:'UTC'}):'';
   return '<div class="hoja">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
