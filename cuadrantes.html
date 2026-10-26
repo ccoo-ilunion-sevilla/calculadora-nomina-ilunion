@@ -228,6 +228,8 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
   <div class="fila">
     <div class="campo"><label for="h-que">Fallos que se imprimen</label><select id="h-que"><option value="sindesc">Todos menos los descartados</option><option value="conf">Solo los confirmados</option><option value="todos">Todos</option></select></div>
     <div class="campo"><label for="h-limite">Devolver antes del</label><input type="date" id="h-limite"></div>
+    <div class="campo"><label for="h-etapa">Calendario (.ics)</label><select id="h-etapa"><option value="previsión">Previsión</option><option value="definitivo">Definitivo</option></select></div>
+    <div class="campo"><label for="h-alarma">Aviso (min antes)</label><input type="number" id="h-alarma" min="0" placeholder="sin aviso" style="width:110px"></div>
     <div class="campo"><label for="h-contacto">Contacto del delegado</label><input type="text" id="h-contacto" size="26" placeholder="Teléfono o correo (opcional)"></div>
   </div>
   <div class="fila">
@@ -269,7 +271,7 @@ footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:10px 16px
 
 </div></main>
 <div class="overlay oculto" id="modal"><div class="modal">
-  <div class="fila no-print" style="justify-content:flex-end;margin-bottom:6px"><button class="btn pri" id="m-print">Imprimir / guardar PDF</button><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
+  <div class="fila no-print" style="justify-content:flex-end;margin-bottom:6px"><button class="btn pri" id="m-print">Imprimir / guardar PDF</button><button class="btn" id="m-ics">Descargar calendario (.ics)</button><button class="btn" id="m-cerrar">Cerrar ✕</button></div>
   <div id="m-hoja"></div>
   <div class="no-print" id="m-rev">
     <div class="sub">Revisión de este trabajador (no se imprime)</div>
@@ -778,6 +780,46 @@ const Motor=(function(){
     return rangosDe(v);
   }
 
+  /* ---------- Calendario (.ics) de un trabajador ---------- */
+  function ics(tr,ley,y,o){
+    o=o||{};
+    const pad=n=>String(n).padStart(2,'0'),N=diasAnio(y);
+    const f=abs=>{const d=new Date(Date.UTC(y,0,1)+abs*60000);return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00';};
+    const fd=i=>{const d=fecha(y,i);return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate());};
+    const esc=t=>String(t).replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+    const fold=l=>{const out=[];while(l.length>66){out.push(l.slice(0,66));l=' '+l.slice(66);}out.push(l);return out.join('\r\n');};
+    const hhmm=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);
+    const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'');
+    const etapa=o.etapa==='definitivo'?'definitivo':'previsión';
+    const cal=o.cal||('Cuadrante '+y+' · '+etapa);
+    const seq=o.seq!==undefined?o.seq:(etapa==='definitivo'?1:0);
+    const mat=o.mat||'x',L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CCOO Ilunion Seguridad Sevilla//Cuadrante//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+esc(cal),'X-WR-TIMEZONE:Europe/Madrid'];
+    const nota='Cuadrante '+y+' ('+etapa+'). Revisado por la Sección Sindical de CCOO; contrasta siempre con el cuadrante oficial.';
+    const ev=(uid,extra,sum,desc)=>{
+      L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+stamp+'Z','LAST-MODIFIED:'+stamp+'Z','SEQUENCE:'+seq);
+      extra.forEach(x=>L.push(x));
+      L.push('SUMMARY:'+esc(sum),'DESCRIPTION:'+esc(desc));
+      if(o.alarma>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+esc(sum),'TRIGGER:-PT'+Math.round(o.alarma)+'M','END:VALARM');
+      L.push('END:VEVENT');
+    };
+    const bloques={V:[],B:[],P:[]};
+    for(let i=0;i<N;i++){
+      const c=codDe(tr,i),Lg=ley[c];if(!c||!Lg)continue;
+      if(Lg.tipo==='T'&&!Lg.incompleta&&Lg.segs){
+        Lg.segs.forEach(([a,b],k)=>{
+          const nom=/^F\d*$/.test(c)?'Formación':'Turno '+c;
+          ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],nom+' · '+hhmm(a)+'–'+hhmm(b),'Código '+c+(Lg.horas!==null?' · '+Lg.horas.toFixed(1).replace('.',',')+' h':'')+'\n'+nota);
+        });
+      }else if(bloques[Lg.tipo])bloques[Lg.tipo].push(i);
+    }
+    const nomB={V:'Vacaciones',B:'Baja',P:'Permiso / otros'};
+    Object.keys(bloques).forEach(t=>rangosDe(bloques[t]).forEach(([a,b])=>{
+      ev(mat+'-'+t+'-'+fd(a),['DTSTART;VALUE=DATE:'+fd(a),'DTEND;VALUE=DATE:'+fd(b+1)],nomB[t],(b-a+1)+' días.\n'+nota);
+    }));
+    L.push('END:VCALENDAR');
+    return L.map(fold).join('\r\n')+'\r\n';
+  }
+
   const PIDE={
     DESC:'Que se rectifiquen los turnos afectados para garantizar el descanso mínimo entre jornadas (12 h legales y 13 h según el Acuerdo de empresa).',
     SEM:'Que se rectifique el cuadrante para garantizar el descanso semanal de día y medio ininterrumpido (ET 37.1).',
@@ -841,7 +883,7 @@ const Motor=(function(){
     const r=new Date(recepcion+'T00:00:00Z'),dias=Math.round((limite-r)/864e5);
     return{limite,dias,enPlazo:dias>=0};
   }
-  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa,redactar,rangosDe,finesLibres,festivosTrabajador,bloquesVacaciones,festivosFaltan,festivosOficiales,tipoCelda};
+  return{DEF,REGLAS,diasAnio,diasMes,fecha,fmt,parseTabla,extraerPlantilla,codigos,parseHorario,compilarLeyenda,parseLeyendaTxt,tipoSugerido,verificar,plazoEntrega,importarEmpresa,redactar,ics,rangosDe,finesLibres,festivosTrabajador,bloquesVacaciones,festivosFaltan,festivosOficiales,tipoCelda};
 })();
 if(typeof module!=='undefined')module.exports=Motor;
 </script>
@@ -985,7 +1027,7 @@ function masivo(e){filtradas().filter(i=>i.sev!=='info').forEach(i=>setRev(i.id,
 
 /* ---------- Ficha del trabajador: calendario del año con las incidencias ---------- */
 const LSH='cuadrantes_hoja_v1';
-let hojaOp=Object.assign({limite:'',contacto:'',que:'sindesc'},sg(LSH)||{});
+let hojaOp=Object.assign({limite:'',contacto:'',que:'sindesc',etapa:'previsión',alarma:''},sg(LSH)||{});
 const matDe=ti=>pl.trabajadores[ti].mat||matDeNombre(pl.trabajadores[ti].nombre);
 const fd=(y,i)=>Motor.fmt(y,i).slice(4,9);
 const rg=(y,[a,b])=>a===b?fd(y,a):fd(y,a)+' → '+fd(y,b);
@@ -1154,15 +1196,21 @@ document.addEventListener('change',e=>{
   const s=e.target.closest('[data-est]');if(s){cambiarEstado(+s.dataset.est,s.value);if(!$('modal').classList.contains('oculto')){const it=s.closest('.inc-item');if(it)it.dataset.e=s.value;}return;}
   const n=e.target.closest('[data-nota]');if(n){setRev(res.inc[+n.dataset.nota].id,{n:n.value.trim()});}
 });
-['h-que','h-limite','h-contacto'].forEach(id=>$(id).addEventListener('change',()=>{
-  hojaOp={que:$('h-que').value,limite:$('h-limite').value,contacto:$('h-contacto').value.trim()};ss(LSH,hojaOp);
+['h-que','h-limite','h-contacto','h-etapa','h-alarma'].forEach(id=>$(id).addEventListener('change',()=>{
+  hojaOp={que:$('h-que').value,limite:$('h-limite').value,contacto:$('h-contacto').value.trim(),etapa:$('h-etapa').value,alarma:$('h-alarma').value};ss(LSH,hojaOp);
   if(!$('modal').classList.contains('oculto'))$('m-hoja').innerHTML=hojaHTML(fichaTi);
 }));
-$('h-que').value=hojaOp.que;$('h-limite').value=hojaOp.limite;$('h-contacto').value=hojaOp.contacto;
+$('h-etapa').value=hojaOp.etapa;$('h-alarma').value=hojaOp.alarma;$('h-que').value=hojaOp.que;$('h-limite').value=hojaOp.limite;$('h-contacto').value=hojaOp.contacto;
 $('b-lote').addEventListener('click',imprimirLote);
 $('c-nombres').addEventListener('change',()=>{if(Sempresa&&pl&&pl.empresa){pl=Motor.importarEmpresa(Sempresa,{nombres:$('c-nombres').checked});mostrar();}});
 window.addEventListener('afterprint',()=>{document.body.classList.remove('lote');$('lote').innerHTML='';});
 $('m-print').addEventListener('click',()=>window.print());
+$('m-ics').addEventListener('click',()=>{
+  const ti=fichaTi,y=res.P.anio,mat=matDe(ti)||String(ti+1);
+  const txt=Motor.ics(pl.trabajadores[ti],leyAct,y,{mat,etapa:hojaOp.etapa==='definitivo'?'definitivo':'previsión',alarma:+hojaOp.alarma||0});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/calendar;charset=utf-8'}));
+  a.download='calendario_'+mat+'_'+y+'_'+(hojaOp.etapa==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
 $('m-esc-b').addEventListener('click',escritoFicha);
 $('m-esc-cp').addEventListener('click',()=>{const t=$('m-esc');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>{});});
 function abrirPorEmp(){
