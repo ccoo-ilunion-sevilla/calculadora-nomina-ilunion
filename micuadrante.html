@@ -87,6 +87,12 @@ table.h td:first-child,table.h th:first-child{text-align:left}
 table.h td.bad{background:#FFD9D9;font-weight:700}
 .bienv{text-align:center;padding:30px 10px}
 .bienv h2{font-size:17px;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chp{border:1px solid var(--linea);border-radius:99px;padding:7px 11px;font:600 13px 'Inter',sans-serif;background:#fff;cursor:pointer}
+.chp[aria-pressed="true"]{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+.dia .lg{font-size:8px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.dia.ed::before{content:'✎';position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--azul)}
+.fila2{display:flex;gap:8px}.fila2>*{flex:1}
 footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:6px 16px 20px}
 </style>
 </head>
@@ -113,8 +119,9 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const KEY='mc_v1',DIA=1440;
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DS=['dom','lun','mar','mié','jue','vie','sáb'],DL=['L','M','X','J','V','S','D'];
-let store={packs:{},pet:{},ultimo:null},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false;
+let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false;
 try{store=Object.assign(store,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
+store.ed=store.ed||{};store.pal=store.pal||{};store.lug=store.lug||{};
 const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
 
 /* ---------- fechas ---------- */
@@ -144,6 +151,14 @@ function importar(p){
   const act=store.packs[p.y]&&store.packs[p.y].actual;
   if(act&&act.mat&&p.mat&&act.mat!==p.mat&&!confirm('Este enlace es de otro trabajador (nº '+p.mat+') y en este móvil tienes guardado el nº '+act.mat+'. ¿Sustituirlo?'))return false;
   const e=store.packs[p.y]||{};
+  if(p.ms&&act&&act.y===p.y){ // actualización de uno o varios meses: se fusiona con lo que ya tiene
+    const m2=JSON.parse(JSON.stringify(act));
+    p.ms.forEach(m=>{for(let d=1;d<=dm(p.y,m);d++){const i=idx(p.y,m,d);m2.D[i]=p.D[i]||'';}m2.Hm[m]=p.Hm[m];});
+    m2.L=Object.assign({},act.L,p.L);
+    m2.F=(act.F||[]).filter(f=>!(f[4]||[]).length||!p.ms.includes(fec(p.y,f[4][0]).getUTCMonth())).concat(p.F||[]);
+    m2.Tt=Math.round(m2.Hm.reduce((a,b)=>a+b,0)*100)/100;m2.et=p.et;m2.f=p.f;m2.fe=p.fe&&p.fe.length?p.fe:m2.fe;m2.tel=p.tel||m2.tel;
+    p=m2;
+  }
   if(act&&firma(act)!==firma(p))e.previa=act;
   e.actual=p;store.packs[p.y]=e;store.ultimo=p.y;guardar();return true;
 }
@@ -154,7 +169,15 @@ function cargarActivo(){
 }
 
 /* ---------- información de un día ---------- */
-const info=(p,i)=>{const c=(p.D[i]||'').trim();const g=c?p.L[c]:null;const tipo=!c?'L':(g?g[0]:'?');return{c,tipo,hor:g?g[1]:'',horas:g?g[2]:null};};
+const legG=(p,c)=>p.L[c]||store.pal[c]||null;
+function info(p,i,raw){
+  let c=(p.D[i]||'').trim();const o=(!raw&&p===pack&&store.ed[p.y]&&store.ed[p.y][i])||null;
+  if(o&&o.c!==undefined&&o.c!=='')c=o.c==='-'?'':o.c;
+  const g=c?legG(p,c):null;let tipo=!c?'L':(g?g[0]:'?'),hor=g?g[1]:'',horas=g?g[2]:null;
+  if(o&&o.h){tipo='T';hor=o.h;const sg=segs(o.h);horas=sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;if(!c)c='·';}
+  const l=(o&&o.l)||(c&&(store.lug[c]||(p.lg&&p.lg[c])))||'';
+  return{c,tipo,hor,horas,l,ed:!!o,n:(o&&o.n)||''};
+}
 const minu=h=>{const m=h.match(/^(\d{2}):(\d{2})$/);return m?(+m[1])*60+(+m[2]):null;};
 function segs(hor){
   if(!hor)return[];let prev=-1;const out=[];
@@ -165,8 +188,13 @@ const esNoche=hor=>{const s=segs(hor);if(!s.length)return false;const a=s[0][0]%
 const cls=(i)=>{const x=info(pack,i);if(x.tipo==='L')return'l';if(x.tipo==='V')return'v';if(x.tipo==='B'||x.tipo==='P')return'b';if(x.tipo==='?')return'x';return esNoche(x.hor)?'n':'t';};
 const horTxt=hor=>hor.split('+').map(s=>s.replace('-','–')).join(' + ');
 const nombreTipo={T:'Turno',L:'Libre',V:'Vacaciones',B:'Baja',P:'Permiso / otros','?':'Código sin definir'};
-const descDia=(p,i)=>{const x=info(p,i);return x.tipo==='T'?'Turno '+x.c+' · '+horTxt(x.hor)+(x.horas!==null?' ('+String(x.horas).replace('.',',')+' h)':''):(x.c?(nombreTipo[x.tipo]||x.tipo)+' ('+x.c+')':'Libre');};
+const descDia=(p,i)=>{const x=info(p,i);return x.tipo==='T'?(x.c==='·'?'Turno propio':'Turno '+x.c)+' · '+horTxt(x.hor)+(x.horas!==null?' ('+String(x.horas).replace('.',',')+' h)':''):(x.c?(nombreTipo[x.tipo]||x.tipo)+' ('+x.c+')':'Libre');};
 
+const txtDia=(i,raw)=>{const r=info(pack,i,raw);return r.tipo==='T'?(r.c==='·'?'Turno propio':'Turno '+r.c)+' · '+horTxt(r.hor):(r.c?(nombreTipo[r.tipo]||r.tipo)+' ('+r.c+')':'Libre');};
+const propio=()=>pack.et==='propio';
+function hmMes(){if(!propio())return pack.Hm;const a=Array(12).fill(0);for(let i=0;i<nDias(pack.y);i++){const x=info(pack,i);if(x.tipo==='T'&&x.horas)a[fec(pack.y,i).getUTCMonth()]+=x.horas;}return a.map(v=>Math.round(v*100)/100);}
+const totalH=()=>propio()?Math.round(hmMes().reduce((a,b)=>a+b,0)*100)/100:pack.Tt;
+const lugares=()=>{const s=new Set(Object.values(store.lug).filter(Boolean));Object.values(store.ed).forEach(m=>Object.values(m).forEach(o=>{if(o.l)s.add(o.l);}));Object.values(store.pal).forEach(g=>{if(g[3])s.add(g[3]);});return[...s].sort();};
 /* ---------- conjuntos marcados ---------- */
 const diasFallo=()=>{const s=new Set();(pack.F||[]).forEach(f=>(f[4]||[]).forEach(d=>s.add(d)));return s;};
 function cambios(){
@@ -196,7 +224,7 @@ function cab(){
 }
 const cajaPegar=()=>'<div class="card"><h2>Cargar mi enlace</h2><p class="nota">Copia el enlace del mensaje de WhatsApp (o el mensaje entero) y pégalo aquí. Sirve si abriste el enlace en otro navegador o si instalaste la app y la ves vacía.</p><textarea id="pega" placeholder="Pega aquí el enlace…"></textarea><p style="margin-top:8px"><button class="btn pri" id="bpega">Cargar</button></p><div id="pmsg"></div></div>';
 function vBienvenida(msg){
-  return '<div class="card bienv"><h2>Mi cuadrante</h2><p>'+(msg?esc(msg):'Abre el <b>enlace personal</b> que te ha enviado la Sección Sindical por WhatsApp y verás tu cuadrante, los fallos que hemos detectado y podrás comprobar tus vacaciones.')+'</p></div>'+cajaPegar();
+  return '<div class="card bienv"><h2>Mi cuadrante</h2><p>'+(msg?esc(msg):'Abre el <b>enlace personal</b> que te ha enviado la Sección Sindical por WhatsApp y verás tu cuadrante, los fallos que hemos detectado y podrás comprobar tus vacaciones.')+'</p></div>'+cajaPegar()+'<div class="card"><h2>¿Sin enlace?</h2><p class="nota">Puedes usar la app sola: marca tus días de trabajo, tus turnos y tus lugares, y llévalo a tu calendario.</p><p style="margin-top:8px"><button class="btn" data-vacio="'+new Date().getFullYear()+'">Empezar mi calendario '+new Date().getFullYear()+'</button> <button class="btn" data-vacio="'+(new Date().getFullYear()+1)+'">Empezar el '+(new Date().getFullYear()+1)+'</button></p></div>';
 }
 function proximos(n){
   const y=pack.y,N=nDias(y),h=hoyIdx(y),ahora=new Date(),ahoraMin=ahora.getHours()*60+ahora.getMinutes();
@@ -215,8 +243,12 @@ function vHoy(){
   const px=proximos(6);
   html+='<div class="card"><h2>Próximos turnos</h2><div class="lista">'+(px.length?px.map(i=>{const x=info(pack,i);return '<div><span><b>'+fmt(y,i)+'</b></span><span>'+esc(x.c)+' · '+esc(horTxt(x.hor))+'</span></div>';}).join(''):'<div><span class="nota">No hay más turnos en el cuadrante.</span></div>')+'</div></div>';
   const nf=(pack.F||[]).filter(f=>f[0]==='e').length,nc=cambios().length;
-  html+='<div class="card"><h2>Resumen</h2><div class="lista"><div><span>Fallos detectados (errores)</span><span class="'+(nf?'mal':'ok')+'">'+nf+'</span></div><div><span>Total de avisos</span><span>'+((pack.F||[]).length-nf)+'</span></div>'+(prev?'<div><span>Cambios desde tu versión anterior ('+esc(prev.et)+')</span><span class="'+(nc?'mal':'ok')+'">'+nc+'</span></div>':'')+'<div><span>Horas del año (cómputo)</span><span>'+String(pack.Tt).replace('.',',')+'</span></div></div><p class="nota" style="margin-top:8px">Pulsa «Revisar» para ver los fallos y comprobar tus vacaciones.</p></div>';
+  html+='<div class="card"><h2>Resumen</h2><div class="lista"><div><span>Fallos detectados (errores)</span><span class="'+(nf?'mal':'ok')+'">'+nf+'</span></div><div><span>Total de avisos</span><span>'+((pack.F||[]).length-nf)+'</span></div>'+(prev?'<div><span>Cambios desde tu versión anterior ('+esc(prev.et)+')</span><span class="'+(nc?'mal':'ok')+'">'+nc+'</span></div>':'')+'<div><span>Horas del año (cómputo)</span><span>'+String(totalH()).replace('.',',')+'</span></div></div><p class="nota" style="margin-top:8px">Pulsa «Revisar» para ver los fallos y comprobar tus vacaciones.</p></div>';
   return html;
+}
+function paleta(){
+  const out=[];Object.keys(pack.L).forEach(c=>{if(pack.L[c][0]==='T')out.push(c);});Object.keys(store.pal).forEach(c=>{if(store.pal[c][0]==='T'&&!out.includes(c))out.push(c);});
+  return out.sort((a,b)=>(isNaN(a)-isNaN(b))||(+a-+b)||a.localeCompare(b));
 }
 function vMes(){
   const y=pack.y,m=mes,fl=diasFallo(),cm=diasCambio(),fe=new Set(pack.fe||[]),h=hoyIdx(y);
@@ -225,14 +257,43 @@ function vMes(){
   let g=DL.map(d=>'<div class="dh">'+d+'</div>').join('')+'<div></div>'.repeat(off);
   for(let d=1;d<=n;d++){
     const i=first+d-1,x=info(pack,i),w=fec(y,i).getUTCDay();
-    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div><div class="c">'+esc(x.c||'')+'</div><div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div></div>';
+    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div><div class="c">'+esc(x.c||'')+'</div><div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div>'+(x.l?'<div class="lg">'+esc(x.l.slice(0,10))+'</div>':'')+'</div>';
   }
-  const det=selDia>=0&&fec(y,selDia).getUTCMonth()===m?detalleDia(selDia):'<div class="det nota">Toca un día para ver el detalle.</div>';
-  return '<div class="mnav"><button data-m="-1" aria-label="Mes anterior">‹</button><b>'+MES[m]+' '+y+'</b><button data-m="1" aria-label="Mes siguiente">›</button></div><div class="grid">'+g+'</div>'+
-    '<p class="nota" style="margin-top:8px">Rojo: día con fallo · punto amarillo: cambió respecto a tu versión anterior · azul discontinuo: vacaciones que pediste · sombreado inferior: sáb/dom · número rojo: festivo.</p>'+det;
+  let barra='';
+  if(edit){
+    const chips=[['-','Libre'],['V','Vacaciones']].concat(paleta().map(c=>[c,c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1].split('+')[0]):'')]));
+    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Toca el turno otra vez para soltarlo y editar un día suelto (hora propia, lugar, nota).</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button></div>'+
+      '<label for="brl">Lugar de trabajo para lo que marques (opcional)</label><input type="text" id="brl" list="dl-lug" placeholder="Ej.: Estación Puerta Jerez" value="'+esc(brushLug)+'">'+
+      (nuevoT?'<div class="det" style="margin-top:10px"><b>Nuevo turno propio</b><div class="fila2"><div><label for="nt-c">Nombre / código</label><input type="text" id="nt-c" maxlength="6" placeholder="M1"></div><div><label for="nt-e">Entra</label><input type="time" id="nt-e" value="07:00"></div><div><label for="nt-s">Sale</label><input type="time" id="nt-s" value="15:00"></div></div><label for="nt-l">Lugar habitual (opcional)</label><input type="text" id="nt-l" list="dl-lug"><p style="margin-top:8px"><button class="btn pri" data-gt="1">Guardar turno</button></p></div>':'')+
+      '</div><datalist id="dl-lug">'+lugares().map(l=>'<option value="'+esc(l)+'">').join('')+'</datalist>';
+  }
+  const det=selDia>=0&&fec(y,selDia).getUTCMonth()===m?detalleDia(selDia)+(edit&&!brush?editorDia(selDia):''):'<div class="det nota">Toca un día para ver el detalle.</div>';
+  return '<div class="mnav"><button data-m="-1" aria-label="Mes anterior">‹</button><b>'+MES[m]+' '+y+'</b><button data-m="1" aria-label="Mes siguiente">›</button></div>'+
+    '<p style="margin-bottom:8px"><button class="btn'+(edit?' pri':'')+'" data-edit="1">'+(edit?'✔ Terminar de marcar':'✎ Marcar mis días')+'</button></p>'+barra+'<div class="grid">'+g+'</div>'+
+    '<p class="nota" style="margin-top:8px">Rojo: día con fallo · punto amarillo: cambió respecto a tu versión anterior · azul discontinuo: vacaciones que pediste · ✎: marca tuya · sombreado inferior: sáb/dom · número rojo: festivo.</p>'+det;
+}
+function editorDia(i){
+  const x=info(pack,i),o=(store.ed[pack.y]||{})[i]||{},cods=paleta();
+  const opt=(v,t,sel)=>'<option value="'+esc(v)+'"'+(sel?' selected':'')+'>'+esc(t)+'</option>';
+  const cur=o.c!==undefined?o.c:'';
+  return '<div class="det" style="margin-top:8px"><b>Editar este día</b><label for="ed-c">Turno</label><select id="ed-c">'+opt('','Como en el cuadrante',cur==='')+opt('-','Libre',cur==='-')+opt('V','Vacaciones',cur==='V')+cods.map(c=>opt(c,'Turno '+c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1]):''),cur===c)).join('')+'</select>'+
+    '<div class="fila2"><div><label for="ed-e">Hora propia: entra</label><input type="time" id="ed-e" value="'+esc((o.h||'').split('-')[0]||'')+'"></div><div><label for="ed-s">Sale</label><input type="time" id="ed-s" value="'+esc((o.h||'').split('-')[1]||'')+'"></div></div>'+
+    '<label for="ed-l">Lugar de trabajo</label><input type="text" id="ed-l" list="dl-lug" value="'+esc(o.l||'')+'" placeholder="'+esc(x.l||'Ej.: Estación Puerta Jerez')+'">'+
+    '<label for="ed-n">Nota</label><input type="text" id="ed-n" value="'+esc(o.n||'')+'" placeholder="Ej.: cambio acordado con Pepe">'+
+    '<p style="margin-top:10px"><button class="btn pri" data-gd="1">Guardar</button> <button class="btn" data-qd="1">Quitar mi marca</button></p></div>';
+}
+function setEd(i,v){
+  const y=pack.y;store.ed[y]=store.ed[y]||{};const o=Object.assign({},store.ed[y][i]||{},v);
+  Object.keys(o).forEach(k=>{if(o[k]===''||o[k]===undefined||o[k]===null)delete o[k];});
+  if(o.c!==undefined&&o.c===(pack.D[i]||'')&&!o.l&&!o.h&&!o.n)delete o.c;
+  if(Object.keys(o).length)store.ed[y][i]=o;else delete store.ed[y][i];
+  guardar();
 }
 function detalleDia(i){
   const y=pack.y,x=info(pack,i);let h='<div class="det"><b>'+fmt(y,i)+'</b><br>'+esc(descDia(pack,i));
+  if(x.l)h+='<br>📍 '+esc(x.l);
+  if(x.n)h+='<br><i>'+esc(x.n)+'</i>';
+  if(x.ed)h+='<br><span class="nota">✎ Marca tuya. En el cuadrante oficial: '+esc(txtDia(i,true))+'</span>';
   if(prev&&prev.y===y&&(prev.D[i]||'')!==(pack.D[i]||''))h+='<br><span class="mal">Cambio:</span> antes <b>'+esc(descDia(prev,i))+'</b> ('+esc(prev.et)+')';
   const fs=(pack.F||[]).filter(f=>(f[4]||[]).includes(i));
   fs.forEach(f=>{h+='<div class="fallo-c '+f[0]+'" style="margin-top:8px"><span class="sev '+f[0]+'">'+(f[0]==='e'?'ERROR':'AVISO')+'</span><b>'+esc(f[1])+'</b><br>'+esc(f[2])+'<div class="nm">'+esc(f[3])+'</div></div>';});
@@ -244,7 +305,7 @@ function vAnio(){
     h+='<tr><td class="m">'+MES[m].slice(0,3)+'</td>';
     for(let d=0;d<31;d++){
       if(d>=dm(y,m)){h+='<td style="border:0;background:none"></td>';continue;}
-      const i=idx(y,m,d+1),w=fec(y,i).getUTCDay(),c=(pack.D[i]||'');
+      const i=idx(y,m,d+1),w=fec(y,i).getUTCDay(),c=info(pack,i).c;
       h+='<td class="'+(fe.has(i)?'fes':(w===0||w===6?'fin':''))+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+'" data-i="'+i+'" data-go="1">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
     }
     h+='</tr>';
@@ -256,7 +317,7 @@ function vRevisar(){
   // fallos
   h+='<div class="card"><h2>Fallos detectados ('+F.length+')</h2>'+(F.length?F.map((f,k)=>'<div class="fallo-c '+f[0]+'"><span class="sev '+f[0]+'">'+(f[0]==='e'?'ERROR':'AVISO')+'</span><b>'+esc(f[1])+'</b><br>'+esc(f[2])+'<div class="nm">'+esc(f[3])+'</div>'+((f[4]||[]).length?'<p style="margin-top:6px"><button class="btn" data-ver="'+k+'">Ver en el calendario</button></p>':'')+'</div>').join(''):'<p class="ok">No se ha detectado ningún fallo con las reglas revisadas.</p><p class="nota" style="margin-top:6px">Eso no garantiza que el cuadrante sea correcto: revísalo tú también.</p>')+'</div>';
   // vacaciones
-  const V=[];for(let i=0;i<nDias(y);i++)if(info(pack,i).tipo==='V')V.push(i);
+  const V=[];for(let i=0;i<nDias(y);i++)if(info(pack,i,true).tipo==='V')V.push(i);
   const bl=rangos(V),tot=V.length,pt=store.pet[y]||{};
   h+='<div class="card"><h2>Mis vacaciones</h2>'+(bl.length?'<div class="lista">'+bl.map(b=>'<div><span>'+rg(y,b)+'</span><b>'+(b[1]-b[0]+1)+' días</b></div>').join('')+'</div><p style="margin-top:6px">Concedidas: <b>'+tot+' días</b> '+(tot>=pack.vm?'<span class="ok">(alcanzan los '+pack.vm+')</span>':'<span class="mal">(faltan '+(pack.vm-tot)+' para '+pack.vm+')</span>')+'</p>':'<p class="mal">No figura ningún día de vacaciones en el cuadrante.</p>')+
     '<label for="pv">Fechas de vacaciones que <b>yo pedí</b></label><textarea id="pv" placeholder="Ej.: 14/07-31/07, 01/09-14/09">'+esc(pt.vac||'')+'</textarea><div id="pres"></div></div>';
@@ -265,9 +326,12 @@ function vRevisar(){
     const c=cambios();
     h+='<div class="card"><h2>Cambios desde tu versión anterior ('+esc(prev.et)+' → '+esc(pack.et)+')</h2>'+(c.length?'<p class="nota" style="margin-bottom:6px">'+c.length+' días distintos:</p><div class="lista">'+c.map(i=>'<div><span><b>'+fmt(y,i)+'</b></span><span style="text-align:right">'+esc(descDia(prev,i))+' → <b>'+esc(descDia(pack,i))+'</b></span></div>').join('')+'</div>':'<p class="ok">Sin cambios: es igual que tu versión anterior.</p>')+'</div>';
   }
+  // marcas propias que no coinciden con el cuadrante oficial
+  const eds=Object.keys(store.ed[y]||{}).map(Number).sort((a,b)=>a-b).filter(i=>{const o=store.ed[y][i];return o.c!==undefined||o.h;});
+  if(eds.length&&!propio())h+='<div class="card"><h2>Mis marcas frente al cuadrante oficial ('+eds.length+')</h2><p class="nota" style="margin-bottom:6px">Días que has marcado distinto del cuadrante de la empresa (por ejemplo, un cambio acordado). Si el oficial se actualiza, tus marcas se mantienen.</p><div class="lista">'+eds.map(i=>'<div><span><b>'+fmt(y,i)+'</b></span><span style="text-align:right">oficial: '+esc(txtDia(i,true))+' → <b>'+esc(txtDia(i))+'</b></span></div>').join('')+'</div></div>';
   // horas
   const rg4=pack.rg||[144,176,134,162];
-  h+='<div class="card"><h2>Horas por mes</h2><table class="h"><tr><th>Mes</th><th>Horas</th><th>Horquilla</th></tr>'+pack.Hm.map((v,m)=>{const mn=m===1?rg4[2]:rg4[0],mx=m===1?rg4[3]:rg4[1],mal=!pack.red&&v>0&&(v<mn||v>mx);return '<tr><td>'+MES[m]+'</td><td class="'+(mal?'bad':'')+'">'+String(v).replace('.',',')+'</td><td>'+mn+'–'+mx+'</td></tr>';}).join('')+'</table><p class="nota" style="margin-top:6px">Total del año: <b>'+String(pack.Tt).replace('.',',')+'</b> h (trabajo efectivo: '+String(pack.Tw).replace('.',',')+' h; jornada anual 1.782 h).</p></div>';
+  h+='<div class="card"><h2>Horas por mes</h2><table class="h"><tr><th>Mes</th><th>Horas</th><th>Horquilla</th></tr>'+hmMes().map((v,m)=>{const mn=m===1?rg4[2]:rg4[0],mx=m===1?rg4[3]:rg4[1],mal=!pack.red&&v>0&&(v<mn||v>mx);return '<tr><td>'+MES[m]+'</td><td class="'+(mal?'bad':'')+'">'+String(v).replace('.',',')+'</td><td>'+mn+'–'+mx+'</td></tr>';}).join('')+'</table><p class="nota" style="margin-top:6px">Total del año: <b>'+String(totalH()).replace('.',',')+'</b> h'+(propio()?'':' (trabajo efectivo: '+String(pack.Tw).replace('.',',')+' h; jornada anual 1.782 h)')+'.</p></div>';
   return h;
 }
 function comparar(){
@@ -275,7 +339,7 @@ function comparar(){
   store.pet[y]=Object.assign(store.pet[y]||{},{vac:txt});guardar();
   if(r.err.length)h+='<div class="aviso err">'+r.err.map(esc).join('<br>')+'</div>';
   if(!txt.trim()){$('pres').innerHTML='';return;}
-  const conc=new Set();for(let i=0;i<nDias(y);i++)if(info(pack,i).tipo==='V')conc.add(i);
+  const conc=new Set();for(let i=0;i<nDias(y);i++)if(info(pack,i,true).tipo==='V')conc.add(i);
   const pnc=[...r.dias].filter(i=>!conc.has(i)),cnp=[...conc].filter(i=>!r.dias.has(i)),ok=r.dias.size&&!pnc.length&&!cnp.length;
   const que=rangos(pnc).map(b=>{const c={};for(let i=b[0];i<=b[1];i++){const k=pack.D[i]||'libre';c[k]=(c[k]||0)+1;}return rg(y,b)+' ('+(b[1]-b[0]+1)+' d.) — figura: '+Object.keys(c).map(k=>k+(c[k]>1?'×'+c[k]:'')).join(', ');});
   h+='<div class="aviso '+(ok?'okk':'err')+'">'+(ok?'<b>✔ Tus vacaciones coinciden exactamente</b> con las que pediste ('+r.dias.size+' días).':'<b>✖ No coinciden.</b> Pediste '+r.dias.size+' días y tienes concedidos '+conc.size+'.')+'</div>';
@@ -304,10 +368,10 @@ function icsPack(p,alarma){
   const et=p.et==='definitivo'?'definitivo':'previsión',seq=et==='definitivo'?1:0,mat=p.mat||'x';
   const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CCOO Ilunion Seguridad Sevilla//Mi cuadrante//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+e('Cuadrante '+y+' · '+et),'X-WR-TIMEZONE:Europe/Madrid'];
   const nota='Cuadrante '+y+' ('+et+'). Revisado por la Sección Sindical de CCOO; contrasta siempre con el cuadrante oficial.';
-  const ev=(uid,extra,sum,desc)=>{L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+st+'Z','LAST-MODIFIED:'+st+'Z','SEQUENCE:'+seq);extra.forEach(x=>L.push(x));L.push('SUMMARY:'+e(sum),'DESCRIPTION:'+e(desc));if(alarma>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(sum),'TRIGGER:-PT'+alarma+'M','END:VALARM');L.push('END:VEVENT');};
+  const ev=(uid,extra,sum,desc,loc)=>{L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+st+'Z','LAST-MODIFIED:'+st+'Z','SEQUENCE:'+seq);extra.forEach(x=>L.push(x));L.push('SUMMARY:'+e(sum),'DESCRIPTION:'+e(desc));if(loc)L.push('LOCATION:'+e(loc));if(alarma>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(sum),'TRIGGER:-PT'+alarma+'M','END:VALARM');L.push('END:VEVENT');};
   const bl={V:[],B:[],P:[]};
   for(let i=0;i<N;i++){const x=info(p,i);if(!x.c)continue;
-    if(x.tipo==='T'&&x.hor){segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':'Turno '+x.c)+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+'\n'+nota);});}
+    if(x.tipo==='T'&&x.hor){segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':(x.c==='·'?'Turno':'Turno '+x.c))+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+(x.l?'\nLugar: '+x.l:'')+'\n'+nota,x.l);});}
     else if(bl[x.tipo])bl[x.tipo].push(i);}
   const nm={V:'Vacaciones',B:'Baja',P:'Permiso / otros'};
   Object.keys(bl).forEach(t=>rangos(bl[t]).forEach(([a,b])=>ev(mat+'-'+t+'-'+fd(a),['DTSTART;VALUE=DATE:'+fd(a),'DTEND;VALUE=DATE:'+fd(b+1)],nm[t],(b-a+1)+' días.\n'+nota)));
@@ -327,7 +391,30 @@ function render(){
 document.addEventListener('click',e=>{
   const tb=e.target.closest('[data-t]');if(tb&&tb.closest('#tabs')){tab=tb.dataset.t;render();window.scrollTo(0,0);return;}
   const mv=e.target.closest('[data-m]');if(mv){mes=(mes+ +mv.dataset.m+12)%12;selDia=-1;render();return;}
-  const d=e.target.closest('.dia');if(d){selDia=+d.dataset.i;render();return;}
+  if(e.target.closest('[data-edit]')){edit=!edit;brush=null;nuevoT=false;render();return;}
+  const bz=e.target.closest('[data-brush]');if(bz){brush=brush===bz.dataset.brush?null:bz.dataset.brush;render();return;}
+  if(e.target.closest('[data-nuevo]')){nuevoT=!nuevoT;render();return;}
+  if(e.target.closest('[data-gt]')){
+    const c=($('nt-c').value||'').trim().toUpperCase(),a=$('nt-e').value,b=$('nt-s').value;
+    if(!c||!a||!b){alert('Pon un nombre y las horas de entrada y salida.');return;}
+    const sg=segs(a+'-'+b),hs=sg.length?Math.round(sg.reduce((x,y)=>x+y[1]-y[0],0)/6)/10:null,l=($('nt-l').value||'').trim();
+    store.pal[c]=['T',a+'-'+b,hs,l];if(l)store.lug[c]=l;guardar();brush=c;nuevoT=false;render();return;}
+  const d=e.target.closest('.dia');
+  if(d){
+    const i=+d.dataset.i;
+    if(edit&&brush){const v={c:brush,l:brushLug};if(brush==='V'&&!legG(pack,'V'))store.pal.V=['V','',null];setEd(i,v);selDia=i;render();return;}
+    selDia=i;render();return;}
+  if(e.target.closest('[data-gd]')){
+    const i=selDia,c=$('ed-c').value,a=$('ed-e').value,b=$('ed-s').value;
+    if(c==='V'&&!legG(pack,'V'))store.pal.V=['V','',null];
+    setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim()});
+    const o=(store.ed[pack.y]||{})[i];if(o&&!c){delete o.c;guardar();}
+    render();return;}
+  if(e.target.closest('[data-qd]')){if(store.ed[pack.y])delete store.ed[pack.y][selDia];guardar();render();return;}
+  const vc=e.target.closest('[data-vacio]');if(vc){
+    const y=+vc.dataset.vacio,n=nDias(y);
+    store.packs[y]={actual:{v:1,y,mat:'',n:'',c:'',et:'propio',f:new Date().toISOString().slice(0,10),L:{},D:Array(n).fill(''),F:[],Hm:Array(12).fill(0),Tt:0,Tw:0,vm:31,rg:[144,176,134,162],red:true,fe:[],tel:''}};
+    store.ultimo=y;guardar();cargarActivo();tab='mes';edit=true;render();return;}
   const go=e.target.closest('[data-go]');if(go){selDia=+go.dataset.i;mes=fec(pack.y,selDia).getUTCMonth();tab='mes';render();return;}
   const v=e.target.closest('[data-ver]');if(v){const f=pack.F[+v.dataset.ver],d0=(f[4]||[])[0];if(d0!==undefined){selDia=d0;mes=fec(pack.y,d0).getUTCMonth();tab='mes';render();window.scrollTo(0,0);}return;}
   if(e.target.id==='bpega'){cargarTexto($('pega').value);return;}
@@ -338,7 +425,7 @@ document.addEventListener('click',e=>{
   }
 });
 document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();});
-document.addEventListener('input',e=>{if(e.target.id==='pv'){clearTimeout(window.__t);window.__t=setTimeout(comparar,500);}});
+document.addEventListener('input',e=>{if(e.target.id==='brl')brushLug=e.target.value.trim();if(e.target.id==='pv'){clearTimeout(window.__t);window.__t=setTimeout(comparar,500);}});
 
 async function cargarTexto(txt){
   const m=String(txt).match(/#d=([A-Za-z]\.[A-Za-z0-9_-]+)/);
