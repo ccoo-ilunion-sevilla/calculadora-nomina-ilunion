@@ -222,7 +222,8 @@ function cab(){
   if(!pack){$('cab').textContent='CCOO · Ilunion Seguridad Sevilla';return;}
   $('cab').innerHTML=esc(pack.n||'')+(pack.n?' · ':'')+'Nº '+esc(pack.mat||'—')+' · '+pack.y+'<span class="chip '+(pack.et==='definitivo'?'def':'')+'">'+esc(pack.et)+'</span>';
 }
-const cajaPegar=()=>'<div class="card"><h2>Cargar mi enlace</h2><p class="nota">Copia el enlace del mensaje de WhatsApp (o el mensaje entero) y pégalo aquí. Sirve si abriste el enlace en otro navegador o si instalaste la app y la ves vacía.</p><textarea id="pega" placeholder="Pega aquí el enlace…"></textarea><p style="margin-top:8px"><button class="btn pri" id="bpega">Cargar</button></p><div id="pmsg"></div></div>';
+const cajaPegar=()=>'<div class="card"><h2>Cargar mi enlace</h2><p class="nota">Copia el enlace del mensaje de WhatsApp (o el mensaje entero) y pégalo aquí. Sirve si abriste el enlace en otro navegador o si instalaste la app y la ves vacía.</p><textarea id="pega" placeholder="Pega aquí el enlace…"></textarea><p style="margin-top:8px"><button class="btn pri" id="bpega">Cargar</button></p><div id="pmsg"></div></div>'+
+  '<div class="card"><h2>Cargar mi PDF</h2><p class="nota">Si tienes el PDF de tu cuadrante que te ha pasado la Sección Sindical, elígelo aquí. Se lee en este móvil: no se envía a ningún sitio.</p><p style="margin-top:8px"><label class="btn pri" for="fpdf">Elegir PDF</label><input type="file" id="fpdf" accept="application/pdf,.pdf" style="display:none"></p><div id="fmsg"></div></div>';
 function vBienvenida(msg){
   return '<div class="card bienv"><h2>Mi cuadrante</h2><p>'+(msg?esc(msg):'Abre el <b>enlace personal</b> que te ha enviado la Sección Sindical por WhatsApp y verás tu cuadrante, los fallos que hemos detectado y podrás comprobar tus vacaciones.')+'</p></div>'+cajaPegar()+'<div class="card"><h2>¿Sin enlace?</h2><p class="nota">Puedes usar la app sola: marca tus días de trabajo, tus turnos y tus lugares, y llévalo a tu calendario.</p><p style="margin-top:8px"><button class="btn" data-vacio="'+new Date().getFullYear()+'">Empezar mi calendario '+new Date().getFullYear()+'</button> <button class="btn" data-vacio="'+(new Date().getFullYear()+1)+'">Empezar el '+(new Date().getFullYear()+1)+'</button></p></div>';
 }
@@ -424,7 +425,17 @@ document.addEventListener('click',e=>{
     a.download='cuadrante_'+pack.y+'_'+(pack.et==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   }
 });
-document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();});
+document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
+async function cargarPDF(f){
+  const out=$('fmsg');
+  try{
+    const buf=new Uint8Array(await f.arrayBuffer());let t='';
+    for(let i=0;i<buf.length;i+=65536)t+=String.fromCharCode.apply(null,buf.subarray(i,i+65536));
+    const m0=t.match(/MiCuadrante\s*\(([^)]+)\)/),v=m0?m0[1].replace(/\\([0-7]{3})/g,(a,o)=>String.fromCharCode(parseInt(o,8))):'',m=v.match(/^([A-Za-z])\.([A-Za-z0-9_-]+)$/);
+    if(!m)throw new Error('Este PDF no lleva los datos de tu cuadrante. Usa el PDF que te ha pasado la Sección Sindical.');
+    const p=await decodificar(m[1]+'.'+m[2]);if(importar(p)){cargarActivo();tab='hoy';selDia=-1;window.__msg=null;render();}
+  }catch(err){if(out)out.innerHTML='<div class="aviso err">'+esc(err.message)+'</div>';}
+}
 document.addEventListener('input',e=>{if(e.target.id==='brl')brushLug=e.target.value.trim();if(e.target.id==='pv'){clearTimeout(window.__t);window.__t=setTimeout(comparar,500);}});
 
 async function cargarTexto(txt){
