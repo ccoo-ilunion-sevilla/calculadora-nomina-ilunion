@@ -319,8 +319,8 @@ function vRevisar(){
   h+='<div class="card"><h2>Fallos detectados ('+F.length+')</h2>'+(F.length?F.map((f,k)=>'<div class="fallo-c '+f[0]+'"><span class="sev '+f[0]+'">'+(f[0]==='e'?'ERROR':'AVISO')+'</span><b>'+esc(f[1])+'</b><br>'+esc(f[2])+'<div class="nm">'+esc(f[3])+'</div>'+((f[4]||[]).length?'<p style="margin-top:6px"><button class="btn" data-ver="'+k+'">Ver en el calendario</button></p>':'')+'</div>').join(''):'<p class="ok">No se ha detectado ningún fallo con las reglas revisadas.</p><p class="nota" style="margin-top:6px">Eso no garantiza que el cuadrante sea correcto: revísalo tú también.</p>')+'</div>';
   // vacaciones
   const V=[];for(let i=0;i<nDias(y);i++)if(info(pack,i,true).tipo==='V')V.push(i);
-  const bl=rangos(V),tot=V.length,pt=store.pet[y]||{};
-  h+='<div class="card"><h2>Mis vacaciones</h2>'+(bl.length?'<div class="lista">'+bl.map(b=>'<div><span>'+rg(y,b)+'</span><b>'+(b[1]-b[0]+1)+' días</b></div>').join('')+'</div><p style="margin-top:6px">Concedidas: <b>'+tot+' días</b> '+(tot>=pack.vm?'<span class="ok">(alcanzan los '+pack.vm+')</span>':'<span class="mal">(faltan '+(pack.vm-tot)+' para '+pack.vm+')</span>')+'</p>':'<p class="mal">No figura ningún día de vacaciones en el cuadrante.</p>')+
+  const bl=rangos(V),vx=+(pack.vx||0),tot=V.length+vx,pt=store.pet[y]||{};
+  h+='<div class="card"><h2>Mis vacaciones</h2>'+(bl.length?'<div class="lista">'+bl.map(b=>'<div><span>'+rg(y,b)+'</span><b>'+(b[1]-b[0]+1)+' días</b></div>').join('')+(vx?'<div><span>01/01 → '+String(vx).padStart(2,'0')+'/01/'+(y+1)+' (siguen del tramo de Navidad)</span><b>'+vx+' días</b></div>':'')+'</div><p style="margin-top:6px">Concedidas: <b>'+tot+' días</b> '+(tot>=pack.vm?'<span class="ok">(alcanzan los '+pack.vm+')</span>':'<span class="mal">(faltan '+(pack.vm-tot)+' para '+pack.vm+')</span>')+'</p>':'<p class="mal">No figura ningún día de vacaciones en el cuadrante.</p>')+
     '<label for="pv">Fechas de vacaciones que <b>yo pedí</b></label><textarea id="pv" placeholder="Ej.: 14/07-31/07, 01/09-14/09">'+esc(pt.vac||'')+'</textarea><div id="pres"></div></div>';
   // cambios
   if(prev&&prev.y===y){
