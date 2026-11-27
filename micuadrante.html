@@ -143,7 +143,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const KEY='mc_v1',DIA=1440;
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DS=['dom','lun','mar','mié','jue','vie','sáb'],DL=['L','M','X','J','V','S','D'];
-let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{},fx:{}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false,hoja=-1;
+let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{},fx:{},al:{d:60,c:{}}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false,hoja=-1;
 try{store=Object.assign(store,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
 store.ed=store.ed||{};store.pal=store.pal||{};store.lug=store.lug||{};
 const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
@@ -193,6 +193,11 @@ function cargarActivo(){
 }
 
 /* ---------- información de un día ---------- */
+const ALOPT=[[0,'Sin aviso'],[15,'15 min antes'],[30,'30 min antes'],[45,'45 min antes'],[60,'1 hora antes'],[90,'1 h 30 min antes'],[120,'2 horas antes'],[180,'3 horas antes']];
+const alSel=(id,val,her)=>'<select id="'+id+'">'+(her?'<option value=""'+(val===undefined||val===null||val===''?' selected':'')+'>'+her+'</option>':'')+ALOPT.map(([m,t])=>'<option value="'+m+'"'+(val!==undefined&&val!==null&&val!==''&&+val===m?' selected':'')+'>'+t+'</option>').join('')+'</select>';
+const alTxt=m=>(ALOPT.find(x=>x[0]===+m)||[0,m+' min antes'])[1];
+const alCfg=()=>{store.al=store.al||{d:60,c:{}};store.al.c=store.al.c||{};if(store.al.d===undefined)store.al.d=60;return store.al;};
+function alarmaDe(p,i,x){const o=(p===pack&&store.ed[p.y]&&store.ed[p.y][i])||{};if(o.a!==undefined)return +o.a;const A=alCfg();if(x&&A.c[x.c]!==undefined)return +A.c[x.c];return +A.d;}
 const esForm=c=>/^F\d*$/.test(c||'');// formación: 5 h/día salvo horario propio
 const horasDe=h=>{const sg=segs(h);return sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;};
 const legG=(p,c,raw)=>{const g=p.L[c]||store.pal[c]||null;const hx=store.hx||{};if(!raw&&g&&g[0]==='T'&&p.L[c]&&hx[c])return['T',hx[c],horasDe(hx[c]),g[3]];return g;};
@@ -346,6 +351,7 @@ function editorTurno(c){
   return '<div class="det" style="background:#fff"><div class="fila2">'+(own?'<div><label for="et-c">Nombre / código</label><input type="text" id="et-c" maxlength="6" value="'+esc(c)+'"></div>':'')+
     '<div><label for="et-e">Entra</label><input type="time" id="et-e" value="'+esc(a||'')+'"></div><div><label for="et-s">Sale</label><input type="time" id="et-s" value="'+esc(b||'')+'"></div></div>'+
     (own?'<label for="et-l">Puesto habitual</label><input type="text" id="et-l" data-lug="1" autocomplete="off" value="'+esc(g[3]||store.lug[c]||'')+'">':'')+
+    '<label for="et-a">Alarma de este turno</label>'+alSel('et-a',alCfg().c[c],'Como la general ('+alTxt(alCfg().d)+')')+
     '<p style="margin-top:8px"><button class="btn pri" data-gt2="'+esc(c)+'">Guardar</button> '+(own?'<button class="btn" data-bt="'+esc(c)+'">Borrar turno</button>':((store.hx||{})[c]?'<button class="btn" data-rh="'+esc(c)+'">Volver al horario de la empresa</button>':''))+'</p></div>';
 }
 function panelRot(){
@@ -363,6 +369,7 @@ function editorDia(i){
     '<div class="fila2"><div><label for="ed-e">Hora propia: entra</label><input type="time" id="ed-e" value="'+esc((o.h||'').split('-')[0]||'')+'"></div><div><label for="ed-s">Sale</label><input type="time" id="ed-s" value="'+esc((o.h||'').split('-')[1]||'')+'"></div></div>'+
     '<label for="ed-l">Puesto de trabajo</label><input type="text" id="ed-l" data-lug="1" autocomplete="off" value="'+esc(o.l||'')+'" placeholder="'+esc(x.l||'Ej.: Puerta Jerez')+'">'+
     '<p style="margin-top:8px"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="ed-f"'+(fesSet(pack.y).has(i)?' checked':'')+'> Festivo en mi localidad</label></p>'+
+    '<label for="ed-a">Alarma este día</label>'+alSel('ed-a',o.a,'Como el turno ('+alTxt(alarmaDe(pack,-1,x))+')')+
     '<label for="ed-n">Nota</label><input type="text" id="ed-n" value="'+esc(o.n||'')+'" placeholder="Ej.: cambio acordado con Pepe">'+
     '<p style="margin-top:10px"><button class="btn pri" data-gd="1">Guardar</button> <button class="btn" data-qd="1">Quitar mi marca</button></p></div>';
 }
@@ -466,12 +473,14 @@ function comparar(){
 }
 function vCal(){
   return cajaPegar()+'<div class="card"><h2>Pasar mi cuadrante al calendario del móvil</h2><p class="nota">Descarga un archivo con todos tus turnos (con su hora) y tus vacaciones. Se importa en Google Calendar, Apple Calendar u Outlook.</p>'+
-    '<label for="al">Aviso antes de cada turno</label><select id="al"><option value="0">Sin aviso</option><option value="30">30 minutos antes</option><option value="60" selected>1 hora antes</option><option value="120">2 horas antes</option><option value="180">3 horas antes</option></select>'+
+    '<label for="al">Alarma antes de cada turno</label>'+alSel('al',alCfg().d)+
+    '<details style="margin-top:8px"><summary><b>Alarma distinta para cada turno</b></summary><p class="nota">Si no eliges nada, el turno usa la alarma general. Un día concreto se cambia en «Editar este día».</p>'+paleta().filter(c=>{const g=legG(pack,c);return g&&g[0]==='T';}).map(c=>{const g=legG(pack,c);return '<label for="alc-'+esc(c)+'">Turno '+esc(c)+(g[1]?' · '+esc(horTxt(g[1].split('+')[0])):'')+'</label>'+alSel('alc-'+esc(c),alCfg().c[c],'Como la general').replace('<select ','<select data-alc="'+esc(c)+'" ');}).join('')+'</details>'+
+    '<p class="nota" style="margin-top:8px">La alarma la da el calendario del móvil: suena aunque esta app esté cerrada. Si la cambias, vuelve a descargar e importar el calendario.</p>'+
     '<p style="margin-top:10px"><button class="btn pri" id="bics">Descargar calendario (.ics)</button></p></div>'+
     '<div class="card"><h2>Cómo importarlo</h2><div class="nota"><p><b>iPhone:</b> abre el archivo descargado y pulsa «Añadir todos». Mejor elige un calendario nuevo llamado «Cuadrante '+pack.y+' · '+esc(pack.et)+'».</p><p style="margin-top:6px"><b>Android / Google Calendar:</b> desde un ordenador, en calendar.google.com → Configuración → Importar y exportar. Crea antes un calendario nuevo para importarlo ahí.</p></div></div>'+
     '<div class="card"><h2>Cuando llegue el cuadrante definitivo</h2><p class="nota">Abre el nuevo enlace: esta app te enseñará los cambios. Para el calendario del móvil, <b>borra el calendario «Cuadrante '+pack.y+' · previsión»</b> e importa el nuevo; así no quedan turnos viejos.</p></div>';
 }
-function icsPack(p,alarma){
+function icsPack(p,alarma){let alEv=0;
   const y=p.y,N=nDias(y),pad=n=>String(n).padStart(2,'0');
   const f=abs=>{const d=new Date(Date.UTC(y,0,1)+abs*60000);return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00';};
   const fd=i=>{const d=fec(y,i);return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate());};
@@ -481,13 +490,13 @@ function icsPack(p,alarma){
   const et=p.et==='definitivo'?'definitivo':'previsión',seq=et==='definitivo'?1:0,mat=p.mat||'x';
   const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CCOO Ilunion Seguridad Sevilla//Mi cuadrante//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+e('Cuadrante '+y+' · '+et),'X-WR-TIMEZONE:Europe/Madrid'];
   const nota='Cuadrante '+y+' ('+et+'). Revisado por la Sección Sindical de CCOO; contrasta siempre con el cuadrante oficial.';
-  const ev=(uid,extra,sum,desc,loc)=>{L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+st+'Z','LAST-MODIFIED:'+st+'Z','SEQUENCE:'+seq);extra.forEach(x=>L.push(x));L.push('SUMMARY:'+e(sum),'DESCRIPTION:'+e(desc));if(loc)L.push('LOCATION:'+e(loc));if(alarma>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(sum),'TRIGGER:-PT'+alarma+'M','END:VALARM');L.push('END:VEVENT');};
+  const ev=(uid,extra,sum,desc,loc)=>{L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+st+'Z','LAST-MODIFIED:'+st+'Z','SEQUENCE:'+seq);extra.forEach(x=>L.push(x));L.push('SUMMARY:'+e(sum),'DESCRIPTION:'+e(desc));if(loc)L.push('LOCATION:'+e(loc));const am=typeof alarma==='function'?alEv:alarma;if(am>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(sum),'TRIGGER:-PT'+am+'M','END:VALARM');L.push('END:VEVENT');};
   const bl={V:[],B:[],P:[]};
   for(let i=0;i<N;i++){const x=info(p,i);if(!x.c)continue;
-    if(x.tipo==='T'&&x.hor){segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':(x.c==='·'?'Turno':'Turno '+x.c))+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+(x.l?'\nPuesto: '+x.l:'')+'\n'+nota,x.l);});}
+    if(x.tipo==='T'&&x.hor){alEv=typeof alarma==='function'?alarma(i,x):alarma;segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':(x.c==='·'?'Turno':'Turno '+x.c))+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+(x.l?'\nPuesto: '+x.l:'')+'\n'+nota,x.l);});}
     else if(bl[x.tipo])bl[x.tipo].push(i);}
   const nm={V:'Vacaciones',B:'Baja',P:'Permiso / otros'};
-  Object.keys(bl).forEach(t=>rangos(bl[t]).forEach(([a,b])=>ev(mat+'-'+t+'-'+fd(a),['DTSTART;VALUE=DATE:'+fd(a),'DTEND;VALUE=DATE:'+fd(b+1)],nm[t],(b-a+1)+' días.\n'+nota)));
+  Object.keys(bl).forEach(t=>rangos(bl[t]).forEach(([a,b])=>(alEv=0,ev)(mat+'-'+t+'-'+fd(a),['DTSTART;VALUE=DATE:'+fd(a),'DTEND;VALUE=DATE:'+fd(b+1)],nm[t],(b-a+1)+' días.\n'+nota)));
   L.push('END:VCALENDAR');return L.map(fold).join('\r\n')+'\r\n';
 }
 
@@ -512,6 +521,7 @@ document.addEventListener('click',e=>{
   const et=e.target.closest('[data-et]');if(et){edT=edT===et.dataset.et?null:et.dataset.et;render();return;}
   const g2=e.target.closest('[data-gt2]');if(g2){
     const c=g2.dataset.gt2,a=$('et-e').value,b=$('et-s').value;if(!a||!b){alert('Pon la hora de entrada y la de salida.');return;}
+    {const A=alCfg(),v=$('et-a').value,n=pack.L[c]?c:(($('et-c').value||'').trim().toUpperCase()||c);delete A.c[c];if(v!=='')A.c[n]=+v;}
     store.hx=store.hx||{};
     if(pack.L[c]){const gor=pack.L[c][1];if(gor===a+'-'+b)delete store.hx[c];else store.hx[c]=a+'-'+b;}
     else{const n=($('et-c').value||'').trim().toUpperCase()||c,l=($('et-l').value||'').trim();
@@ -555,7 +565,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-gd]')){
     const i=selDia,c=$('ed-c').value,a=$('ed-e').value,b=$('ed-s').value;
     if(c==='V'&&!legG(pack,'V'))store.pal.V=['V','',null];
-    setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim()});
+    setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim(),a:$('ed-a').value===''?undefined:+$('ed-a').value});{const o=(store.ed[pack.y]||{})[i];if(o&&$('ed-a').value==='')delete o.a;guardar();}
     {const y=pack.y,want=$('ed-f').checked,base=new Set(pack.fe||[]).has(i);store.fx=store.fx||{};store.fx[y]=store.fx[y]||{};if(want===base)delete store.fx[y][i];else store.fx[y][i]=want;guardar();}
     const o=(store.ed[pack.y]||{})[i];if(o&&!c){delete o.c;guardar();}
     if(hojaEd){hoja=-1;hojaEd=false;}
@@ -571,12 +581,12 @@ document.addEventListener('click',e=>{
   const v=e.target.closest('[data-ver]');if(v){const f=pack.F[+v.dataset.ver],d0=(f[4]||[])[0];if(d0!==undefined){selDia=d0;mes=fec(pack.y,d0).getUTCMonth();tab='mes';render();window.scrollTo(0,0);}return;}
   if(e.target.id==='bpega'){cargarTexto($('pega').value);return;}
   if(e.target.id==='bics'){
-    const txt=icsPack(pack,+$('al').value),a=document.createElement('a');
+    const txt=icsPack(pack,(i,x)=>alarmaDe(pack,i,x)),a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([txt],{type:'text/calendar;charset=utf-8'}));
     a.download='cuadrante_'+pack.y+'_'+(pack.et==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   }
 });
-document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
+document.addEventListener('change',e=>{if(e.target.id==='al'){alCfg().d=+e.target.value;guardar();}if(e.target.dataset&&e.target.dataset.alc!==undefined){const A=alCfg(),c=e.target.dataset.alc;if(e.target.value==='')delete A.c[c];else A.c[c]=+e.target.value;guardar();}if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
 async function cargarPDF(f){
   const out=$('fmsg');
   try{
