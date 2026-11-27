@@ -96,7 +96,7 @@ table.h td.bad{background:#FFD9D9;font-weight:700}
 .dia .lg{font-size:8px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
 .dia.ed::before{content:'✎';position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--azul)}
 .fila2{display:flex;gap:8px}.fila2>*{flex:1}
-.sug{display:flex;flex-direction:column;border:1px solid var(--linea);border-radius:8px;margin-top:2px;background:#fff;overflow:hidden;box-shadow:0 4px 12px #0001}.sug button{all:unset;padding:11px 12px;font-size:15px;border-bottom:1px solid var(--linea);cursor:pointer}.sug button:last-child{border-bottom:0}.sug button:hover{background:#F0F7FF}
+.sug{display:flex;flex-direction:column;border:1px solid var(--linea);border-radius:8px;margin-top:2px;background:#fff;overflow:hidden;box-shadow:0 4px 12px #0001}.sug button{all:unset;padding:11px 12px;font-size:15px;border-bottom:1px solid var(--linea);cursor:pointer}.sug button:last-child{border-bottom:0}.sug button:hover{background:#F0F7FF}.sug .ab2{display:inline-block;min-width:26px;font-size:11px;color:#fff;background:#1F4E8C;border-radius:4px;padding:1px 4px;text-align:center;margin-right:6px}
 .trow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--linea)}.trow:last-child{border-bottom:0}
 footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:6px 16px 20px}
 </style>
@@ -257,7 +257,7 @@ function paleta(){
   const out=[];Object.keys(pack.L).forEach(c=>{if(pack.L[c][0]==='T')out.push(c);});Object.keys(store.pal).forEach(c=>{if(store.pal[c][0]==='T'&&!out.includes(c))out.push(c);});
   return out.sort((a,b)=>(isNaN(a)-isNaN(b))||(+a-+b)||a.localeCompare(b));
 }
-function abLug(l){const w=l.replace(/^(estaci[oó]n|est\.?)\s+/i,'').replace(/\(.*?\)/g,'').split(/[\s\-]+/).filter(x=>x&&!/^(de|del|la|las|los|el|y)$/i.test(x));
+function abLug(l){{const k=normL(l.replace(/^(estaci[oó]n|est\.?)\s+/i,'').trim());if(typeof LUG_AB!=='undefined'&&LUG_AB[k])return LUG_AB[k];}const w=l.replace(/^(estaci[oó]n|est\.?)\s+/i,'').replace(/\(.*?\)/g,'').split(/[\s\-]+/).filter(x=>x&&!/^(de|del|la|las|los|el|y)$/i.test(x));
   if(!w.length)return'';if(/^[A-Z0-9]{2,}$/.test(w[0]))return w[0].slice(0,4);if(w.length===1)return w[0].slice(0,3).toUpperCase();return w.map(x=>/^\d/.test(x)?x.replace(/\D.*$/,''):x[0].toUpperCase()).join('').slice(0,4);}
 function fesSet(y){const st=new Set(pack.fe||[]),fx=(store.fx||{})[y]||{};Object.keys(fx).forEach(k=>{if(fx[k])st.add(+k);else st.delete(+k);});return st;}
 function resumenMes(y,m){
@@ -304,7 +304,7 @@ function vMes(){
   if(edit){
     const chips=[['-','Libre'],['V','Vacaciones']].concat(paleta().map(c=>[c,c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1].split('+')[0]):'')]));
     barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Toca el turno otra vez para soltarlo y editar un día suelto (hora propia, lugar, nota).</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button><button class="chp" data-gest="1" aria-pressed="'+gesT+'">⚙ Mis turnos y horarios</button><button class="chp" data-rot="1" aria-pressed="'+rotT+'">🔁 Generar rotación</button></div>'+(gesT?panelTurnos():'')+(rotT?panelRot():'')+
-      '<label for="brl">Lugar de trabajo para lo que marques (opcional)</label><input type="text" id="brl" data-lug="1" autocomplete="off" placeholder="Ej.: Estación Puerta Jerez" value="'+esc(brushLug)+'">'+
+      '<label for="brl">Lugar de trabajo para lo que marques (opcional)</label><input type="text" id="brl" data-lug="1" autocomplete="off" placeholder="Escribe el código o la estación: PJ, Puerta Jerez…" value="'+esc(brushLug)+'">'+
       (nuevoT?'<div class="det" style="margin-top:10px"><b>Nuevo turno propio</b><div class="fila2"><div><label for="nt-c">Nombre / código</label><input type="text" id="nt-c" maxlength="6" placeholder="M1"></div><div><label for="nt-e">Entra</label><input type="time" id="nt-e" value="07:00"></div><div><label for="nt-s">Sale</label><input type="time" id="nt-s" value="15:00"></div></div><label for="nt-l">Lugar habitual (opcional)</label><input type="text" id="nt-l" data-lug="1" autocomplete="off"><p style="margin-top:8px"><button class="btn pri" data-gt="1">Guardar turno</button></p></div>':'')+
       '</div><datalist id="dl-lug">'+lugares().map(l=>'<option value="'+esc(l)+'">').join('')+'</datalist>';
   }
@@ -527,13 +527,15 @@ async function cargarPDF(f){
     const p=await decodificar(m[1]+'.'+m[2]);if(importar(p)){cargarActivo();tab='hoy';selDia=-1;window.__msg=null;render();}
   }catch(err){if(out)out.innerHTML='<div class="aviso err">'+esc(err.message)+'</div>';}
 }
-const LUG_BASE=['Metro de Sevilla','Cocheras (Metro)','PCC Metro','Estación Ciudad Expo','Estación Cavaleri','Estación San Juan Alto','Estación San Juan Bajo','Estación Blas Infante','Estación Parque de los Príncipes','Estación Plaza de Cuba','Estación Puerta Jerez','Estación Prado de San Sebastián','Estación San Bernardo','Estación Nervión','Estación Gran Plaza','Estación 1º de Mayo','Estación Amate','Estación La Plata','Estación Cocheras','Estación Guadaíra','Estación Pablo de Olavide','Estación Condequinto','Estación Montequinto','Estación Europa','Estación Olivar de Quintos'];
 const normL=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const LUG_COD=[['CE','Ciudad Expo'],['CA','Cavaleri'],['JA','San Juan Alto'],['A','Ascensor'],['BI','Blas Infante'],['PP','Parque de los Príncipes'],['PC','Plaza de Cuba'],['PJ','Puerta Jerez'],['PS','Prado de San Sebastián'],['SB','San Bernardo'],['NE','Nervión'],['GP','Gran Plaza'],['MA','1º de Mayo'],['AM','Amate'],['LP','La Plata'],['CO','Cocheras'],['PO','Pablo de Olavide'],['CQ','Condequinto'],['EU','Europa'],['OQ','Olivar de Quintos'],['PL','Puesto de Línea'],['B','Búho']];
+const LUG_BASE=LUG_COD.map(x=>x[1]).concat(['San Juan Bajo','Guadaíra','Montequinto']);
+const LUG_AB=Object.fromEntries(LUG_COD.map(([c,n])=>[normL(n),c]));
 function sugLug(q){const qq=normL(q.trim());if(!qq)return[];const all=[...new Set(lugares().concat(LUG_BASE,pack&&pack.c?[pack.c]:[]))];
-  const sc=x=>{const t=normL(x);if(t.startsWith(qq))return 0;if(t.split(/[\s\-·(),]+/).some(w=>w.startsWith(qq)))return 1;if(t.includes(qq))return 2;const tc=t.replace(/[^a-z0-9]/g,''),qc=qq.replace(/[^a-z0-9]/g,'');return qc&&tc.includes(qc)?3:9;};
+  const sc=x=>{const t=normL(x),cd=LUG_AB[t];if(cd&&normL(cd)===qq)return -1;if(t.startsWith(qq))return 0;if(t.split(/[\s\-·(),]+/).some(w=>w.startsWith(qq)))return 1;if(t.includes(qq))return 2;const tc=t.replace(/[^a-z0-9]/g,''),qc=qq.replace(/[^a-z0-9]/g,'');return qc&&tc.includes(qc)?3:9;};
   return all.map(x=>[sc(x),x]).filter(a=>a[0]<9).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])).slice(0,7).map(a=>a[1]);}
 function pintaSug(el){let box=el.nextElementSibling;if(!box||!box.classList.contains('sug')){box=document.createElement('div');box.className='sug';el.after(box);}
-  const L=sugLug(el.value).filter(x=>x!==el.value);box.innerHTML=L.map(x=>'<button type="button" data-sug="'+esc(x)+'">'+esc(x)+'</button>').join('');box.hidden=!L.length;}
+  const L=sugLug(el.value).filter(x=>x!==el.value);box.innerHTML=L.map(x=>{const cd=LUG_AB[normL(x)];return '<button type="button" data-sug="'+esc(x)+'">'+(cd?'<b class="ab2">'+esc(cd)+'</b> ':'')+esc(x)+'</button>';}).join('');box.hidden=!L.length;}
 document.addEventListener('focusout',e=>{if(e.target.dataset&&e.target.dataset.lug){const box=e.target.nextElementSibling;setTimeout(()=>{if(box&&box.classList.contains('sug'))box.hidden=true;},200);}});
 document.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-sug]');if(!b)return;e.preventDefault();const box=b.parentElement,inp=box.previousElementSibling;inp.value=b.dataset.sug;if(inp.id==='brl')brushLug=inp.value.trim();box.hidden=true;});
 document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.lug)pintaSug(e.target);if(e.target.id==='brl')brushLug=e.target.value.trim();if(e.target.id==='pv'){clearTimeout(window.__t);window.__t=setTimeout(comparar,500);}});
