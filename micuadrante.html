@@ -121,7 +121,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const KEY='mc_v1',DIA=1440;
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DS=['dom','lun','mar','mié','jue','vie','sáb'],DL=['L','M','X','J','V','S','D'];
-let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false;
+let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{},fx:{}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false;
 try{store=Object.assign(store,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
 store.ed=store.ed||{};store.pal=store.pal||{};store.lug=store.lug||{};
 const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
@@ -254,8 +254,40 @@ function paleta(){
   const out=[];Object.keys(pack.L).forEach(c=>{if(pack.L[c][0]==='T')out.push(c);});Object.keys(store.pal).forEach(c=>{if(store.pal[c][0]==='T'&&!out.includes(c))out.push(c);});
   return out.sort((a,b)=>(isNaN(a)-isNaN(b))||(+a-+b)||a.localeCompare(b));
 }
+function fesSet(y){const st=new Set(pack.fe||[]),fx=(store.fx||{})[y]||{};Object.keys(fx).forEach(k=>{if(fx[k])st.add(+k);else st.delete(+k);});return st;}
+function resumenMes(y,m){
+  const fe=fesSet(y),first=idx(y,m,1),n=dm(y,m),nd=nDias(y);
+  const esEsp=i=>{if(i<0)return false;if(i>=nd)return(fec(y,nd-1).getUTCDay()===6);const w=fec(y,i).getUTCDay();return w===0||w===6||fe.has(i);};
+  // dia siguiente fuera del año: 01/01 siempre festivo
+  const esp2=i=>i>=nd?true:esEsp(i);
+  let tr=0,noc=0,nocP=0,fin=0,nt=0,n24=false,n31=false,sinH=0;
+  for(let d=1;d<=n;d++){
+    const i=first+d-1,x=info(pack,i);if(x.tipo!=='T')continue;
+    const sg=segs(x.hor);if(!sg.length){sinH++;continue;}nt++;
+    let tTot=0,tNoc=0;
+    sg.forEach(([a,b])=>{tr+=b-a;tTot+=b-a;
+      const cuts=new Set([a,b]);for(let k=Math.floor(a/1440)*1440;k<=b;k+=1440){[k,k+360,k+1320,k+1440].forEach(c=>{if(c>a&&c<b)cuts.add(c);});}
+      const L=[...cuts].sort((u,v)=>u-v);
+      for(let j=0;j<L.length-1;j++){const u=L[j],v=L[j+1],mid=(u+v)/2,dd=Math.floor(mid/1440),hm=mid-dd*1440,len=v-u;
+        if(hm<360||hm>=1320){noc+=len;tNoc+=len;}
+        if(esp2(i+dd))fin+=len;
+        if(hm>=1320||hm<360){const ni=hm>=1320?i+dd:i+dd-1,f=fec(y,Math.min(Math.max(ni,0),nd-1));if(ni>=0&&ni<nd&&f.getUTCMonth()===11){if(f.getUTCDate()===24)n24=true;if(f.getUTCDate()===31)n31=true;}}
+      }});
+    nocP+=tNoc>=240?Math.min(tTot,480):tNoc;
+  }
+  const h=x=>String(Math.round(x/6)/10).replace('.',',');
+  return '<div class="card"><h2>Horas de '+MES[m].toLowerCase()+' para tu nómina</h2><div class="lista">'+
+    '<div><span>Turnos trabajados</span><b>'+nt+'</b></div>'+
+    '<div><span>Horas trabajadas</span><b>'+h(tr)+' h</b></div>'+
+    '<div><span>Horas nocturnas (22:00–06:00)</span><b>'+h(noc)+' h</b></div>'+
+    '<div><span>Horas de plus de nocturnidad<br><small class="nota">turno con 4 h o más de noche: cuenta el turno entero, máx. 8 h</small></span><b>'+h(nocP)+' h</b></div>'+
+    '<div><span>Horas en sábado, domingo o festivo<br><small class="nota">de 00:00 a 24:00 de esos días</small></span><b>'+h(fin)+' h</b></div>'+
+    (m===11?'<div><span>Noche del 24 / noche del 31</span><b>'+(n24?'trabajas':'libras')+' / '+(n31?'trabajas':'libras')+'</b></div>':'')+
+    '</div>'+(sinH?'<p class="mal" style="margin-top:6px">'+sinH+' turno'+(sinH>1?'s':'')+' sin horario: no se cuentan.</p>':'')+
+    '<p class="nota" style="margin-top:6px">Según el convenio estatal de seguridad (art. 43 g y h; art. 44 b para las noches del 24 y 31). Los turnos que pasan de medianoche se cuentan en el día en que empiezan. Compáralo con los pluses de tu nómina; si tu empresa paga por su propio convenio, las reglas pueden variar.</p></div>';
+}
 function vMes(){
-  const y=pack.y,m=mes,fl=diasFallo(),cm=diasCambio(),fe=new Set(pack.fe||[]),h=hoyIdx(y);
+  const y=pack.y,m=mes,fl=diasFallo(),cm=diasCambio(),fe=fesSet(y),h=hoyIdx(y);
   const pt=store.pet[y]||{},ped=pt.vac?parseRangos(pt.vac,y).dias:new Set();
   const first=idx(y,m,1),off=(fec(y,first).getUTCDay()+6)%7,n=dm(y,m);
   let g=DL.map(d=>'<div class="dh">'+d+'</div>').join('')+'<div></div>'.repeat(off);
@@ -274,7 +306,7 @@ function vMes(){
   const det=selDia>=0&&fec(y,selDia).getUTCMonth()===m?detalleDia(selDia)+(edit&&!brush?editorDia(selDia):''):'<div class="det nota">Toca un día para ver el detalle.</div>';
   return '<div class="mnav"><button data-m="-1" aria-label="Mes anterior">‹</button><b>'+MES[m]+' '+y+'</b><button data-m="1" aria-label="Mes siguiente">›</button></div>'+
     '<p style="margin-bottom:8px"><button class="btn'+(edit?' pri':'')+'" data-edit="1">'+(edit?'✔ Terminar de marcar':'✎ Marcar mis días')+'</button></p>'+barra+'<div class="grid">'+g+'</div>'+
-    '<p class="nota" style="margin-top:8px">Rojo: día con fallo · punto amarillo: cambió respecto a tu versión anterior · azul discontinuo: vacaciones que pediste · ✎: marca tuya · sombreado inferior: sáb/dom · número rojo: festivo.</p>'+det;
+    resumenMes(y,m)+'<p class="nota" style="margin-top:8px">Rojo: día con fallo · punto amarillo: cambió respecto a tu versión anterior · azul discontinuo: vacaciones que pediste · ✎: marca tuya · sombreado inferior: sáb/dom · número rojo: festivo.</p>'+det;
 }
 function panelTurnos(){
   const hx=store.hx||{};
@@ -304,6 +336,7 @@ function editorDia(i){
   return '<div class="det" style="margin-top:8px"><b>Editar este día</b><label for="ed-c">Turno</label><select id="ed-c">'+opt('','Como en el cuadrante',cur==='')+opt('-','Libre',cur==='-')+opt('V','Vacaciones',cur==='V')+cods.map(c=>opt(c,'Turno '+c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1]):''),cur===c)).join('')+'</select>'+
     '<div class="fila2"><div><label for="ed-e">Hora propia: entra</label><input type="time" id="ed-e" value="'+esc((o.h||'').split('-')[0]||'')+'"></div><div><label for="ed-s">Sale</label><input type="time" id="ed-s" value="'+esc((o.h||'').split('-')[1]||'')+'"></div></div>'+
     '<label for="ed-l">Lugar de trabajo</label><input type="text" id="ed-l" list="dl-lug" value="'+esc(o.l||'')+'" placeholder="'+esc(x.l||'Ej.: Estación Puerta Jerez')+'">'+
+    '<p style="margin-top:8px"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="ed-f"'+(fesSet(pack.y).has(i)?' checked':'')+'> Festivo en mi localidad</label></p>'+
     '<label for="ed-n">Nota</label><input type="text" id="ed-n" value="'+esc(o.n||'')+'" placeholder="Ej.: cambio acordado con Pepe">'+
     '<p style="margin-top:10px"><button class="btn pri" data-gd="1">Guardar</button> <button class="btn" data-qd="1">Quitar mi marca</button></p></div>';
 }
@@ -325,7 +358,7 @@ function detalleDia(i){
   return h+'</div>';
 }
 function vAnio(){
-  const y=pack.y,fl=diasFallo(),cm=diasCambio(),fe=new Set(pack.fe||[]);let h='<div class="anio"><table><tr><th></th>'+Array.from({length:31},(_,d)=>'<th>'+(d+1)+'</th>').join('')+'</tr>';
+  const y=pack.y,fl=diasFallo(),cm=diasCambio(),fe=fesSet(y);let h='<div class="anio"><table><tr><th></th>'+Array.from({length:31},(_,d)=>'<th>'+(d+1)+'</th>').join('')+'</tr>';
   for(let m=0;m<12;m++){
     h+='<tr><td class="m">'+MES[m].slice(0,3)+'</td>';
     for(let d=0;d<31;d++){
@@ -461,6 +494,7 @@ document.addEventListener('click',e=>{
     const i=selDia,c=$('ed-c').value,a=$('ed-e').value,b=$('ed-s').value;
     if(c==='V'&&!legG(pack,'V'))store.pal.V=['V','',null];
     setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim()});
+    {const y=pack.y,want=$('ed-f').checked,base=new Set(pack.fe||[]).has(i);store.fx=store.fx||{};store.fx[y]=store.fx[y]||{};if(want===base)delete store.fx[y][i];else store.fx[y][i]=want;guardar();}
     const o=(store.ed[pack.y]||{})[i];if(o&&!c){delete o.c;guardar();}
     render();return;}
   if(e.target.closest('[data-qd]')){if(store.ed[pack.y])delete store.ed[pack.y][selDia];guardar();render();return;}
