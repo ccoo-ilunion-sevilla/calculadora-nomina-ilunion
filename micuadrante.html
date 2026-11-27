@@ -42,7 +42,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
 .hoy{display:flex;align-items:center;gap:14px}
 .hoy .cod{font-family:'Archivo Black',sans-serif;font-size:34px;min-width:64px;text-align:center;border-radius:8px;padding:6px 8px}
 .hoy .hh{font-size:19px;font-weight:700}
-.t{background:#DCEBFA}.n{background:#C9C6EE}.l{background:#EDEFF1;color:#6a717a}.v{background:#CDEFD8}.b{background:#FDE9B8}.x{background:#FFB3B3}
+.t{background:#DCEBFA}.t.m{background:#F0F7FF}.n{background:#C9C6EE}.l{background:#EDEFF1;color:#6a717a}.v{background:#CDEFD8}.b{background:#FDE9B8}.x{background:#FFB3B3}
 .lista div{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--linea);font-size:14px}
 .lista div:last-child{border:0}
 .mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -188,7 +188,7 @@ function segs(hor){
   return out;
 }
 const esNoche=hor=>{const s=segs(hor);if(!s.length)return false;const a=s[0][0]%DIA;return a>=1140||a<360;};
-const cls=(i)=>{const x=info(pack,i);if(x.tipo==='L')return'l';if(x.tipo==='V')return'v';if(x.tipo==='B'||x.tipo==='P')return'b';if(x.tipo==='?')return'x';return esNoche(x.hor)?'n':'t';};
+const cls=(i)=>{const x=info(pack,i);if(x.tipo==='L')return'l';if(x.tipo==='V')return'v';if(x.tipo==='B'||x.tipo==='P')return'b';if(x.tipo==='?')return'x';if(esNoche(x.hor))return'n';const sg=segs(x.hor);return sg.length&&sg[0][0]%DIA<720?'t m':'t';};
 const horTxt=hor=>hor.split('+').map(s=>s.replace('-','–')).join(' + ');
 const nombreTipo={T:'Turno',L:'Libre',V:'Vacaciones',B:'Baja',P:'Permiso / otros','?':'Código sin definir'};
 const descDia=(p,i)=>{const x=info(p,i);return x.tipo==='T'?(x.c==='·'?'Turno propio':'Turno '+x.c)+' · '+horTxt(x.hor)+(x.horas!==null?' ('+String(x.horas).replace('.',',')+' h)':''):(x.c?(nombreTipo[x.tipo]||x.tipo)+' ('+x.c+')':'Libre');};
