@@ -109,6 +109,9 @@ table.h td.bad{background:#FFD9D9;font-weight:700}
 .dia.ed::before{content:'✎';position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--azul)}
 .fila2{display:flex;gap:8px}.fila2>*{flex:1}
 .sug{display:flex;flex-direction:column;border:1px solid var(--linea);border-radius:8px;margin-top:2px;background:#fff;overflow:hidden;box-shadow:0 4px 12px #0001}.sug button{all:unset;padding:11px 12px;font-size:15px;border-bottom:1px solid var(--linea);cursor:pointer}.sug button:last-child{border-bottom:0}.sug button:hover{background:#F0F7FF}
+.avb{position:fixed;inset:0;background:#0008;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.av{background:#fff;border-radius:12px;max-width:420px;padding:16px;box-shadow:0 8px 30px #0005}.av h3{margin:0 0 8px;font-size:17px}.av ol{margin:8px 0 8px 18px;padding:0}.av li{margin:4px 0}
+.pend{background:#FFF4CC;border:1px solid #F2B400;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:14px}
 .sheet-bg{position:fixed;inset:0;background:#0007;z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fd .15s}
 .sheet{background:#fff;width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px #0003;animation:up .2s ease-out}
 .sheet .det{background:#fff;border:0;padding:4px 0;font-size:16px}.sh-asa{width:42px;height:5px;border-radius:3px;background:#ccc;margin:0 auto 8px}
@@ -197,6 +200,15 @@ const ALOPT=[[0,'Sin aviso'],[15,'15 min antes'],[30,'30 min antes'],[45,'45 min
 const alSel=(id,val,her)=>'<select id="'+id+'">'+(her?'<option value=""'+(val===undefined||val===null||val===''?' selected':'')+'>'+her+'</option>':'')+ALOPT.map(([m,t])=>'<option value="'+m+'"'+(val!==undefined&&val!==null&&val!==''&&+val===m?' selected':'')+'>'+t+'</option>').join('')+'</select>';
 const alTxt=m=>(ALOPT.find(x=>x[0]===+m)||[0,m+' min antes'])[1];
 const alCfg=()=>{store.al=store.al||{d:0,c:{},v:2};store.al.c=store.al.c||{};if(store.al.v!==2){store.al.d=0;store.al.v=2;}if(store.al.d===undefined)store.al.d=0;return store.al;};// sin alarma salvo que el trabajador la elija
+function avisoAlarma(min,que){
+  const A=alCfg();A.pend=true;guardar();if(A.noAv||!(min>0))return;
+  const d=document.createElement('div');d.className='avb';d.innerHTML='<div class="av" role="dialog" aria-label="Alarma activada"><h3>⏰ Alarma activada</h3><p>'+esc(alTxt(min))+(que?' '+esc(que):'')+'.</p>'+
+   '<p style="margin-top:8px"><b>Sonará en el calendario de tu móvil, no en esta app.</b> Para que funcione:</p><ol><li>Ve a la pestaña «Calendario» y pulsa «Descargar calendario».</li><li>Impórtalo en tu móvil (si ya lo tenías, borra antes el calendario anterior).</li><li>Abre un turno en el calendario y comprueba que tiene el aviso.</li></ol>'+
+   '<p class="nota">iPhone: suena con el sonido de avisos de Calendario. Android: llega como notificación de Google Calendar; si no aparece, activa las notificaciones de ese calendario y vuelve a importarlo. Con el móvil en silencio solo vibra.</p>'+
+   '<p style="margin-top:8px"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="av-no"> No volver a mostrar</label></p>'+
+   '<p style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" data-avcal="1">Ir a Calendario</button><button class="btn" data-avok="1">Entendido</button></p></div>';
+  document.body.appendChild(d);
+}
 function alarmaDe(p,i,x){const o=(p===pack&&store.ed[p.y]&&store.ed[p.y][i])||{};if(o.a!==undefined)return +o.a;const A=alCfg();if(x&&A.c[x.c]!==undefined)return +A.c[x.c];return +A.d;}
 const esForm=c=>/^F\d*$/.test(c||'');// formación: 5 h/día salvo horario propio
 const horasDe=h=>{const sg=segs(h);return sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;};
@@ -478,7 +490,7 @@ function comparar(){
 }
 function vCal(){
   return cajaPegar()+'<div class="card"><h2>Pasar mi cuadrante al calendario del móvil</h2><p class="nota">Descarga un archivo con todos tus turnos (con su hora) y tus vacaciones. Se importa en Google Calendar, Apple Calendar u Outlook.</p>'+
-    '<label for="al">Alarma antes de cada turno</label>'+alSel('al',alCfg().d)+
+    (alCfg().pend?'<div class="pend">⏰ Has cambiado alarmas. Descarga el calendario y vuelve a importarlo para que suenen.</div>':'')+'<label for="al">Alarma antes de cada turno</label>'+alSel('al',alCfg().d)+
     '<details style="margin-top:8px"><summary><b>Alarma distinta para cada turno</b></summary><p class="nota">Si no eliges nada, el turno usa la alarma general. Un día concreto se cambia en «Editar este día».</p>'+paleta().filter(c=>{const g=legG(pack,c);return g&&g[0]==='T';}).map(c=>{const g=legG(pack,c);return '<label for="alc-'+esc(c)+'">Turno '+esc(c)+(g[1]?' · '+esc(horTxt(g[1].split('+')[0])):'')+'</label>'+alSel('alc-'+esc(c),alCfg().c[c],'Como la general').replace('<select ','<select data-alc="'+esc(c)+'" ');}).join('')+'</details>'+
     '<p class="nota" style="margin-top:8px">La alarma la da el calendario del móvil: suena aunque esta app esté cerrada. Si la cambias, vuelve a descargar e importar el calendario.</p>'+
     '<p style="margin-top:10px"><button class="btn pri" id="bics">Descargar calendario (.ics)</button></p></div>'+
@@ -526,7 +538,7 @@ document.addEventListener('click',e=>{
   const et=e.target.closest('[data-et]');if(et){edT=edT===et.dataset.et?null:et.dataset.et;render();return;}
   const g2=e.target.closest('[data-gt2]');if(g2){
     const c=g2.dataset.gt2,a=$('et-e').value,b=$('et-s').value;if(!a||!b){alert('Pon la hora de entrada y la de salida.');return;}
-    {const A=alCfg(),v=$('et-a').value,n=pack.L[c]?c:(($('et-c').value||'').trim().toUpperCase()||c);delete A.c[c];if(v!=='')A.c[n]=+v;}
+    {const A=alCfg(),v=$('et-a').value,n=pack.L[c]?c:(($('et-c').value||'').trim().toUpperCase()||c);const old=A.c[c];delete A.c[c];if(v!=='')A.c[n]=+v;if(v!==''&&+v!==old)setTimeout(()=>avisoAlarma(+v,'de tus turnos '+n),0);}
     store.hx=store.hx||{};
     if(pack.L[c]){const gor=pack.L[c][1];if(gor===a+'-'+b)delete store.hx[c];else store.hx[c]=a+'-'+b;}
     else{const n=($('et-c').value||'').trim().toUpperCase()||c,l=($('et-l').value||'').trim();
@@ -555,7 +567,8 @@ document.addEventListener('click',e=>{
     if(!c||!a||!b){alert('Pon un nombre y las horas de entrada y salida.');return;}
     const sg=segs(a+'-'+b),hs=sg.length?Math.round(sg.reduce((x,y)=>x+y[1]-y[0],0)/6)/10:null,l=($('nt-l').value||'').trim();
     store.pal[c]=['T',a+'-'+b,hs,l];if(l)store.lug[c]=l;guardar();brush=c;nuevoT=false;render();return;}
-  {const t=e.target.closest('[data-shat]');if(t&&hoja>=0){const A=alCfg(),c=t.dataset.shat,v=alarmaDe(pack,hoja,info(pack,hoja));A.c[c]=v;Object.values(store.ed[pack.y]||{}).forEach(o=>{if(o.a!==undefined&&o.a===v)delete o.a;});guardar();t.textContent='Hecho: todos tus turnos '+c+' con '+alTxt(v).replace(' antes','')+' de aviso';t.disabled=true;return;}}
+  {const k=e.target.closest('[data-avok],[data-avcal]');if(k){const b=k.closest('.avb');if(document.getElementById('av-no')&&document.getElementById('av-no').checked){alCfg().noAv=true;guardar();}b.remove();if(k.dataset.avcal){hoja=-1;hojaEd=false;tab='cal';render();window.scrollTo(0,0);}return;}}
+  {const t=e.target.closest('[data-shat]');if(t&&hoja>=0){const A=alCfg(),c=t.dataset.shat,v=alarmaDe(pack,hoja,info(pack,hoja));A.c[c]=v;A.pend=true;Object.values(store.ed[pack.y]||{}).forEach(o=>{if(o.a!==undefined&&o.a===v)delete o.a;});guardar();t.textContent='Hecho: todos tus turnos '+c+' con '+alTxt(v).replace(' antes','')+' de aviso';t.disabled=true;return;}}
   if(e.target.closest('[data-shx]')||e.target.classList.contains('sheet-bg')){hoja=-1;hojaEd=false;render();return;}
   if(e.target.closest('[data-shl]')){const v=($('sh-l').value||'').trim();setEd(hoja,{l:v});hoja=-1;render();return;}
   if(e.target.closest('[data-shq]')){setEd(hoja,{l:''});hoja=-1;render();return;}
@@ -571,7 +584,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-gd]')){
     const i=selDia,c=$('ed-c').value,a=$('ed-e').value,b=$('ed-s').value;
     if(c==='V'&&!legG(pack,'V'))store.pal.V=['V','',null];
-    setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim(),a:$('ed-a').value===''?undefined:+$('ed-a').value});{const o=(store.ed[pack.y]||{})[i];if(o&&$('ed-a').value==='')delete o.a;guardar();}
+    setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim(),a:$('ed-a').value===''?undefined:+$('ed-a').value});{const o=(store.ed[pack.y]||{})[i];if(o&&$('ed-a').value==='')delete o.a;guardar();if($('ed-a').value!==''){const v=+$('ed-a').value;setTimeout(()=>avisoAlarma(v,'del '+fmt(pack.y,i)),0);}}
     {const y=pack.y,want=$('ed-f').checked,base=new Set(pack.fe||[]).has(i);store.fx=store.fx||{};store.fx[y]=store.fx[y]||{};if(want===base)delete store.fx[y][i];else store.fx[y][i]=want;guardar();}
     const o=(store.ed[pack.y]||{})[i];if(o&&!c){delete o.c;guardar();}
     if(hojaEd){hoja=-1;hojaEd=false;}
@@ -586,13 +599,13 @@ document.addEventListener('click',e=>{
   const go=e.target.closest('[data-go]');if(go){selDia=+go.dataset.i;mes=fec(pack.y,selDia).getUTCMonth();tab='mes';render();return;}
   const v=e.target.closest('[data-ver]');if(v){const f=pack.F[+v.dataset.ver],d0=(f[4]||[])[0];if(d0!==undefined){selDia=d0;mes=fec(pack.y,d0).getUTCMonth();tab='mes';render();window.scrollTo(0,0);}return;}
   if(e.target.id==='bpega'){cargarTexto($('pega').value);return;}
-  if(e.target.id==='bics'){
+  if(e.target.id==='bics'){if(alCfg().pend){alCfg().pend=false;guardar();setTimeout(render,500);}
     const txt=icsPack(pack,(i,x)=>alarmaDe(pack,i,x)),a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([txt],{type:'text/calendar;charset=utf-8'}));
     a.download='cuadrante_'+pack.y+'_'+(pack.et==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   }
 });
-document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.sha&&hoja>=0){setEd(hoja,{a:+e.target.value});render();return;}if(e.target.id==='al'){alCfg().d=+e.target.value;guardar();}if(e.target.dataset&&e.target.dataset.alc!==undefined){const A=alCfg(),c=e.target.dataset.alc;if(e.target.value==='')delete A.c[c];else A.c[c]=+e.target.value;guardar();}if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
+document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.sha&&hoja>=0){const v=+e.target.value,x=info(pack,hoja);setEd(hoja,{a:v});render();avisoAlarma(v,'del turno '+(x.c||'')+' del '+fmt(pack.y,hoja));return;}if(e.target.id==='al'){alCfg().d=+e.target.value;guardar();avisoAlarma(+e.target.value,'de cada turno');}if(e.target.dataset&&e.target.dataset.alc!==undefined){const A=alCfg(),c=e.target.dataset.alc;if(e.target.value==='')delete A.c[c];else A.c[c]=+e.target.value;guardar();avisoAlarma(+e.target.value,'de tus turnos '+c);}if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
 async function cargarPDF(f){
   const out=$('fmsg');
   try{
