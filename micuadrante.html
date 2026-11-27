@@ -42,7 +42,8 @@ main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
 .hoy{display:flex;align-items:center;gap:14px}
 .hoy .cod{font-family:'Archivo Black',sans-serif;font-size:34px;min-width:64px;text-align:center;border-radius:8px;padding:6px 8px}
 .hoy .hh{font-size:19px;font-weight:700}
-.t{background:#DCEBFA}.t.m{background:#F0F7FF}.n{background:#C9C6EE}.l{background:#EDEFF1;color:#6a717a}.v{background:#CDEFD8}.b{background:#FDE9B8}.x{background:#FFB3B3}
+.t{background:#DCEBFA}.t.m{background:#F0F7FF}.n{background:#C9C6EE}.l{background:#FFF1E6;color:#B4583A}
+.anio td.yl{color:#B4583A;font-weight:700}.anio td.yl:not(.fin):not(.fes){background:#FFF1E6}.v{background:#CDEFD8}.b{background:#FDE9B8}.x{background:#FFB3B3}
 .lista div{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--linea);font-size:14px}
 .lista div:last-child{border:0}
 .mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -53,7 +54,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
 .dia{border-radius:6px;min-height:58px;padding:3px 2px 2px;text-align:center;font-size:11px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}
 .dia .num{font-size:10px;color:#555;text-align:left;padding-left:3px;line-height:1}
 .dia .c{font-weight:800;font-size:15px;line-height:1.15}
-.dia .c.lib{font-weight:600;font-size:11px;color:#6B7280;margin-top:3px}
+.dia .c.lib{font-weight:700;font-size:11px;color:#B4583A;margin-top:3px}
 .dia .h{font-size:8.5px;line-height:1.1;color:#333}
 .dia.fes .num{color:var(--rojo);font-weight:800}
 .dia.fin{box-shadow:inset 0 -3px 0 #9aa0a8}
@@ -364,7 +365,7 @@ function vAnio(){
     for(let d=0;d<31;d++){
       if(d>=dm(y,m)){h+='<td style="border:0;background:none"></td>';continue;}
       const i=idx(y,m,d+1),w=fec(y,i).getUTCDay(),xi=info(pack,i),c=xi.tipo==='L'?'L':xi.c;
-      h+='<td class="'+(fe.has(i)?'fes':(w===0||w===6?'fin':''))+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+'" data-i="'+i+'" data-go="1">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
+      h+='<td class="'+(fe.has(i)?'fes':(w===0||w===6?'fin':''))+(xi.tipo==='L'?' yl':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+'" data-i="'+i+'" data-go="1">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
     }
     h+='</tr>';
   }
