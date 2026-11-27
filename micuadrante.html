@@ -83,6 +83,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
 .mm .c2.fes i{color:var(--rojo);font-weight:700}
 .mm .c2.l{font-size:7px;letter-spacing:-.2px;padding-top:11px}.mm .c2.fsl{border:2px solid var(--rojo)}
 .mm .c2.fallo{outline:2px solid var(--rojo);outline-offset:-3px}.mm .c2.cambio{box-shadow:inset 0 0 0 3px #F2B400}
+.mm .c2.ed::after{content:'✎';position:absolute;top:0;right:2px;font-size:8px;color:var(--azul)}
 .mm .c2 b{display:block;font-size:7px;font-weight:600;color:#2a4d7a}
 .sev{display:inline-block;border-radius:3px;padding:0 6px;font-size:11px;font-weight:800;color:#fff;margin-right:4px}
 .sev.e{background:var(--rojo)}.sev.a{background:var(--ambar)}
@@ -380,8 +381,8 @@ function hojaDia(i){
     extra='<div class="lista" style="margin-top:8px"><div><span>Horas del turno</span><b>'+h(tot)+' h</b></div><div><span>Horas nocturnas (22–06)</span><b>'+h(noc)+' h</b></div>'+((w===0||w===6||fe.has(i))?'<div><span>Día de plus</span><b>'+(fe.has(i)?'festivo':(w===6?'sábado':'domingo'))+'</b></div>':'')+'</div>';}
   const cd=x.l?abLug(x.l):'';
   return '<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Detalle del día"><div class="sh-asa"></div>'+detalleDia(i)+extra+
-    '<div class="sh-sec"><label for="sh-l">Puesto de trabajo de este día'+(cd?' <span class="ab2">'+esc(cd)+'</span>':'')+'</label><input type="text" id="sh-l" data-lug="1" autocomplete="off" value="'+esc(x.l||'')+'" placeholder="Escribe el código o el puesto"><p style="margin-top:8px"><button class="btn pri" data-shl="1">Asignar puesto</button> '+(x.l?'<button class="btn" data-shq="1">Quitar</button>':'')+'</p></div>'+
-    '<div class="sh-sec"><button class="btn" data-she="1">✎ Editar este día</button> <button class="btn" data-shm="1">▦ Marcar varios días</button></div>'+
+    (hojaEd?editorDia(i):'<div class="sh-sec"><label for="sh-l">Puesto de trabajo de este día'+(cd?' <span class="ab2">'+esc(cd)+'</span>':'')+'</label><input type="text" id="sh-l" data-lug="1" autocomplete="off" value="'+esc(x.l||'')+'" placeholder="Escribe el código o el puesto"><p style="margin-top:8px"><button class="btn pri" data-shl="1">Asignar puesto</button> '+(x.l?'<button class="btn" data-shq="1">Quitar</button>':'')+'</p></div>'+
+    '<div class="sh-sec"><button class="btn" data-she="1">✎ Editar este día</button> <button class="btn" data-shm="1">▦ Marcar varios días</button></div>')+
     '<p style="margin-top:12px;text-align:center"><button class="btn" data-shx="1">Cerrar</button></p></div></div>';
 }
 function detalleDia(i){
@@ -407,7 +408,7 @@ function vAnioTabla(){
   }
   return h+'</table></div><p class="nota" style="margin-top:8px"><button class="btn" data-avista="0">Ver por meses</button> Desliza hacia los lados. L: libre · gris: sáb/dom/festivo · recuadro rojo: fallo · amarillo: cambio. Toca un día para verlo en el mes.</p>';
 }
-let anioTabla=false;
+let anioTabla=false,hojaEd=false;
 function vAnio(){
   if(anioTabla)return vAnioTabla();
   const y=pack.y,fl=diasFallo(),cm=diasCambio(),fe=fesSet(y),lib=i=>info(pack,i).tipo==='L';let h='<div class="meses">';
@@ -418,11 +419,11 @@ function vAnio(){
       const i=i0+d-1,w=fec(y,i).getUTCDay(),x=info(pack,i);
       const fsl=lib(i)&&((w===6&&i+1<pack.D.length&&lib(i+1))||(w===0&&i>0&&lib(i-1)));
       const lab=x.tipo==='L'?'Libre':(x.c||'').slice(0,4);
-      h+='<div class="c2 '+cls(i)+(fe.has(i)?' fes':'')+(fsl?' fsl':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+'" data-i="'+i+'" data-go="1"><i>'+d+'</i>'+esc(lab)+(x.l&&x.tipo!=='L'?'<b>'+esc(abLug(x.l))+'</b>':'')+'</div>';
+      h+='<div class="c2 '+cls(i)+(fe.has(i)?' fes':'')+(fsl?' fsl':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(x.ed?' ed':'')+'" data-yi="'+i+'"><i>'+d+'</i>'+esc(lab)+(x.l&&x.tipo!=='L'?'<b>'+esc(abLug(x.l))+'</b>':'')+'</div>';
     }
     h+='</div></div>';
   }
-  return h+'</div><p class="nota" style="margin-top:8px">Recuadro rojo grueso: fin de semana libre · borde rojo fino: fallo · amarillo: cambio · número en rojo: festivo. Toca un día para verlo en el mes. <button class="btn" data-avista="1">Ver en tabla</button></p>';
+  return h+'</div><p class="nota" style="margin-top:8px">Recuadro rojo grueso: fin de semana libre · ✎: día marcado por ti · borde rojo fino: fallo · amarillo: cambio · número en rojo: festivo. Toca un día para verlo en el mes. <button class="btn" data-avista="1">Ver en tabla</button></p>';
 }
 function vRevisar(){
   const y=pack.y,F=pack.F||[];let h='';
@@ -501,7 +502,7 @@ function render(){
   if(tab==='rev')comparar();
 }
 document.addEventListener('click',e=>{
-  const tb=e.target.closest('[data-t]');if(tb&&tb.closest('#tabs')){tab=tb.dataset.t;render();window.scrollTo(0,0);return;}
+  const tb=e.target.closest('[data-t]');if(tb&&tb.closest('#tabs')){tab=tb.dataset.t;hoja=-1;hojaEd=false;render();window.scrollTo(0,0);return;}
   const mv=e.target.closest('[data-m]');if(mv){mes=(mes+ +mv.dataset.m+12)%12;selDia=-1;render();return;}
   if(e.target.closest('[data-edit]')){edit=!edit;brush=null;nuevoT=false;gesT=false;rotT=false;edT=null;render();return;}
   const bz=e.target.closest('[data-brush]');if(bz){brush=brush===bz.dataset.brush?null:bz.dataset.brush;render();return;}
@@ -539,9 +540,10 @@ document.addEventListener('click',e=>{
     if(!c||!a||!b){alert('Pon un nombre y las horas de entrada y salida.');return;}
     const sg=segs(a+'-'+b),hs=sg.length?Math.round(sg.reduce((x,y)=>x+y[1]-y[0],0)/6)/10:null,l=($('nt-l').value||'').trim();
     store.pal[c]=['T',a+'-'+b,hs,l];if(l)store.lug[c]=l;guardar();brush=c;nuevoT=false;render();return;}
-  if(e.target.closest('[data-shx]')||e.target.classList.contains('sheet-bg')){hoja=-1;render();return;}
+  if(e.target.closest('[data-shx]')||e.target.classList.contains('sheet-bg')){hoja=-1;hojaEd=false;render();return;}
   if(e.target.closest('[data-shl]')){const v=($('sh-l').value||'').trim();setEd(hoja,{l:v});hoja=-1;render();return;}
   if(e.target.closest('[data-shq]')){setEd(hoja,{l:''});hoja=-1;render();return;}
+  if(e.target.closest('[data-she]')&&tab==='anio'){selDia=hoja;hojaEd=true;render();setTimeout(()=>{const x=document.getElementById('ed-c');if(x)x.scrollIntoView({block:'center'});},50);return;}
   if(e.target.closest('[data-she]')){selDia=hoja;mes=fec(pack.y,hoja).getUTCMonth();edit=true;brush=null;brushLug='';hoja=-1;tab='mes';render();setTimeout(()=>{const x=document.querySelector('.det input,.det select');if(x)x.scrollIntoView({block:'center'});},50);return;}
   if(e.target.closest('[data-shm]')){mes=fec(pack.y,hoja).getUTCMonth();edit=true;brush=null;brushLug=(info(pack,hoja).l||'');hoja=-1;tab='mes';render();window.scrollTo(0,0);return;}
   const d=e.target.closest('.dia');
@@ -556,12 +558,14 @@ document.addEventListener('click',e=>{
     setEd(i,{c:c||undefined,h:(a&&b)?a+'-'+b:undefined,l:$('ed-l').value.trim(),n:$('ed-n').value.trim()});
     {const y=pack.y,want=$('ed-f').checked,base=new Set(pack.fe||[]).has(i);store.fx=store.fx||{};store.fx[y]=store.fx[y]||{};if(want===base)delete store.fx[y][i];else store.fx[y][i]=want;guardar();}
     const o=(store.ed[pack.y]||{})[i];if(o&&!c){delete o.c;guardar();}
+    if(hojaEd){hoja=-1;hojaEd=false;}
     render();return;}
-  if(e.target.closest('[data-qd]')){if(store.ed[pack.y])delete store.ed[pack.y][selDia];guardar();render();return;}
+  if(e.target.closest('[data-qd]')){if(store.ed[pack.y])delete store.ed[pack.y][selDia];guardar();if(hojaEd){hoja=-1;hojaEd=false;}render();return;}
   const vc=e.target.closest('[data-vacio]');if(vc){
     const y=+vc.dataset.vacio,n=nDias(y);
     store.packs[y]={actual:{v:1,y,mat:'',n:'',c:'',et:'propio',f:new Date().toISOString().slice(0,10),L:{},D:Array(n).fill(''),F:[],Hm:Array(12).fill(0),Tt:0,Tw:0,vm:31,rg:[144,176,134,162],red:true,fe:[],tel:''}};
     store.ultimo=y;guardar();cargarActivo();tab='mes';edit=true;render();return;}
+  const yc=e.target.closest('[data-yi]');if(yc){hoja=selDia=+yc.dataset.yi;hojaEd=false;render();return;}
   const av=e.target.closest('[data-avista]');if(av){anioTabla=av.dataset.avista==='1';render();return;}
   const go=e.target.closest('[data-go]');if(go){selDia=+go.dataset.i;mes=fec(pack.y,selDia).getUTCMonth();tab='mes';render();return;}
   const v=e.target.closest('[data-ver]');if(v){const f=pack.F[+v.dataset.ver],d0=(f[4]||[])[0];if(d0!==undefined){selDia=d0;mes=fec(pack.y,d0).getUTCMonth();tab='mes';render();window.scrollTo(0,0);}return;}
