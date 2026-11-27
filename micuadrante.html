@@ -209,6 +209,41 @@ function importar(p){
   if(act&&firma(act)!==firma(p))e.previa=act;
   e.actual=p;store.packs[p.y]=e;store.ultimo=p.y;guardar();return true;
 }
+/* ---------- copia de seguridad ---------- */
+const hayMarcas=()=>Object.values(store.ed||{}).some(m=>Object.keys(m||{}).length)||Object.keys(store.pal||{}).length||Object.keys(store.hx||{}).length||Object.keys(store.lug||{}).length;
+function cajaCopia(breve){
+  const f=store.bk?new Date(store.bk).toLocaleDateString('es-ES'):null;
+  return '<div class="card" id="copia"><h2>💾 Copia de seguridad</h2>'+
+    (breve?'<p class="nota">¿Cambias de móvil o se te borró la app? Recupera aquí la copia que guardaste.</p>':
+    '<p class="nota">Guarda en un archivo tu cuadrante y todo lo que has marcado: cambios de turno, turnos propios, horarios, puestos y notas. Si cambias de móvil o se borra el navegador, lo recuperas con «Recuperar mi copia». Guárdala en Archivos, en Drive o mándatela por WhatsApp.</p>'+
+    '<p class="nota" style="margin-top:6px">'+(f?'Última copia: <b>'+f+'</b>':'<b>Aún no has guardado ninguna copia.</b>')+'</p>'+
+    '<p style="margin-top:10px"><button class="btn pri" data-bkg="1">Guardar mi copia</button></p>')+
+    '<p style="margin-top:8px"><label class="btn" for="bkf" style="display:inline-block;width:auto">Recuperar mi copia</label><input type="file" id="bkf" hidden></p><div id="bkmsg"></div></div>';
+}
+function avisoCopia(){
+  if(!hayMarcas())return '';
+  const dias=store.bk?(Date.now()-new Date(store.bk))/864e5:999;if(dias<30)return '';
+  return '<div class="card inst"><h2>💾 Guarda una copia</h2><p class="nota">Tienes marcas tuyas'+(store.bk?' y tu última copia es de hace más de un mes':' y no has guardado ninguna copia')+'. Si cambias de móvil se perderían.</p><p style="margin-top:8px"><button class="btn pri" data-bkg="1">Guardar mi copia</button></p></div>';
+}
+async function guardarCopia(){
+  store.bk=new Date().toISOString();guardar();
+  const mat=(pack&&pack.mat)||'x',fd=store.bk.slice(0,10),nom='micuadrante_copia_'+mat+'_'+fd+'.json';
+  const txt=JSON.stringify({app:'micuadrante',v:1,f:store.bk,store},null,0);
+  const file=new File([txt],nom,{type:'application/json'});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia de Mi cuadrante'});render();return;}}catch(e){if(e&&e.name==='AbortError'){store.bk=null;guardar();render();return;}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=nom;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);render();
+}
+async function recuperarCopia(f){
+  const out=$('bkmsg');
+  try{
+    const d=JSON.parse(await f.text());
+    if(!d||d.app!=='micuadrante'||!d.store||!d.store.packs)throw new Error('Este archivo no es una copia de Mi cuadrante.');
+    const n=Object.values(d.store.packs).map(e=>e&&e.actual&&e.actual.y).filter(Boolean).join(', ');
+    if(pack&&!confirm('Se va a sustituir lo que tienes en este móvil por la copia del '+new Date(d.f).toLocaleDateString('es-ES')+' (cuadrante '+n+'). ¿Seguir?'))return;
+    const base={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{},fx:{}};
+    store=Object.assign(base,d.store);guardar();cargarActivo();tab='hoy';selDia=-1;hoja=-1;window.__msg=null;render();window.scrollTo(0,0);
+  }catch(err){if(out)out.innerHTML='<div class="aviso err">'+esc(err.message||'No se ha podido leer el archivo.')+'</div>';}
+}
 function cargarActivo(){
   const y=store.ultimo,e=y&&store.packs[y];
   pack=e?e.actual:null;prev=e?e.previa||null:null;
@@ -275,7 +310,7 @@ function cab(){
 const cajaPegar=()=>'<div class="card"><h2>Cargar mi enlace</h2><p class="nota">Copia el enlace del mensaje de WhatsApp (o el mensaje entero) y pégalo aquí. Sirve si abriste el enlace en otro navegador o si instalaste la app y la ves vacía.</p><textarea id="pega" placeholder="Pega aquí el enlace…"></textarea><p style="margin-top:8px"><button class="btn pri" id="bpega">Cargar</button></p><div id="pmsg"></div></div>'+
   '<div class="card"><h2>Cargar mi PDF</h2><p class="nota">Si tienes el PDF de tu cuadrante que te ha pasado la Sección Sindical, elígelo aquí. Se lee en este móvil: no se envía a ningún sitio.</p><p style="margin-top:8px"><label class="btn pri" for="fpdf">Elegir PDF</label><input type="file" id="fpdf" accept="application/pdf,.pdf" style="display:none"></p><div id="fmsg"></div></div>';
 function vBienvenida(msg){
-  return '<div class="card bienv"><h2>Mi cuadrante</h2><p>'+(msg?esc(msg):'Abre el <b>enlace personal</b> que te ha enviado la Sección Sindical por WhatsApp y verás tu cuadrante, los fallos que hemos detectado y podrás comprobar tus vacaciones.')+'</p></div>'+cajaPegar()+'<div class="card"><h2>¿Sin enlace?</h2><p class="nota">Puedes usar la app sola: marca tus días de trabajo, tus turnos y tus lugares, y llévalo a tu calendario.</p><p style="margin-top:8px"><button class="btn" data-vacio="'+new Date().getFullYear()+'">Empezar mi calendario '+new Date().getFullYear()+'</button> <button class="btn" data-vacio="'+(new Date().getFullYear()+1)+'">Empezar el '+(new Date().getFullYear()+1)+'</button></p></div>';
+  return '<div class="card bienv"><h2>Mi cuadrante</h2><p>'+(msg?esc(msg):'Abre el <b>enlace personal</b> que te ha enviado la Sección Sindical por WhatsApp y verás tu cuadrante, los fallos que hemos detectado y podrás comprobar tus vacaciones.')+'</p></div>'+cajaPegar()+cajaCopia(true)+'<div class="card"><h2>¿Sin enlace?</h2><p class="nota">Puedes usar la app sola: marca tus días de trabajo, tus turnos y tus lugares, y llévalo a tu calendario.</p><p style="margin-top:8px"><button class="btn" data-vacio="'+new Date().getFullYear()+'">Empezar mi calendario '+new Date().getFullYear()+'</button> <button class="btn" data-vacio="'+(new Date().getFullYear()+1)+'">Empezar el '+(new Date().getFullYear()+1)+'</button></p></div>';
 }
 function proximos(n){
   const y=pack.y,N=nDias(y),h=hoyIdx(y),ahora=new Date(),ahoraMin=ahora.getHours()*60+ahora.getMinutes();
@@ -297,7 +332,7 @@ function cajaInstalar(){
     '<p style="margin-top:8px"><button class="btn" data-noinst="1">Ya la tengo</button></p></div>';
 }
 function vHoy(){
-  const y=pack.y,N=nDias(y),h=hoyIdx(y);let html=cajaInstalar();
+  const y=pack.y,N=nDias(y),h=hoyIdx(y);let html=cajaInstalar()+avisoCopia();
   if(h>=0&&h<N){
     const x=info(pack,h);
     html+='<div class="card"><h2>Hoy · '+fmt(y,h)+'</h2><div class="hoy"><div class="cod '+cls(h)+'">'+esc(x.c||'—')+'</div><div><div class="hh">'+(x.tipo==='T'?esc(horTxt(x.hor)):esc(nombreTipo[x.tipo]||'Libre'))+'</div><div class="nota">'+esc(descDia(pack,h))+'</div></div></div></div>';
@@ -499,7 +534,7 @@ function comparar(){
   if(tab==='mes')render();
 }
 function vCal(){
-  return cajaPegar()+'<div class="card"><h2>Pasar mi cuadrante al calendario del móvil</h2><p class="nota">Descarga un archivo con todos tus turnos (con su hora) y tus vacaciones. Se importa en Google Calendar, Apple Calendar u Outlook.</p>'+
+  return cajaCopia()+cajaPegar()+'<div class="card"><h2>Pasar mi cuadrante al calendario del móvil</h2><p class="nota">Descarga un archivo con todos tus turnos (con su hora) y tus vacaciones. Se importa en Google Calendar, Apple Calendar u Outlook.</p>'+
     '<p style="margin-top:10px"><button class="btn pri" id="bics">Descargar calendario (.ics)</button></p></div>'+
     '<div class="card"><h2>Meterlo en tu móvil en un calendario aparte</h2><p class="nota">Así tus turnos no se mezclan con tus citas y luego puedes ocultarlos o quitarlos todos de una vez.</p><div class="nota"><p style="margin-top:6px"><b>iPhone</b></p><ol style="margin:4px 0 0 18px;padding:0"><li>App Calendario → «Calendarios» (abajo) → «Añadir calendario» → nómbralo «'+esc('Cuadrante '+pack.y)+'».</li><li>Ajustes → Calendario → «Calendario por omisión» → elige «'+esc('Cuadrante '+pack.y)+'».</li><li>Descarga el archivo aquí, ábrelo y pulsa «Añadir todos».</li><li>Vuelve a Ajustes → Calendario → «Calendario por omisión» y deja el tuyo de siempre.</li></ol><p style="margin-top:8px"><b>Android (Google Calendar)</b></p><ol style="margin:4px 0 0 18px;padding:0"><li>Desde un ordenador, en calendar.google.com → «Otros calendarios» → «+» → «Crear calendario» → «'+esc('Cuadrante '+pack.y)+'».</li><li>Configuración → «Importar y exportar» → elige el archivo y, en «Añadir al calendario», ese calendario nuevo.</li></ol></div></div>'+'<div class="card"><h2>Ocultarlo o quitarlo</h2><div class="nota"><p><b>Ocultar sin borrar:</b> en la lista de calendarios, quita la marca de «'+esc('Cuadrante '+pack.y)+'».</p><p style="margin-top:6px"><b>Quitar todos los turnos de golpe:</b> iPhone: Calendario → «Calendarios» → ⓘ junto a «'+esc('Cuadrante '+pack.y)+'» → «Eliminar calendario». Google: calendar.google.com → Configuración → ese calendario → «Eliminar calendario». Tus demás citas no se tocan.</p></div></div>'+
     '<div class="card"><h2>Cuando llegue el cuadrante definitivo</h2><p class="nota">Abre el nuevo enlace: esta app te enseñará los cambios. Para el calendario del móvil, <b>elimina el calendario «Cuadrante '+pack.y+'»</b> (ver arriba), créalo de nuevo e importa el nuevo archivo; así no quedan turnos viejos.</p></div>';
@@ -615,6 +650,7 @@ document.addEventListener('click',e=>{
     store.packs[y]={actual:{v:1,y,mat:'',n:'',c:'',et:'propio',f:new Date().toISOString().slice(0,10),L:{},D:Array(n).fill(''),F:[],Hm:Array(12).fill(0),Tt:0,Tw:0,vm:31,rg:[144,176,134,162],red:true,fe:[],tel:''}};
     store.ultimo=y;guardar();cargarActivo();tab='mes';edit=true;render();return;}
   if(e.target.id==='copia-mail'){const b=e.target;navigator.clipboard&&navigator.clipboard.writeText(MAILS).then(()=>{b.textContent='Dirección copiada';setTimeout(()=>b.textContent=MAILS,1800);}).catch(()=>{});return;}
+  if(e.target.closest('[data-bkg]')){guardarCopia();return;}
   if(e.target.closest('[data-inst]')&&instEv){instEv.prompt();instEv.userChoice.finally(()=>{instEv=null;render();});return;}
   if(e.target.closest('[data-noinst]')){store.noInst=true;guardar();render();return;}
   const yc=e.target.closest('[data-yi]');if(yc){hoja=selDia=+yc.dataset.yi;hojaEd=false;render();return;}
@@ -628,7 +664,7 @@ document.addEventListener('click',e=>{
     a.download='cuadrante_'+pack.y+'_'+(pack.et==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   }
 });
-document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
+document.addEventListener('change',e=>{if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);if(e.target.id==='bkf'&&e.target.files[0]){recuperarCopia(e.target.files[0]);e.target.value='';}});
 async function cargarPDF(f){
   const out=$('fmsg');
   try{
