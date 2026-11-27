@@ -312,9 +312,9 @@ function vMes(){
   let barra='';
   if(edit){
     const chips=[['-','Libre'],['V','Vacaciones']].concat(paleta().map(c=>[c,c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1].split('+')[0]):'')]));
-    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Para poner solo la estación, escríbela abajo sin elegir turno y toca los días: se guarda sola (tócalo otra vez para quitarla). Para editar un día suelto, deja vacío el lugar y no elijas turno.</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button><button class="chp" data-gest="1" aria-pressed="'+gesT+'">⚙ Mis turnos y horarios</button><button class="chp" data-rot="1" aria-pressed="'+rotT+'">🔁 Generar rotación</button></div>'+(gesT?panelTurnos():'')+(rotT?panelRot():'')+
-      '<label for="brl">Lugar de trabajo para lo que marques (opcional)</label><input type="text" id="brl" data-lug="1" autocomplete="off" placeholder="Escribe el código o el puesto" value="'+esc(brushLug)+'">'+
-      (nuevoT?'<div class="det" style="margin-top:10px"><b>Nuevo turno propio</b><div class="fila2"><div><label for="nt-c">Nombre / código</label><input type="text" id="nt-c" maxlength="6" placeholder="M1"></div><div><label for="nt-e">Entra</label><input type="time" id="nt-e" value="07:00"></div><div><label for="nt-s">Sale</label><input type="time" id="nt-s" value="15:00"></div></div><label for="nt-l">Lugar habitual (opcional)</label><input type="text" id="nt-l" data-lug="1" autocomplete="off"><p style="margin-top:8px"><button class="btn pri" data-gt="1">Guardar turno</button></p></div>':'')+
+    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Para poner solo el puesto, escríbelo abajo sin elegir turno y toca los días: se guarda sola (tócalo otra vez para quitarla). Para editar un día suelto, deja vacío el lugar y no elijas turno.</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button><button class="chp" data-gest="1" aria-pressed="'+gesT+'">⚙ Mis turnos y horarios</button><button class="chp" data-rot="1" aria-pressed="'+rotT+'">🔁 Generar rotación</button></div>'+(gesT?panelTurnos():'')+(rotT?panelRot():'')+
+      '<label for="brl">Puesto de trabajo para lo que marques (opcional)</label><input type="text" id="brl" data-lug="1" autocomplete="off" placeholder="Escribe el código o el puesto" value="'+esc(brushLug)+'">'+
+      (nuevoT?'<div class="det" style="margin-top:10px"><b>Nuevo turno propio</b><div class="fila2"><div><label for="nt-c">Nombre / código</label><input type="text" id="nt-c" maxlength="6" placeholder="M1"></div><div><label for="nt-e">Entra</label><input type="time" id="nt-e" value="07:00"></div><div><label for="nt-s">Sale</label><input type="time" id="nt-s" value="15:00"></div></div><label for="nt-l">Puesto habitual (opcional)</label><input type="text" id="nt-l" data-lug="1" autocomplete="off"><p style="margin-top:8px"><button class="btn pri" data-gt="1">Guardar turno</button></p></div>':'')+
       '</div><datalist id="dl-lug">'+lugares().map(l=>'<option value="'+esc(l)+'">').join('')+'</datalist>';
   }
   const det=selDia>=0&&fec(y,selDia).getUTCMonth()===m?detalleDia(selDia)+(edit&&!brush?editorDia(selDia):''):'<div class="det nota">Toca un día para ver el detalle.</div>';
@@ -333,7 +333,7 @@ function editorTurno(c){
   const own=!pack.L[c],g=legG(pack,c)||['T','',null,''],[a,b]=((g[1]||'').split('+')[0]||'-').split('-');
   return '<div class="det" style="background:#fff"><div class="fila2">'+(own?'<div><label for="et-c">Nombre / código</label><input type="text" id="et-c" maxlength="6" value="'+esc(c)+'"></div>':'')+
     '<div><label for="et-e">Entra</label><input type="time" id="et-e" value="'+esc(a||'')+'"></div><div><label for="et-s">Sale</label><input type="time" id="et-s" value="'+esc(b||'')+'"></div></div>'+
-    (own?'<label for="et-l">Lugar habitual</label><input type="text" id="et-l" data-lug="1" autocomplete="off" value="'+esc(g[3]||store.lug[c]||'')+'">':'')+
+    (own?'<label for="et-l">Puesto habitual</label><input type="text" id="et-l" data-lug="1" autocomplete="off" value="'+esc(g[3]||store.lug[c]||'')+'">':'')+
     '<p style="margin-top:8px"><button class="btn pri" data-gt2="'+esc(c)+'">Guardar</button> '+(own?'<button class="btn" data-bt="'+esc(c)+'">Borrar turno</button>':((store.hx||{})[c]?'<button class="btn" data-rh="'+esc(c)+'">Volver al horario de la empresa</button>':''))+'</p></div>';
 }
 function panelRot(){
@@ -349,7 +349,7 @@ function editorDia(i){
   const cur=o.c!==undefined?o.c:'';
   return '<div class="det" style="margin-top:8px"><b>Editar este día</b><label for="ed-c">Turno</label><select id="ed-c">'+opt('','Como en el cuadrante',cur==='')+opt('-','Libre',cur==='-')+opt('V','Vacaciones',cur==='V')+cods.map(c=>opt(c,'Turno '+c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1]):''),cur===c)).join('')+'</select>'+
     '<div class="fila2"><div><label for="ed-e">Hora propia: entra</label><input type="time" id="ed-e" value="'+esc((o.h||'').split('-')[0]||'')+'"></div><div><label for="ed-s">Sale</label><input type="time" id="ed-s" value="'+esc((o.h||'').split('-')[1]||'')+'"></div></div>'+
-    '<label for="ed-l">Lugar de trabajo</label><input type="text" id="ed-l" data-lug="1" autocomplete="off" value="'+esc(o.l||'')+'" placeholder="'+esc(x.l||'Ej.: Estación Puerta Jerez')+'">'+
+    '<label for="ed-l">Puesto de trabajo</label><input type="text" id="ed-l" data-lug="1" autocomplete="off" value="'+esc(o.l||'')+'" placeholder="'+esc(x.l||'Ej.: Puerta Jerez')+'">'+
     '<p style="margin-top:8px"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="ed-f"'+(fesSet(pack.y).has(i)?' checked':'')+'> Festivo en mi localidad</label></p>'+
     '<label for="ed-n">Nota</label><input type="text" id="ed-n" value="'+esc(o.n||'')+'" placeholder="Ej.: cambio acordado con Pepe">'+
     '<p style="margin-top:10px"><button class="btn pri" data-gd="1">Guardar</button> <button class="btn" data-qd="1">Quitar mi marca</button></p></div>';
@@ -369,7 +369,7 @@ function hojaDia(i){
     extra='<div class="lista" style="margin-top:8px"><div><span>Horas del turno</span><b>'+h(tot)+' h</b></div><div><span>Horas nocturnas (22–06)</span><b>'+h(noc)+' h</b></div>'+((w===0||w===6||fe.has(i))?'<div><span>Día de plus</span><b>'+(fe.has(i)?'festivo':(w===6?'sábado':'domingo'))+'</b></div>':'')+'</div>';}
   const cd=x.l?abLug(x.l):'';
   return '<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Detalle del día"><div class="sh-asa"></div>'+detalleDia(i)+extra+
-    '<div class="sh-sec"><label for="sh-l">Puesto / estación de este día'+(cd?' <span class="ab2">'+esc(cd)+'</span>':'')+'</label><input type="text" id="sh-l" data-lug="1" autocomplete="off" value="'+esc(x.l||'')+'" placeholder="Escribe el código o el puesto"><p style="margin-top:8px"><button class="btn pri" data-shl="1">Guardar estación</button> '+(x.l?'<button class="btn" data-shq="1">Quitar</button>':'')+'</p></div>'+
+    '<div class="sh-sec"><label for="sh-l">Puesto de trabajo de este día'+(cd?' <span class="ab2">'+esc(cd)+'</span>':'')+'</label><input type="text" id="sh-l" data-lug="1" autocomplete="off" value="'+esc(x.l||'')+'" placeholder="Escribe el código o el puesto"><p style="margin-top:8px"><button class="btn pri" data-shl="1">Asignar puesto</button> '+(x.l?'<button class="btn" data-shq="1">Quitar</button>':'')+'</p></div>'+
     '<div class="sh-sec"><button class="btn" data-she="1">✎ Editar este día</button> <button class="btn" data-shm="1">▦ Marcar varios días</button></div>'+
     '<p style="margin-top:12px;text-align:center"><button class="btn" data-shx="1">Cerrar</button></p></div></div>';
 }
@@ -455,7 +455,7 @@ function icsPack(p,alarma){
   const ev=(uid,extra,sum,desc,loc)=>{L.push('BEGIN:VEVENT','UID:'+uid+'@cuadrante.ccoo-ilunion-sevilla','DTSTAMP:'+st+'Z','LAST-MODIFIED:'+st+'Z','SEQUENCE:'+seq);extra.forEach(x=>L.push(x));L.push('SUMMARY:'+e(sum),'DESCRIPTION:'+e(desc));if(loc)L.push('LOCATION:'+e(loc));if(alarma>0)L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(sum),'TRIGGER:-PT'+alarma+'M','END:VALARM');L.push('END:VEVENT');};
   const bl={V:[],B:[],P:[]};
   for(let i=0;i<N;i++){const x=info(p,i);if(!x.c)continue;
-    if(x.tipo==='T'&&x.hor){segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':(x.c==='·'?'Turno':'Turno '+x.c))+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+(x.l?'\nLugar: '+x.l:'')+'\n'+nota,x.l);});}
+    if(x.tipo==='T'&&x.hor){segs(x.hor).forEach(([a,b],k)=>{const hh=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);ev(mat+'-'+fd(i)+'-'+k,['DTSTART:'+f(i*DIA+a),'DTEND:'+f(i*DIA+b)],(/^F\d*$/.test(x.c)?'Formación':(x.c==='·'?'Turno':'Turno '+x.c))+' · '+hh(a)+'–'+hh(b),'Código '+x.c+(x.horas!==null?' · '+String(x.horas).replace('.',',')+' h':'')+(x.l?'\nPuesto: '+x.l:'')+'\n'+nota,x.l);});}
     else if(bl[x.tipo])bl[x.tipo].push(i);}
   const nm={V:'Vacaciones',B:'Baja',P:'Permiso / otros'};
   Object.keys(bl).forEach(t=>rangos(bl[t]).forEach(([a,b])=>ev(mat+'-'+t+'-'+fd(a),['DTSTART;VALUE=DATE:'+fd(a),'DTEND;VALUE=DATE:'+fd(b+1)],nm[t],(b-a+1)+' días.\n'+nota)));
