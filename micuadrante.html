@@ -53,6 +53,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
 .dia{border-radius:6px;min-height:58px;padding:3px 2px 2px;text-align:center;font-size:11px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}
 .dia .num{font-size:10px;color:#555;text-align:left;padding-left:3px;line-height:1}
 .dia .c{font-weight:800;font-size:15px;line-height:1.15}
+.dia .c.lib{font-weight:600;font-size:11px;color:#6B7280;margin-top:3px}
 .dia .h{font-size:8.5px;line-height:1.1;color:#333}
 .dia.fes .num{color:var(--rojo);font-weight:800}
 .dia.fin{box-shadow:inset 0 -3px 0 #9aa0a8}
@@ -260,7 +261,7 @@ function vMes(){
   let g=DL.map(d=>'<div class="dh">'+d+'</div>').join('')+'<div></div>'.repeat(off);
   for(let d=1;d<=n;d++){
     const i=first+d-1,x=info(pack,i),w=fec(y,i).getUTCDay();
-    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div><div class="c">'+esc(x.c||'')+'</div><div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div>'+(x.l?'<div class="lg">'+esc(x.l.slice(0,10))+'</div>':'')+'</div>';
+    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div>'+(x.tipo==='L'?'<div class="c lib">Libre</div>':'<div class="c">'+esc(x.c||'')+'</div>')+'<div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div>'+(x.l?'<div class="lg">'+esc(x.l.slice(0,10))+'</div>':'')+'</div>';
   }
   let barra='';
   if(edit){
@@ -329,12 +330,12 @@ function vAnio(){
     h+='<tr><td class="m">'+MES[m].slice(0,3)+'</td>';
     for(let d=0;d<31;d++){
       if(d>=dm(y,m)){h+='<td style="border:0;background:none"></td>';continue;}
-      const i=idx(y,m,d+1),w=fec(y,i).getUTCDay(),c=info(pack,i).c;
+      const i=idx(y,m,d+1),w=fec(y,i).getUTCDay(),xi=info(pack,i),c=xi.tipo==='L'?'L':xi.c;
       h+='<td class="'+(fe.has(i)?'fes':(w===0||w===6?'fin':''))+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+'" data-i="'+i+'" data-go="1">'+esc(c.length>3?c.slice(0,3):c)+'</td>';
     }
     h+='</tr>';
   }
-  return h+'</table></div><p class="nota" style="margin-top:8px">Desliza hacia los lados. Gris: sáb/dom/festivo · recuadro rojo: fallo · amarillo: cambio. Toca un día para verlo en el mes.</p>';
+  return h+'</table></div><p class="nota" style="margin-top:8px">Desliza hacia los lados. L: libre · gris: sáb/dom/festivo · recuadro rojo: fallo · amarillo: cambio. Toca un día para verlo en el mes.</p>';
 }
 function vRevisar(){
   const y=pack.y,F=pack.F||[];let h='';
