@@ -528,8 +528,8 @@ async function cargarPDF(f){
   }catch(err){if(out)out.innerHTML='<div class="aviso err">'+esc(err.message)+'</div>';}
 }
 const normL=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const LUG_COD=[['CE','Ciudad Expo'],['CA','Cavaleri'],['JA','San Juan Alto'],['A','Ascensor'],['BI','Blas Infante'],['PP','Parque de los Príncipes'],['PC','Plaza de Cuba'],['PJ','Puerta Jerez'],['PS','Prado de San Sebastián'],['SB','San Bernardo'],['NE','Nervión'],['GP','Gran Plaza'],['MA','1º de Mayo'],['AM','Amate'],['LP','La Plata'],['CO','Cocheras'],['PO','Pablo de Olavide'],['CQ','Condequinto'],['EU','Europa'],['OQ','Olivar de Quintos'],['PL','Puesto de Línea'],['B','Búho']];
-const LUG_BASE=LUG_COD.map(x=>x[1]).concat(['San Juan Bajo','Guadaíra','Montequinto']);
+const LUG_COD=[['CE','Ciudad Expo'],['CA','Cavaleri'],['JA','San Juan Alto'],['JB','San Juan Bajo'],['A','Ascensor'],['BI','Blas Infante'],['PP','Parque de los Príncipes'],['PC','Plaza de Cuba'],['PJ','Puerta Jerez'],['PS','Prado de San Sebastián'],['SB','San Bernardo'],['NE','Nervión'],['GP','Gran Plaza'],['MA','1º de Mayo'],['AM','Amate'],['LP','La Plata'],['CO','Cocheras'],['PO','Pablo de Olavide'],['CQ','Condequinto'],['MQ','Montequinto'],['EU','Europa'],['OQ','Olivar de Quintos'],['PL','Puesto de Línea'],['B','Búho']];
+const LUG_BASE=LUG_COD.map(x=>x[1]);
 const LUG_AB=Object.fromEntries(LUG_COD.map(([c,n])=>[normL(n),c]));
 function sugLug(q){const qq=normL(q.trim());if(!qq)return[];const all=[...new Set(lugares().concat(LUG_BASE,pack&&pack.c?[pack.c]:[]))];
   const sc=x=>{const t=normL(x),cd=LUG_AB[t];if(cd&&normL(cd)===qq)return -1;if(t.startsWith(qq))return 0;if(t.split(/[\s\-·(),]+/).some(w=>w.startsWith(qq)))return 1;if(t.includes(qq))return 2;const tc=t.replace(/[^a-z0-9]/g,''),qc=qq.replace(/[^a-z0-9]/g,'');return qc&&tc.includes(qc)?3:9;};
