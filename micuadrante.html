@@ -208,7 +208,7 @@ function info(p,i,raw){
   if(esForm(c)&&!hor&&horas==null)horas=5;
   if(o&&o.h){tipo='T';hor=o.h;const sg=segs(o.h);horas=sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;if(!c)c='·';}
   const l=(o&&o.l)||(c&&(store.lug[c]||(p.lg&&p.lg[c])))||'';
-  return{c,tipo,hor,horas,l,ed:!!o,n:(o&&o.n)||''};
+  return{c,tipo,hor,horas,l,ed:!!o&&Object.keys(o).some(k=>k!=='a'),n:(o&&o.n)||''};
 }
 const minu=h=>{const m=h.match(/^(\d{2}):(\d{2})$/);return m?(+m[1])*60+(+m[2]):null;};
 function segs(hor){
@@ -387,8 +387,13 @@ function hojaDia(i){
     const h=v=>String(Math.round(v/6)/10).replace('.',',');
     extra='<div class="lista" style="margin-top:8px"><div><span>Horas del turno</span><b>'+h(tot)+' h</b></div><div><span>Horas nocturnas (22–06)</span><b>'+h(noc)+' h</b></div>'+((w===0||w===6||fe.has(i))?'<div><span>Día de plus</span><b>'+(fe.has(i)?'festivo':(w===6?'sábado':'domingo'))+'</b></div>':'')+'</div>';}
   const cd=x.l?abLug(x.l):'';
+  let alh='';
+  if(x.tipo==='T'&&!hojaEd){const o=(store.ed[y]||{})[i]||{},am=alarmaDe(pack,i,x),cod=x.c&&x.c!=='·'?x.c:'';
+    alh='<div class="sh-sec"><label for="sh-a">⏰ Alarma de este turno</label>'+alSel('sh-a',am,null).replace('<select ','<select data-sha="1" ')+
+      (cod&&am>0?'<p style="margin-top:6px"><button class="btn" data-shat="'+esc(cod)+'">Usar esta alarma en todos mis turnos '+esc(cod)+'</button></p>':'')+
+      (am>0?'<p class="nota" style="margin-top:6px">Suena desde el calendario del móvil: después descarga el calendario en la pestaña «Calendario».</p>':'')+'</div>';}
   return '<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Detalle del día"><div class="sh-asa"></div>'+detalleDia(i)+extra+
-    (hojaEd?editorDia(i):'<div class="sh-sec"><label for="sh-l">Puesto de trabajo de este día'+(cd?' <span class="ab2">'+esc(cd)+'</span>':'')+'</label><input type="text" id="sh-l" data-lug="1" autocomplete="off" value="'+esc(x.l||'')+'" placeholder="Escribe el código o el puesto"><p style="margin-top:8px"><button class="btn pri" data-shl="1">Asignar puesto</button> '+(x.l?'<button class="btn" data-shq="1">Quitar</button>':'')+'</p></div>'+
+    alh+(hojaEd?editorDia(i):'<div class="sh-sec"><label for="sh-l">Puesto de trabajo de este día'+(cd?' <span class="ab2">'+esc(cd)+'</span>':'')+'</label><input type="text" id="sh-l" data-lug="1" autocomplete="off" value="'+esc(x.l||'')+'" placeholder="Escribe el código o el puesto"><p style="margin-top:8px"><button class="btn pri" data-shl="1">Asignar puesto</button> '+(x.l?'<button class="btn" data-shq="1">Quitar</button>':'')+'</p></div>'+
     '<div class="sh-sec"><button class="btn" data-she="1">✎ Editar este día</button> <button class="btn" data-shm="1">▦ Marcar varios días</button></div>')+
     '<p style="margin-top:12px;text-align:center"><button class="btn" data-shx="1">Cerrar</button></p></div></div>';
 }
@@ -550,6 +555,7 @@ document.addEventListener('click',e=>{
     if(!c||!a||!b){alert('Pon un nombre y las horas de entrada y salida.');return;}
     const sg=segs(a+'-'+b),hs=sg.length?Math.round(sg.reduce((x,y)=>x+y[1]-y[0],0)/6)/10:null,l=($('nt-l').value||'').trim();
     store.pal[c]=['T',a+'-'+b,hs,l];if(l)store.lug[c]=l;guardar();brush=c;nuevoT=false;render();return;}
+  {const t=e.target.closest('[data-shat]');if(t&&hoja>=0){const A=alCfg(),c=t.dataset.shat,v=alarmaDe(pack,hoja,info(pack,hoja));A.c[c]=v;Object.values(store.ed[pack.y]||{}).forEach(o=>{if(o.a!==undefined&&o.a===v)delete o.a;});guardar();t.textContent='Hecho: todos tus turnos '+c+' con '+alTxt(v).replace(' antes','')+' de aviso';t.disabled=true;return;}}
   if(e.target.closest('[data-shx]')||e.target.classList.contains('sheet-bg')){hoja=-1;hojaEd=false;render();return;}
   if(e.target.closest('[data-shl]')){const v=($('sh-l').value||'').trim();setEd(hoja,{l:v});hoja=-1;render();return;}
   if(e.target.closest('[data-shq]')){setEd(hoja,{l:''});hoja=-1;render();return;}
@@ -586,7 +592,7 @@ document.addEventListener('click',e=>{
     a.download='cuadrante_'+pack.y+'_'+(pack.et==='definitivo'?'definitivo':'prevision')+'.ics';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   }
 });
-document.addEventListener('change',e=>{if(e.target.id==='al'){alCfg().d=+e.target.value;guardar();}if(e.target.dataset&&e.target.dataset.alc!==undefined){const A=alCfg(),c=e.target.dataset.alc;if(e.target.value==='')delete A.c[c];else A.c[c]=+e.target.value;guardar();}if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
+document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.sha&&hoja>=0){setEd(hoja,{a:+e.target.value});render();return;}if(e.target.id==='al'){alCfg().d=+e.target.value;guardar();}if(e.target.dataset&&e.target.dataset.alc!==undefined){const A=alCfg(),c=e.target.dataset.alc;if(e.target.value==='')delete A.c[c];else A.c[c]=+e.target.value;guardar();}if(e.target.id==='pv')comparar();if(e.target.id==='fpdf'&&e.target.files[0])cargarPDF(e.target.files[0]);});
 async function cargarPDF(f){
   const out=$('fmsg');
   try{
