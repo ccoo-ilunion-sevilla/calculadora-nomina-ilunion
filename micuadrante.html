@@ -305,7 +305,7 @@ function vMes(){
   let g=DL.map(d=>'<div class="dh">'+d+'</div>').join('')+'<div></div>'.repeat(off);
   for(let d=1;d<=n;d++){
     const i=first+d-1,x=info(pack,i),w=fec(y,i).getUTCDay();
-    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div>'+(x.tipo==='L'?'<div class="c lib">Libre</div>':'<div class="c">'+esc(x.c||'')+(x.l?' <span class="ab">'+esc(abLug(x.l))+'</span>':'')+'</div>')+'<div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div>'+'</div>';
+    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div>'+(x.tipo==='L'?'<div class="c lib">Libre</div>':'<div class="c">'+esc(x.c||'')+(x.l?' <span class="ab">'+esc(abLug(x.l))+'</span>':'')+'</div>')+'<div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):(x.tipo==='T'&&x.horas!=null?String(x.horas).replace('.',',')+' h':''))+'</div>'+'</div>';
   }
   let barra='';
   if(edit){
