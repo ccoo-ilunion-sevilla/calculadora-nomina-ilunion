@@ -93,6 +93,7 @@ table.h td.bad{background:#FFD9D9;font-weight:700}
 .dia .lg{font-size:8px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
 .dia.ed::before{content:'✎';position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--azul)}
 .fila2{display:flex;gap:8px}.fila2>*{flex:1}
+.trow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--linea)}.trow:last-child{border-bottom:0}
 footer{font-size:11.5px;color:var(--tinta-2);text-align:center;padding:6px 16px 20px}
 </style>
 </head>
@@ -119,7 +120,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const KEY='mc_v1',DIA=1440;
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DS=['dom','lun','mar','mié','jue','vie','sáb'],DL=['L','M','X','J','V','S','D'];
-let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false;
+let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false;
 try{store=Object.assign(store,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
 store.ed=store.ed||{};store.pal=store.pal||{};store.lug=store.lug||{};
 const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
@@ -169,11 +170,12 @@ function cargarActivo(){
 }
 
 /* ---------- información de un día ---------- */
-const legG=(p,c)=>p.L[c]||store.pal[c]||null;
+const horasDe=h=>{const sg=segs(h);return sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;};
+const legG=(p,c,raw)=>{const g=p.L[c]||store.pal[c]||null;const hx=store.hx||{};if(!raw&&g&&g[0]==='T'&&p.L[c]&&hx[c])return['T',hx[c],horasDe(hx[c]),g[3]];return g;};
 function info(p,i,raw){
   let c=(p.D[i]||'').trim();const o=(!raw&&p===pack&&store.ed[p.y]&&store.ed[p.y][i])||null;
   if(o&&o.c!==undefined&&o.c!=='')c=o.c==='-'?'':o.c;
-  const g=c?legG(p,c):null;let tipo=!c?'L':(g?g[0]:'?'),hor=g?g[1]:'',horas=g?g[2]:null;
+  const g=c?legG(p,c,raw||p!==pack):null;let tipo=!c?'L':(g?g[0]:'?'),hor=g?g[1]:'',horas=g?g[2]:null;
   if(o&&o.h){tipo='T';hor=o.h;const sg=segs(o.h);horas=sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;if(!c)c='·';}
   const l=(o&&o.l)||(c&&(store.lug[c]||(p.lg&&p.lg[c])))||'';
   return{c,tipo,hor,horas,l,ed:!!o,n:(o&&o.n)||''};
@@ -263,7 +265,7 @@ function vMes(){
   let barra='';
   if(edit){
     const chips=[['-','Libre'],['V','Vacaciones']].concat(paleta().map(c=>[c,c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1].split('+')[0]):'')]));
-    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Toca el turno otra vez para soltarlo y editar un día suelto (hora propia, lugar, nota).</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button></div>'+
+    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Toca el turno otra vez para soltarlo y editar un día suelto (hora propia, lugar, nota).</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button><button class="chp" data-gest="1" aria-pressed="'+gesT+'">⚙ Mis turnos y horarios</button><button class="chp" data-rot="1" aria-pressed="'+rotT+'">🔁 Generar rotación</button></div>'+(gesT?panelTurnos():'')+(rotT?panelRot():'')+
       '<label for="brl">Lugar de trabajo para lo que marques (opcional)</label><input type="text" id="brl" list="dl-lug" placeholder="Ej.: Estación Puerta Jerez" value="'+esc(brushLug)+'">'+
       (nuevoT?'<div class="det" style="margin-top:10px"><b>Nuevo turno propio</b><div class="fila2"><div><label for="nt-c">Nombre / código</label><input type="text" id="nt-c" maxlength="6" placeholder="M1"></div><div><label for="nt-e">Entra</label><input type="time" id="nt-e" value="07:00"></div><div><label for="nt-s">Sale</label><input type="time" id="nt-s" value="15:00"></div></div><label for="nt-l">Lugar habitual (opcional)</label><input type="text" id="nt-l" list="dl-lug"><p style="margin-top:8px"><button class="btn pri" data-gt="1">Guardar turno</button></p></div>':'')+
       '</div><datalist id="dl-lug">'+lugares().map(l=>'<option value="'+esc(l)+'">').join('')+'</datalist>';
@@ -272,6 +274,27 @@ function vMes(){
   return '<div class="mnav"><button data-m="-1" aria-label="Mes anterior">‹</button><b>'+MES[m]+' '+y+'</b><button data-m="1" aria-label="Mes siguiente">›</button></div>'+
     '<p style="margin-bottom:8px"><button class="btn'+(edit?' pri':'')+'" data-edit="1">'+(edit?'✔ Terminar de marcar':'✎ Marcar mis días')+'</button></p>'+barra+'<div class="grid">'+g+'</div>'+
     '<p class="nota" style="margin-top:8px">Rojo: día con fallo · punto amarillo: cambió respecto a tu versión anterior · azul discontinuo: vacaciones que pediste · ✎: marca tuya · sombreado inferior: sáb/dom · número rojo: festivo.</p>'+det;
+}
+function panelTurnos(){
+  const hx=store.hx||{};
+  const fila=c=>{const own=!pack.L[c],g=legG(pack,c),gor=pack.L[c];
+    const t=own?'Propio':(hx[c]?'Empresa · cambiado (antes '+horTxt(gor[1]||'—')+')':'Empresa');
+    return '<div class="trow"><span><b>'+esc(c)+'</b> · '+esc(g&&g[1]?horTxt(g[1]):'sin horario')+(g&&g[2]!=null?' ('+String(g[2]).replace('.',',')+' h)':'')+'<br><small class="nota">'+esc(t)+'</small></span><button class="btn" data-et="'+esc(c)+'">Editar</button></div>'+(edT===c?editorTurno(c):'');};
+  return '<div class="det" style="margin-top:10px"><b>Mis turnos y horarios</b><p class="nota">Cambia el horario de un turno para todo el año o edita tus turnos propios. Solo cambia en tu móvil: la app sigue comparando con el cuadrante oficial.</p>'+paleta().map(fila).join('')+'</div>';
+}
+function editorTurno(c){
+  const own=!pack.L[c],g=legG(pack,c)||['T','',null,''],[a,b]=((g[1]||'').split('+')[0]||'-').split('-');
+  return '<div class="det" style="background:#fff"><div class="fila2">'+(own?'<div><label for="et-c">Nombre / código</label><input type="text" id="et-c" maxlength="6" value="'+esc(c)+'"></div>':'')+
+    '<div><label for="et-e">Entra</label><input type="time" id="et-e" value="'+esc(a||'')+'"></div><div><label for="et-s">Sale</label><input type="time" id="et-s" value="'+esc(b||'')+'"></div></div>'+
+    (own?'<label for="et-l">Lugar habitual</label><input type="text" id="et-l" list="dl-lug" value="'+esc(g[3]||store.lug[c]||'')+'">':'')+
+    '<p style="margin-top:8px"><button class="btn pri" data-gt2="'+esc(c)+'">Guardar</button> '+(own?'<button class="btn" data-bt="'+esc(c)+'">Borrar turno</button>':((store.hx||{})[c]?'<button class="btn" data-rh="'+esc(c)+'">Volver al horario de la empresa</button>':''))+'</p></div>';
+}
+function panelRot(){
+  const y=pack.y,d0=y+'-'+String(mes+1).padStart(2,'0')+'-01';
+  return '<div class="det" style="margin-top:10px"><b>Generar rotación</b><p class="nota">Escribe el ciclo con los códigos separados por comas, en orden, y las fechas. Usa <b>-</b> para libre y <b>V</b> para vacaciones. Ejemplo para 4 mañanas, 4 noches y 4 libres: M,M,M,M,N,N,N,N,-,-,-,-</p>'+
+    '<label for="rt-s">Ciclo</label><input type="text" id="rt-s" placeholder="M,M,N,N,-,-">'+
+    '<div class="fila2"><div><label for="rt-a">Desde</label><input type="date" id="rt-a" value="'+d0+'" min="'+y+'-01-01" max="'+y+'-12-31"></div><div><label for="rt-b">Hasta</label><input type="date" id="rt-b" value="'+y+'-12-31" min="'+y+'-01-01" max="'+y+'-12-31"></div></div>'+
+    '<p class="nota">Códigos que tienes: '+esc(paleta().join(', '))+'</p><p style="margin-top:8px"><button class="btn pri" data-gr="1">Aplicar rotación</button></p><div id="rtmsg"></div></div>';
 }
 function editorDia(i){
   const x=info(pack,i),o=(store.ed[pack.y]||{})[i]||{},cods=paleta();
@@ -392,9 +415,37 @@ function render(){
 document.addEventListener('click',e=>{
   const tb=e.target.closest('[data-t]');if(tb&&tb.closest('#tabs')){tab=tb.dataset.t;render();window.scrollTo(0,0);return;}
   const mv=e.target.closest('[data-m]');if(mv){mes=(mes+ +mv.dataset.m+12)%12;selDia=-1;render();return;}
-  if(e.target.closest('[data-edit]')){edit=!edit;brush=null;nuevoT=false;render();return;}
+  if(e.target.closest('[data-edit]')){edit=!edit;brush=null;nuevoT=false;gesT=false;rotT=false;edT=null;render();return;}
   const bz=e.target.closest('[data-brush]');if(bz){brush=brush===bz.dataset.brush?null:bz.dataset.brush;render();return;}
   if(e.target.closest('[data-nuevo]')){nuevoT=!nuevoT;render();return;}
+  if(e.target.closest('[data-gest]')){gesT=!gesT;edT=null;render();return;}
+  if(e.target.closest('[data-rot]')){rotT=!rotT;render();return;}
+  const et=e.target.closest('[data-et]');if(et){edT=edT===et.dataset.et?null:et.dataset.et;render();return;}
+  const g2=e.target.closest('[data-gt2]');if(g2){
+    const c=g2.dataset.gt2,a=$('et-e').value,b=$('et-s').value;if(!a||!b){alert('Pon la hora de entrada y la de salida.');return;}
+    store.hx=store.hx||{};
+    if(pack.L[c]){const gor=pack.L[c][1];if(gor===a+'-'+b)delete store.hx[c];else store.hx[c]=a+'-'+b;}
+    else{const n=($('et-c').value||'').trim().toUpperCase()||c,l=($('et-l').value||'').trim();
+      if(n!==c&&(pack.L[n]||store.pal[n])){alert('Ya existe un turno con ese código.');return;}
+      delete store.pal[c];store.pal[n]=['T',a+'-'+b,horasDe(a+'-'+b),l];if(l)store.lug[n]=l;else delete store.lug[n];
+      if(n!==c){Object.values(store.ed).forEach(m=>Object.values(m).forEach(o=>{if(o.c===c)o.c=n;}));delete store.lug[c];if(brush===c)brush=n;}}
+    guardar();edT=null;render();return;}
+  const bt=e.target.closest('[data-bt]');if(bt){const c=bt.dataset.bt;let n=0;Object.values(store.ed).forEach(m=>Object.values(m).forEach(o=>{if(o.c===c)n++;}));
+    if(n&&!confirm('Este turno está puesto en '+n+' días. Si lo borras, esos días vuelven a lo que diga el cuadrante. ¿Borrar?'))return;
+    Object.keys(store.ed).forEach(y=>Object.keys(store.ed[y]).forEach(i=>{const o=store.ed[y][i];if(o.c===c){delete o.c;if(!Object.keys(o).length)delete store.ed[y][i];}}));
+    delete store.pal[c];delete store.lug[c];if(brush===c)brush=null;guardar();edT=null;render();return;}
+  const rh=e.target.closest('[data-rh]');if(rh){delete store.hx[rh.dataset.rh];guardar();edT=null;render();return;}
+  if(e.target.closest('[data-gr]')){
+    const cod=($('rt-s').value||'').split(/[,;\s]+/).map(x=>x.trim().toUpperCase()).filter(Boolean),a=$('rt-a').value,b=$('rt-b').value,out=$('rtmsg');
+    const ok=new Set(['-','V'].concat(paleta()));const bad=cod.filter(x=>!ok.has(x));
+    if(!cod.length||!a||!b){out.innerHTML='<div class="aviso err">Escribe el ciclo y las dos fechas.</div>';return;}
+    if(bad.length){out.innerHTML='<div class="aviso err">Estos códigos no existen: '+esc(bad.join(', '))+'. Créalos antes con «＋ Turno propio».</div>';return;}
+    const y=pack.y,i0=Math.round((Date.parse(a)-Date.UTC(y,0,1))/864e5),i1=Math.round((Date.parse(b)-Date.UTC(y,0,1))/864e5);
+    if(i0<0||i1>=nDias(y)||i1<i0){out.innerHTML='<div class="aviso err">Las fechas tienen que estar dentro de '+y+' y en orden.</div>';return;}
+    if(!confirm('Se marcarán '+(i1-i0+1)+' días con tu rotación. Lo que ya tuvieras marcado en esos días se sustituye. ¿Seguir?'))return;
+    if(cod.includes('V')&&!legG(pack,'V'))store.pal.V=['V','',null];
+    for(let i=i0;i<=i1;i++)setEd(i,{c:cod[(i-i0)%cod.length]});
+    rotT=false;render();return;}
   if(e.target.closest('[data-gt]')){
     const c=($('nt-c').value||'').trim().toUpperCase(),a=$('nt-e').value,b=$('nt-s').value;
     if(!c||!a||!b){alert('Pon un nombre y las horas de entrada y salida.');return;}
