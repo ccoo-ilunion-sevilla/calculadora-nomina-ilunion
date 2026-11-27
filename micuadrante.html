@@ -303,7 +303,7 @@ function vMes(){
   let barra='';
   if(edit){
     const chips=[['-','Libre'],['V','Vacaciones']].concat(paleta().map(c=>[c,c+(legG(pack,c)&&legG(pack,c)[1]?' · '+horTxt(legG(pack,c)[1].split('+')[0]):'')]));
-    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Toca el turno otra vez para soltarlo y editar un día suelto (hora propia, lugar, nota).</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button><button class="chp" data-gest="1" aria-pressed="'+gesT+'">⚙ Mis turnos y horarios</button><button class="chp" data-rot="1" aria-pressed="'+rotT+'">🔁 Generar rotación</button></div>'+(gesT?panelTurnos():'')+(rotT?panelRot():'')+
+    barra='<div class="card"><h2>Marcar días</h2><p class="nota">Elige un turno y toca los días en los que lo trabajas. Para poner solo la estación, escríbela abajo sin elegir turno y toca los días: se guarda sola (tócalo otra vez para quitarla). Para editar un día suelto, deja vacío el lugar y no elijas turno.</p><div class="chips">'+chips.map(([c,t])=>'<button class="chp" data-brush="'+esc(c)+'" aria-pressed="'+(brush===c)+'">'+esc(t)+'</button>').join('')+'<button class="chp" data-nuevo="1" aria-pressed="'+nuevoT+'">＋ Turno propio</button><button class="chp" data-gest="1" aria-pressed="'+gesT+'">⚙ Mis turnos y horarios</button><button class="chp" data-rot="1" aria-pressed="'+rotT+'">🔁 Generar rotación</button></div>'+(gesT?panelTurnos():'')+(rotT?panelRot():'')+
       '<label for="brl">Lugar de trabajo para lo que marques (opcional)</label><input type="text" id="brl" data-lug="1" autocomplete="off" placeholder="Escribe el código o la estación: PJ, Puerta Jerez…" value="'+esc(brushLug)+'">'+
       (nuevoT?'<div class="det" style="margin-top:10px"><b>Nuevo turno propio</b><div class="fila2"><div><label for="nt-c">Nombre / código</label><input type="text" id="nt-c" maxlength="6" placeholder="M1"></div><div><label for="nt-e">Entra</label><input type="time" id="nt-e" value="07:00"></div><div><label for="nt-s">Sale</label><input type="time" id="nt-s" value="15:00"></div></div><label for="nt-l">Lugar habitual (opcional)</label><input type="text" id="nt-l" data-lug="1" autocomplete="off"><p style="margin-top:8px"><button class="btn pri" data-gt="1">Guardar turno</button></p></div>':'')+
       '</div><datalist id="dl-lug">'+lugares().map(l=>'<option value="'+esc(l)+'">').join('')+'</datalist>';
@@ -493,6 +493,7 @@ document.addEventListener('click',e=>{
   const d=e.target.closest('.dia');
   if(d){
     const i=+d.dataset.i;
+    if(edit&&!brush&&brushLug){const o=(store.ed[pack.y]||{})[i]||{};setEd(i,{l:o.l===brushLug?'':brushLug});selDia=i;render();return;}
     if(edit&&brush){const v={c:brush,l:brushLug};if(brush==='V'&&!legG(pack,'V'))store.pal.V=['V','',null];setEd(i,v);selDia=i;render();return;}
     selDia=i;render();return;}
   if(e.target.closest('[data-gd]')){
