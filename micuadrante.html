@@ -41,6 +41,7 @@ header{background:var(--tinta);color:#fff;padding:0 0 12px;border-bottom:6px sol
 .afi-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--rojo);color:#fff;text-decoration:none;padding:17px 18px;border-radius:4px;font-family:'Archivo Black',sans-serif;font-size:clamp(15px,4.4vw,18px);text-transform:uppercase;letter-spacing:.05em;box-shadow:0 6px 0 var(--rojo-osc)}
 .afi-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--rojo-osc)}
 .afi-pie{font-size:11px;color:#8C949E;margin-top:14px;line-height:1.5}
+.inst{border:2px solid var(--rojo)}
 .herr{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--linea);border-radius:8px;padding:12px 14px;margin-bottom:12px;text-decoration:none;color:var(--tinta)}
 .herr b{display:block;font-size:14px}.herr small{color:var(--tinta-2);font-size:12.5px}.herr .fl{margin-left:auto;color:var(--rojo);font-size:20px}
 header h1{font-family:'Archivo Black',sans-serif;font-size:19px;text-transform:uppercase;line-height:1.05}
@@ -284,8 +285,19 @@ function proximos(n){
     if(i===h&&fin<=ahoraMin)continue;out.push(i);
   }return out;
 }
+let instEv=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEv=e;if(pack&&tab==='hoy')render();});
+const esApp=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function cajaInstalar(){
+  if(esApp()||store.noInst)return '';
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  return '<div class="card inst"><h2>📲 Ponla en tu pantalla de inicio</h2><p class="nota">Así la abres como una app más, con su icono, y funciona sin conexión.</p>'+
+    (instEv?'<p style="margin-top:10px"><button class="btn pri" data-inst="1">Añadir a la pantalla de inicio</button></p>':
+     ios?'<ol class="nota" style="margin:8px 0 0 18px;padding:0"><li>Ábrela en <b>Safari</b> (si estás en WhatsApp: ··· → «Abrir en Safari»).</li><li>Pulsa el botón de compartir <b>⬆︎</b> (abajo).</li><li>Elige <b>«Añadir a pantalla de inicio»</b> → «Añadir».</li></ol><p class="nota" style="margin-top:6px">Si al abrir el icono la ves vacía, pulsa «Cargar mi PDF» y elige este mismo PDF: se queda guardado.</p>':
+     '<ol class="nota" style="margin:8px 0 0 18px;padding:0"><li>Ábrela en <b>Chrome</b>.</li><li>Menú <b>⋮</b> (arriba a la derecha).</li><li><b>«Añadir a pantalla de inicio»</b> o «Instalar aplicación».</li></ol>')+
+    '<p style="margin-top:8px"><button class="btn" data-noinst="1">Ya la tengo</button></p></div>';
+}
 function vHoy(){
-  const y=pack.y,N=nDias(y),h=hoyIdx(y);let html='';
+  const y=pack.y,N=nDias(y),h=hoyIdx(y);let html=cajaInstalar();
   if(h>=0&&h<N){
     const x=info(pack,h);
     html+='<div class="card"><h2>Hoy · '+fmt(y,h)+'</h2><div class="hoy"><div class="cod '+cls(h)+'">'+esc(x.c||'—')+'</div><div><div class="hh">'+(x.tipo==='T'?esc(horTxt(x.hor)):esc(nombreTipo[x.tipo]||'Libre'))+'</div><div class="nota">'+esc(descDia(pack,h))+'</div></div></div></div>';
@@ -603,6 +615,8 @@ document.addEventListener('click',e=>{
     store.packs[y]={actual:{v:1,y,mat:'',n:'',c:'',et:'propio',f:new Date().toISOString().slice(0,10),L:{},D:Array(n).fill(''),F:[],Hm:Array(12).fill(0),Tt:0,Tw:0,vm:31,rg:[144,176,134,162],red:true,fe:[],tel:''}};
     store.ultimo=y;guardar();cargarActivo();tab='mes';edit=true;render();return;}
   if(e.target.id==='copia-mail'){const b=e.target;navigator.clipboard&&navigator.clipboard.writeText(MAILS).then(()=>{b.textContent='Dirección copiada';setTimeout(()=>b.textContent=MAILS,1800);}).catch(()=>{});return;}
+  if(e.target.closest('[data-inst]')&&instEv){instEv.prompt();instEv.userChoice.finally(()=>{instEv=null;render();});return;}
+  if(e.target.closest('[data-noinst]')){store.noInst=true;guardar();render();return;}
   const yc=e.target.closest('[data-yi]');if(yc){hoja=selDia=+yc.dataset.yi;hojaEd=false;render();return;}
   const av=e.target.closest('[data-avista]');if(av){anioTabla=av.dataset.avista==='1';render();return;}
   const go=e.target.closest('[data-go]');if(go){selDia=+go.dataset.i;mes=fec(pack.y,selDia).getUTCMonth();tab='mes';render();return;}
