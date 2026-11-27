@@ -181,12 +181,14 @@ function cargarActivo(){
 }
 
 /* ---------- información de un día ---------- */
+const esForm=c=>/^F\d*$/.test(c||'');// formación: 5 h/día salvo horario propio
 const horasDe=h=>{const sg=segs(h);return sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;};
 const legG=(p,c,raw)=>{const g=p.L[c]||store.pal[c]||null;const hx=store.hx||{};if(!raw&&g&&g[0]==='T'&&p.L[c]&&hx[c])return['T',hx[c],horasDe(hx[c]),g[3]];return g;};
 function info(p,i,raw){
   let c=(p.D[i]||'').trim();const o=(!raw&&p===pack&&store.ed[p.y]&&store.ed[p.y][i])||null;
   if(o&&o.c!==undefined&&o.c!=='')c=o.c==='-'?'':o.c;
   const g=c?legG(p,c,raw||p!==pack):null;let tipo=!c?'L':(g?g[0]:'?'),hor=g?g[1]:'',horas=g?g[2]:null;
+  if(esForm(c)&&!hor&&horas==null)horas=5;
   if(o&&o.h){tipo='T';hor=o.h;const sg=segs(o.h);horas=sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;if(!c)c='·';}
   const l=(o&&o.l)||(c&&(store.lug[c]||(p.lg&&p.lg[c])))||'';
   return{c,tipo,hor,horas,l,ed:!!o,n:(o&&o.n)||''};
@@ -255,7 +257,7 @@ function vHoy(){
     html+='<div class="card"><h2>Hoy · '+fmt(y,h)+'</h2><div class="hoy"><div class="cod '+cls(h)+'">'+esc(x.c||'—')+'</div><div><div class="hh">'+(x.tipo==='T'?esc(horTxt(x.hor)):esc(nombreTipo[x.tipo]||'Libre'))+'</div><div class="nota">'+esc(descDia(pack,h))+'</div></div></div></div>';
   }else html+='<div class="aviso">Tu cuadrante es del año <b>'+y+'</b>. Hoy no está dentro de ese año.</div>';
   const px=proximos(6);
-  html+='<div class="card"><h2>Próximos turnos</h2><div class="lista">'+(px.length?px.map(i=>{const x=info(pack,i);return '<div><span><b>'+fmt(y,i)+'</b></span><span>'+esc(x.c)+' · '+(x.hor?esc(horTxt(x.hor)):(x.horas!=null?String(x.horas).replace('.',',')+' h · sin horario':'sin horario'))+'</span></div>';}).join(''):'<div><span class="nota">No hay más turnos en el cuadrante.</span></div>')+'</div></div>';
+  html+='<div class="card"><h2>Próximos turnos</h2><div class="lista">'+(px.length?px.map(i=>{const x=info(pack,i);return '<div><span><b>'+fmt(y,i)+'</b></span><span>'+esc(x.c)+' · '+(x.hor?esc(horTxt(x.hor)):(x.horas!=null?String(x.horas).replace('.',',')+' h · '+(esForm(x.c)?'formación':'sin horario'):'sin horario'))+'</span></div>';}).join(''):'<div><span class="nota">No hay más turnos en el cuadrante.</span></div>')+'</div></div>';
   const nf=(pack.F||[]).filter(f=>f[0]==='e').length,nc=cambios().length;
   html+='<div class="card"><h2>Resumen</h2><div class="lista"><div><span>Fallos detectados (errores)</span><span class="'+(nf?'mal':'ok')+'">'+nf+'</span></div><div><span>Total de avisos</span><span>'+((pack.F||[]).length-nf)+'</span></div>'+(prev?'<div><span>Cambios desde tu versión anterior ('+esc(prev.et)+')</span><span class="'+(nc?'mal':'ok')+'">'+nc+'</span></div>':'')+'<div><span>Horas del año (cómputo)</span><span>'+String(totalH()).replace('.',',')+'</span></div></div><p class="nota" style="margin-top:8px">Pulsa «Revisar» para ver los fallos y comprobar tus vacaciones.</p></div>';
   return html;
@@ -275,7 +277,7 @@ function resumenMes(y,m){
   let tr=0,noc=0,nocP=0,fin=0,nt=0,n24=false,n31=false,sinH=0;
   for(let d=1;d<=n;d++){
     const i=first+d-1,x=info(pack,i);if(x.tipo!=='T')continue;
-    const sg=segs(x.hor);if(!sg.length){sinH++;nt++;if(x.horas!=null)tr+=x.horas*60;continue;}nt++;
+    const sg=segs(x.hor);if(!sg.length){if(!esForm(x.c))sinH++;nt++;if(x.horas!=null)tr+=x.horas*60;continue;}nt++;
     let tTot=0,tNoc=0;
     sg.forEach(([a,b])=>{tr+=b-a;tTot+=b-a;
       const cuts=new Set([a,b]);for(let k=Math.floor(a/1440)*1440;k<=b;k+=1440){[k,k+360,k+1320,k+1440].forEach(c=>{if(c>a&&c<b)cuts.add(c);});}
