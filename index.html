@@ -2014,6 +2014,7 @@ function verAfiliacion(v){
 }
 document.getElementById("btn-abrir-afi").addEventListener("click", e=>{ e.preventDefault(); verAfiliacion(true); });
 document.getElementById("cerrar-afi").addEventListener("click", ()=> verAfiliacion(false));
+if(location.hash==="#afiliacion") verAfiliacion(true);
 
 /* ====== FIRMA ====== */
 const cv = document.getElementById("a-firma"), cx = cv.getContext("2d");
