@@ -143,7 +143,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const KEY='mc_v1',DIA=1440;
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DS=['dom','lun','mar','mié','jue','vie','sáb'],DL=['L','M','X','J','V','S','D'];
-let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{},fx:{},al:{d:60,c:{}}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false,hoja=-1;
+let store={packs:{},pet:{},ultimo:null,ed:{},pal:{},lug:{},hx:{},fx:{},al:{d:0,c:{},v:2}},pack=null,prev=null,tab='hoy',mes=0,selDia=-1,verCambios=false,edit=false,brush=null,brushLug='',nuevoT=false,gesT=false,edT=null,rotT=false,hoja=-1;
 try{store=Object.assign(store,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
 store.ed=store.ed||{};store.pal=store.pal||{};store.lug=store.lug||{};
 const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
@@ -196,7 +196,7 @@ function cargarActivo(){
 const ALOPT=[[0,'Sin aviso'],[15,'15 min antes'],[30,'30 min antes'],[45,'45 min antes'],[60,'1 hora antes'],[90,'1 h 30 min antes'],[120,'2 horas antes'],[180,'3 horas antes']];
 const alSel=(id,val,her)=>'<select id="'+id+'">'+(her?'<option value=""'+(val===undefined||val===null||val===''?' selected':'')+'>'+her+'</option>':'')+ALOPT.map(([m,t])=>'<option value="'+m+'"'+(val!==undefined&&val!==null&&val!==''&&+val===m?' selected':'')+'>'+t+'</option>').join('')+'</select>';
 const alTxt=m=>(ALOPT.find(x=>x[0]===+m)||[0,m+' min antes'])[1];
-const alCfg=()=>{store.al=store.al||{d:60,c:{}};store.al.c=store.al.c||{};if(store.al.d===undefined)store.al.d=60;return store.al;};
+const alCfg=()=>{store.al=store.al||{d:0,c:{},v:2};store.al.c=store.al.c||{};if(store.al.v!==2){store.al.d=0;store.al.v=2;}if(store.al.d===undefined)store.al.d=0;return store.al;};// sin alarma salvo que el trabajador la elija
 function alarmaDe(p,i,x){const o=(p===pack&&store.ed[p.y]&&store.ed[p.y][i])||{};if(o.a!==undefined)return +o.a;const A=alCfg();if(x&&A.c[x.c]!==undefined)return +A.c[x.c];return +A.d;}
 const esForm=c=>/^F\d*$/.test(c||'');// formación: 5 h/día salvo horario propio
 const horasDe=h=>{const sg=segs(h);return sg.length?Math.round(sg.reduce((a,x)=>a+x[1]-x[0],0)/6)/10:null;};
