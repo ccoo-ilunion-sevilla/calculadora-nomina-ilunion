@@ -54,6 +54,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
 .dia{border-radius:6px;min-height:58px;padding:3px 2px 2px;text-align:center;font-size:11px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}
 .dia .num{font-size:10px;color:#555;text-align:left;padding-left:3px;line-height:1}
 .dia .c{font-weight:800;font-size:15px;line-height:1.15}
+.dia .c .ab{font-size:10px;font-weight:800;color:#fff;background:#1F4E8C;border-radius:4px;padding:1px 3px;vertical-align:2px}
 .dia .c.lib{font-weight:700;font-size:11px;color:#B4583A;margin-top:3px}
 .dia .h{font-size:8.5px;line-height:1.1;color:#333}
 .dia.fes .num{color:var(--rojo);font-weight:800}
@@ -256,6 +257,8 @@ function paleta(){
   const out=[];Object.keys(pack.L).forEach(c=>{if(pack.L[c][0]==='T')out.push(c);});Object.keys(store.pal).forEach(c=>{if(store.pal[c][0]==='T'&&!out.includes(c))out.push(c);});
   return out.sort((a,b)=>(isNaN(a)-isNaN(b))||(+a-+b)||a.localeCompare(b));
 }
+function abLug(l){const w=l.replace(/^(estaci[oó]n|est\.?)\s+/i,'').replace(/\(.*?\)/g,'').split(/[\s\-]+/).filter(x=>x&&!/^(de|del|la|las|los|el|y)$/i.test(x));
+  if(!w.length)return'';if(/^[A-Z0-9]{2,}$/.test(w[0]))return w[0].slice(0,4);if(w.length===1)return w[0].slice(0,3).toUpperCase();return w.map(x=>/^\d/.test(x)?x.replace(/\D.*$/,''):x[0].toUpperCase()).join('').slice(0,4);}
 function fesSet(y){const st=new Set(pack.fe||[]),fx=(store.fx||{})[y]||{};Object.keys(fx).forEach(k=>{if(fx[k])st.add(+k);else st.delete(+k);});return st;}
 function resumenMes(y,m){
   const fe=fesSet(y),first=idx(y,m,1),n=dm(y,m),nd=nDias(y);
@@ -295,7 +298,7 @@ function vMes(){
   let g=DL.map(d=>'<div class="dh">'+d+'</div>').join('')+'<div></div>'.repeat(off);
   for(let d=1;d<=n;d++){
     const i=first+d-1,x=info(pack,i),w=fec(y,i).getUTCDay();
-    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div>'+(x.tipo==='L'?'<div class="c lib">Libre</div>':'<div class="c">'+esc(x.c||'')+'</div>')+'<div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div>'+(x.l?'<div class="lg">'+esc(x.l.slice(0,10))+'</div>':'')+'</div>';
+    g+='<div class="dia '+cls(i)+(fe.has(i)?' fes':'')+((w===0||w===6)?' fin':'')+(i===h?' hoyd':'')+(fl.has(i)?' fallo':'')+(cm.has(i)?' cambio':'')+(ped.has(i)?' ped':'')+(x.ed?' ed':'')+(i===selDia?' sel':'')+'" data-i="'+i+'"><div class="num">'+d+'</div>'+(x.tipo==='L'?'<div class="c lib">Libre</div>':'<div class="c">'+esc(x.c||'')+(x.l?' <span class="ab">'+esc(abLug(x.l))+'</span>':'')+'</div>')+'<div class="h">'+(x.tipo==='T'&&x.hor?esc(x.hor.split('+')[0].replace('-','–')):'')+'</div>'+'</div>';
   }
   let barra='';
   if(edit){
